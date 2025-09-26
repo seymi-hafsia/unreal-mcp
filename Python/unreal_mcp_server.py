@@ -7,10 +7,18 @@ A simple MCP server for interacting with Unreal Engine.
 import logging
 import socket
 import sys
-import json
+import time
+import uuid
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
+
+from protocol import (
+    ProtocolError,
+    current_timestamp_ms,
+    read_frame,
+    write_frame,
+)
 
 # Configure logging with more detailed format
 logging.basicConfig(
@@ -28,176 +36,158 @@ UNREAL_HOST = "127.0.0.1"
 UNREAL_PORT = 55557
 
 class UnrealConnection:
-    """Connection to an Unreal Engine instance."""
-    
-    def __init__(self):
-        """Initialize the connection."""
-        self.socket = None
+    """Connection to an Unreal Engine instance using Protocol v1."""
+
+    PROTOCOL_VERSION = 1
+    HANDSHAKE_TIMEOUT = 10.0
+    WRITE_TIMEOUT = 5.0
+    IDLE_TIMEOUT = 60.0
+    ENGINE_VERSION = "5.6.x"
+    CLIENT_VERSION = "python-mcp/1.0.0"
+
+    def __init__(self) -> None:
+        self.socket: Optional[socket.socket] = None
         self.connected = False
-    
+        self.session_id = str(uuid.uuid4())
+        self.capabilities: list[str] = []
+        now = time.monotonic()
+        self._last_receive = now
+        self._last_send = now
+
     def connect(self) -> bool:
-        """Connect to the Unreal Engine instance."""
+        """Connect to the Unreal Engine instance and perform handshake."""
+
+        self.disconnect()
+
         try:
-            # Close any existing socket
-            if self.socket:
-                try:
-                    self.socket.close()
-                except:
-                    pass
-                self.socket = None
-            
-            logger.info(f"Connecting to Unreal at {UNREAL_HOST}:{UNREAL_PORT}...")
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(5)  # 5 second timeout
-            
-            # Set socket options for better stability
-            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-            
-            # Set larger buffer sizes
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 65536)
-            
-            self.socket.connect((UNREAL_HOST, UNREAL_PORT))
+            logger.info("Connecting to Unreal at %s:%s...", UNREAL_HOST, UNREAL_PORT)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 65536)
+            sock.settimeout(None)
+            sock.connect((UNREAL_HOST, UNREAL_PORT))
+
+            self.socket = sock
             self.connected = True
-            logger.info("Connected to Unreal Engine")
+            self._perform_handshake()
+            logger.info("Connected to Unreal Engine (capabilities=%s)", self.capabilities)
             return True
-            
-        except Exception as e:
-            logger.error(f"Failed to connect to Unreal: {e}")
-            self.connected = False
+
+        except ProtocolError as exc:
+            logger.error("Protocol handshake failed: %s (%s)", exc.code, exc)
+            self.disconnect()
             return False
-    
-    def disconnect(self):
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.error("Failed to connect to Unreal: %s", exc)
+            self.disconnect()
+            return False
+
+    def disconnect(self) -> None:
         """Disconnect from the Unreal Engine instance."""
+
         if self.socket:
             try:
                 self.socket.close()
-            except:
+            except OSError:
                 pass
         self.socket = None
         self.connected = False
 
-    def receive_full_response(self, sock, buffer_size=4096) -> bytes:
-        """Receive a complete response from Unreal, handling chunked data."""
-        chunks = []
-        sock.settimeout(5)  # 5 second timeout
-        try:
-            while True:
-                chunk = sock.recv(buffer_size)
-                if not chunk:
-                    if not chunks:
-                        raise Exception("Connection closed before receiving data")
-                    break
-                chunks.append(chunk)
-                
-                # Process the data received so far
-                data = b''.join(chunks)
-                decoded_data = data.decode('utf-8')
-                
-                # Try to parse as JSON to check if complete
-                try:
-                    json.loads(decoded_data)
-                    logger.info(f"Received complete response ({len(data)} bytes)")
-                    return data
-                except json.JSONDecodeError:
-                    # Not complete JSON yet, continue reading
-                    logger.debug(f"Received partial response, waiting for more data...")
-                    continue
-                except Exception as e:
-                    logger.warning(f"Error processing response chunk: {str(e)}")
-                    continue
-        except socket.timeout:
-            logger.warning("Socket timeout during receive")
-            if chunks:
-                # If we have some data already, try to use it
-                data = b''.join(chunks)
-                try:
-                    json.loads(data.decode('utf-8'))
-                    logger.info(f"Using partial response after timeout ({len(data)} bytes)")
-                    return data
-                except:
-                    pass
-            raise Exception("Timeout receiving Unreal response")
-        except Exception as e:
-            logger.error(f"Error during receive: {str(e)}")
-            raise
-    
-    def send_command(self, command: str, params: Dict[str, Any] = None) -> Optional[Dict[str, Any]]:
-        """Send a command to Unreal Engine and get the response."""
-        # Always reconnect for each command, since Unreal closes the connection after each command
-        # This is different from Unity which keeps connections alive
-        if self.socket:
+    def _perform_handshake(self) -> None:
+        if not self.socket:
+            raise ProtocolError("INTERNAL_ERROR", "Socket not initialized.")
+
+        handshake = {
+            "type": "handshake",
+            "protocolVersion": self.PROTOCOL_VERSION,
+            "engineVersion": self.ENGINE_VERSION,
+            "pluginVersion": self.CLIENT_VERSION,
+            "sessionId": self.session_id,
+        }
+
+        write_frame(self.socket, handshake, timeout=self.WRITE_TIMEOUT)
+        ack = read_frame(self.socket, timeout=self.HANDSHAKE_TIMEOUT)
+
+        if ack.get("type") != "handshake/ack" or not ack.get("ok", False):
+            raise ProtocolError("PROTOCOL_VERSION_MISMATCH", "Protocol handshake rejected.", {"response": ack})
+
+        self.capabilities = list(ack.get("capabilities", []))
+        now = time.monotonic()
+        self._last_send = now
+        self._last_receive = now
+
+    def _handle_control_message(self, message: Dict[str, Any]) -> bool:
+        if not self.socket:
+            return False
+
+        message_type = message.get("type")
+        if message_type == "ping":
+            timestamp = int(message.get("ts", current_timestamp_ms()))
             try:
-                self.socket.close()
-            except:
-                pass
-            self.socket = None
-            self.connected = False
-        
-        if not self.connect():
-            logger.error("Failed to connect to Unreal Engine for command")
-            return None
-        
+                write_frame(self.socket, {"type": "pong", "ts": timestamp}, timeout=self.WRITE_TIMEOUT)
+                self._last_send = time.monotonic()
+                logger.debug("Responded to ping (%s)", timestamp)
+            except ProtocolError as exc:
+                logger.error("Failed to respond to ping: %s", exc)
+                raise
+            return True
+
+        if message_type == "pong":
+            logger.debug("Received pong (%s)", message.get("ts"))
+            return True
+
+        return False
+
+    def _wait_for_message(self) -> Dict[str, Any]:
+        if not self.socket:
+            raise ProtocolError("READ_TIMEOUT", "Socket not connected.")
+
+        deadline = time.monotonic() + self.IDLE_TIMEOUT
+        while True:
+            remaining = max(0.0, deadline - time.monotonic())
+            message = read_frame(self.socket, timeout=remaining)
+            self._last_receive = time.monotonic()
+            if self._handle_control_message(message):
+                continue
+            return message
+
+    def send_command(self, command: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        """Send a command to Unreal Engine and wait for a framed response."""
+
+        if not self.connected or not self.socket:
+            if not self.connect():
+                logger.error("Failed to connect to Unreal Engine for command")
+                return None
+
+        payload = {
+            "type": command,
+            "params": params or {},
+        }
+
         try:
-            # Match Unity's command format exactly
-            command_obj = {
-                "type": command,  # Use "type" instead of "command"
-                "params": params or {}  # Use Unity's params or {} pattern
-            }
-            
-            # Send without newline, exactly like Unity
-            command_json = json.dumps(command_obj)
-            logger.info(f"Sending command: {command_json}")
-            self.socket.sendall(command_json.encode('utf-8'))
-            
-            # Read response using improved handler
-            response_data = self.receive_full_response(self.socket)
-            response = json.loads(response_data.decode('utf-8'))
-            
-            # Log complete response for debugging
-            logger.info(f"Complete response from Unreal: {response}")
-            
-            # Check for both error formats: {"status": "error", ...} and {"success": false, ...}
-            if response.get("status") == "error":
-                error_message = response.get("error") or response.get("message", "Unknown Unreal error")
-                logger.error(f"Unreal error (status=error): {error_message}")
-                # We want to preserve the original error structure but ensure error is accessible
-                if "error" not in response:
-                    response["error"] = error_message
-            elif response.get("success") is False:
-                # This format uses {"success": false, "error": "message"} or {"success": false, "message": "message"}
-                error_message = response.get("error") or response.get("message", "Unknown Unreal error")
-                logger.error(f"Unreal error (success=false): {error_message}")
-                # Convert to the standard format expected by higher layers
-                response = {
-                    "status": "error",
-                    "error": error_message
-                }
-            
-            # Always close the connection after command is complete
-            # since Unreal will close it on its side anyway
-            try:
-                self.socket.close()
-            except:
-                pass
-            self.socket = None
-            self.connected = False
-            
+            write_frame(self.socket, payload, timeout=self.WRITE_TIMEOUT)
+            self._last_send = time.monotonic()
+            response = self._wait_for_message()
+            logger.debug("Received response payload: %s", response)
             return response
-            
-        except Exception as e:
-            logger.error(f"Error sending command: {e}")
-            # Always reset connection state on any error
-            self.connected = False
-            try:
-                self.socket.close()
-            except:
-                pass
-            self.socket = None
+
+        except ProtocolError as exc:
+            logger.error("Protocol error while communicating with Unreal: %s (%s)", exc.code, exc)
+            error_payload = exc.to_dict()
+            self.disconnect()
+            return error_payload
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.error("Unexpected error while sending command: %s", exc)
+            self.disconnect()
             return {
-                "status": "error",
-                "error": str(e)
+                "ok": False,
+                "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": str(exc),
+                    "details": {},
+                },
             }
 
 # Global connection state
@@ -212,24 +202,7 @@ def get_unreal_connection() -> Optional[UnrealConnection]:
             if not _unreal_connection.connect():
                 logger.warning("Could not connect to Unreal Engine")
                 _unreal_connection = None
-        else:
-            # Verify connection is still valid with a ping-like test
-            try:
-                # Simple test by sending an empty buffer to check if socket is still connected
-                _unreal_connection.socket.sendall(b'\x00')
-                logger.debug("Connection verified with ping test")
-            except Exception as e:
-                logger.warning(f"Existing connection failed: {e}")
-                _unreal_connection.disconnect()
-                _unreal_connection = None
-                # Try to reconnect
-                _unreal_connection = UnrealConnection()
-                if not _unreal_connection.connect():
-                    logger.warning("Could not reconnect to Unreal Engine")
-                    _unreal_connection = None
-                else:
-                    logger.info("Successfully reconnected to Unreal Engine")
-        
+
         return _unreal_connection
     except Exception as e:
         logger.error(f"Error getting Unreal connection: {e}")
