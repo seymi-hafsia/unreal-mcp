@@ -57,6 +57,7 @@
 #include "Commands/UnrealMCPProjectCommands.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Commands/UnrealMCPUMGCommands.h"
+#include "Permissions/WriteGate.h"
 
 // Default settings
 #define MCP_SERVER_HOST "127.0.0.1"
@@ -69,6 +70,8 @@ UUnrealMCPBridge::UUnrealMCPBridge()
     BlueprintNodeCommands = MakeShared<FUnrealMCPBlueprintNodeCommands>();
     ProjectCommands = MakeShared<FUnrealMCPProjectCommands>();
     UMGCommands = MakeShared<FUnrealMCPUMGCommands>();
+
+    FWriteGate::UpdateRemoteEnforcement(false, true, TArray<FString>());
 }
 
 UUnrealMCPBridge::~UUnrealMCPBridge()
@@ -204,124 +207,215 @@ void UUnrealMCPBridge::StopServer()
 FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params)
 {
     UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Executing command: %s"), *CommandType);
-    
+
     // Create a promise to wait for the result
     TPromise<FString> Promise;
     TFuture<FString> Future = Promise.GetFuture();
-    
+
     // Queue execution on Game Thread
     AsyncTask(ENamedThreads::GameThread, [this, CommandType, Params, Promise = MoveTemp(Promise)]() mutable
     {
-        TSharedPtr<FJsonObject> ResponseJson = MakeShareable(new FJsonObject);
-        
+        TSharedPtr<FJsonObject> ResponseJson = MakeShared<FJsonObject>();
+
         try
         {
             TSharedPtr<FJsonObject> ResultJson;
-            
-            if (CommandType == TEXT("ping"))
+            const bool bIsMutation = FWriteGate::IsMutationCommand(CommandType);
+            const FString TargetPath = FWriteGate::ResolvePathForCommand(CommandType, Params);
+            FMutationPlan MutationPlan;
+            bool bSkipExecution = false;
+            TSharedPtr<FJsonObject> AuditJson;
+
+            if (bIsMutation)
             {
-                ResultJson = MakeShareable(new FJsonObject);
-                ResultJson->SetStringField(TEXT("message"), TEXT("pong"));
-            }
-            // Editor Commands (including actor manipulation)
-            else if (CommandType == TEXT("get_actors_in_level") || 
-                     CommandType == TEXT("find_actors_by_name") ||
-                     CommandType == TEXT("spawn_actor") ||
-                     CommandType == TEXT("create_actor") ||
-                     CommandType == TEXT("delete_actor") || 
-                     CommandType == TEXT("set_actor_transform") ||
-                     CommandType == TEXT("get_actor_properties") ||
-                     CommandType == TEXT("set_actor_property") ||
-                     CommandType == TEXT("spawn_blueprint_actor") ||
-                     CommandType == TEXT("focus_viewport") || 
-                     CommandType == TEXT("take_screenshot"))
-            {
-                ResultJson = EditorCommands->HandleCommand(CommandType, Params);
-            }
-            // Blueprint Commands
-            else if (CommandType == TEXT("create_blueprint") || 
-                     CommandType == TEXT("add_component_to_blueprint") || 
-                     CommandType == TEXT("set_component_property") || 
-                     CommandType == TEXT("set_physics_properties") || 
-                     CommandType == TEXT("compile_blueprint") || 
-                     CommandType == TEXT("set_blueprint_property") || 
-                     CommandType == TEXT("set_static_mesh_properties") ||
-                     CommandType == TEXT("set_pawn_properties"))
-            {
-                ResultJson = BlueprintCommands->HandleCommand(CommandType, Params);
-            }
-            // Blueprint Node Commands
-            else if (CommandType == TEXT("connect_blueprint_nodes") || 
-                     CommandType == TEXT("add_blueprint_get_self_component_reference") ||
-                     CommandType == TEXT("add_blueprint_self_reference") ||
-                     CommandType == TEXT("find_blueprint_nodes") ||
-                     CommandType == TEXT("add_blueprint_event_node") ||
-                     CommandType == TEXT("add_blueprint_input_action_node") ||
-                     CommandType == TEXT("add_blueprint_function_node") ||
-                     CommandType == TEXT("add_blueprint_get_component_node") ||
-                     CommandType == TEXT("add_blueprint_variable"))
-            {
-                ResultJson = BlueprintNodeCommands->HandleCommand(CommandType, Params);
-            }
-            // Project Commands
-            else if (CommandType == TEXT("create_input_mapping"))
-            {
-                ResultJson = ProjectCommands->HandleCommand(CommandType, Params);
-            }
-            // UMG Commands
-            else if (CommandType == TEXT("create_umg_widget_blueprint") ||
-                     CommandType == TEXT("add_text_block_to_widget") ||
-                     CommandType == TEXT("add_button_to_widget") ||
-                     CommandType == TEXT("bind_widget_event") ||
-                     CommandType == TEXT("set_text_block_binding") ||
-                     CommandType == TEXT("add_widget_to_viewport"))
-            {
-                ResultJson = UMGCommands->HandleCommand(CommandType, Params);
-            }
-            else
-            {
-                ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
-                ResponseJson->SetStringField(TEXT("error"), FString::Printf(TEXT("Unknown command: %s"), *CommandType));
-                
-                FString ResultString;
-                TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
-                FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);
-                Promise.SetValue(ResultString);
-                return;
-            }
-            
-            // Check if the result contains an error
-            bool bSuccess = true;
-            FString ErrorMessage;
-            
-            if (ResultJson->HasField(TEXT("success")))
-            {
-                bSuccess = ResultJson->GetBoolField(TEXT("success"));
-                if (!bSuccess && ResultJson->HasField(TEXT("error")))
+                MutationPlan = FWriteGate::BuildPlan(CommandType, Params);
+
+                FString GateReason;
+                if (!FWriteGate::CanMutate(CommandType, TargetPath, GateReason))
                 {
-                    ErrorMessage = ResultJson->GetStringField(TEXT("error"));
+                    TSharedPtr<FJsonObject> ErrorObject;
+                    if (!FWriteGate::IsWriteAllowed())
+                    {
+                        ErrorObject = FWriteGate::MakeWriteNotAllowedError(CommandType);
+                    }
+                    else
+                    {
+                        ErrorObject = FWriteGate::MakePathNotAllowedError(TargetPath, GateReason);
+                    }
+
+                    ResponseJson->SetBoolField(TEXT("ok"), false);
+                    ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
+                    ResponseJson->SetObjectField(TEXT("error"), ErrorObject);
+
+                    MutationPlan.bDryRun = true;
+                    AuditJson = FWriteGate::BuildAuditJson(MutationPlan, false);
+                    bSkipExecution = true;
+                }
+                else if (FWriteGate::ShouldDryRun())
+                {
+                    MutationPlan.bDryRun = true;
+                    TSharedPtr<FJsonObject> ResultPayload = MakeShared<FJsonObject>();
+                    ResultPayload->SetBoolField(TEXT("planned"), true);
+
+                    ResponseJson->SetBoolField(TEXT("ok"), true);
+                    ResponseJson->SetStringField(TEXT("status"), TEXT("success"));
+                    ResponseJson->SetObjectField(TEXT("result"), ResultPayload);
+
+                    AuditJson = FWriteGate::BuildAuditJson(MutationPlan, false);
+                    bSkipExecution = true;
                 }
             }
-            
-            if (bSuccess)
+
+            if (!bSkipExecution)
             {
-                // Set success status and include the result
-                ResponseJson->SetStringField(TEXT("status"), TEXT("success"));
-                ResponseJson->SetObjectField(TEXT("result"), ResultJson);
+                if (CommandType == TEXT("ping"))
+                {
+                    ResultJson = MakeShared<FJsonObject>();
+                    ResultJson->SetStringField(TEXT("message"), TEXT("pong"));
+                }
+                // Editor Commands (including actor manipulation)
+                else if (CommandType == TEXT("get_actors_in_level") ||
+                         CommandType == TEXT("find_actors_by_name") ||
+                         CommandType == TEXT("spawn_actor") ||
+                         CommandType == TEXT("create_actor") ||
+                         CommandType == TEXT("delete_actor") ||
+                         CommandType == TEXT("set_actor_transform") ||
+                         CommandType == TEXT("get_actor_properties") ||
+                         CommandType == TEXT("set_actor_property") ||
+                         CommandType == TEXT("spawn_blueprint_actor") ||
+                         CommandType == TEXT("focus_viewport") ||
+                         CommandType == TEXT("take_screenshot"))
+                {
+                    ResultJson = EditorCommands->HandleCommand(CommandType, Params);
+                }
+                // Blueprint Commands
+                else if (CommandType == TEXT("create_blueprint") ||
+                         CommandType == TEXT("add_component_to_blueprint") ||
+                         CommandType == TEXT("set_component_property") ||
+                         CommandType == TEXT("set_physics_properties") ||
+                         CommandType == TEXT("compile_blueprint") ||
+                         CommandType == TEXT("set_blueprint_property") ||
+                         CommandType == TEXT("set_static_mesh_properties") ||
+                         CommandType == TEXT("set_pawn_properties"))
+                {
+                    ResultJson = BlueprintCommands->HandleCommand(CommandType, Params);
+                }
+                // Blueprint Node Commands
+                else if (CommandType == TEXT("connect_blueprint_nodes") ||
+                         CommandType == TEXT("add_blueprint_get_self_component_reference") ||
+                         CommandType == TEXT("add_blueprint_self_reference") ||
+                         CommandType == TEXT("find_blueprint_nodes") ||
+                         CommandType == TEXT("add_blueprint_event_node") ||
+                         CommandType == TEXT("add_blueprint_input_action_node") ||
+                         CommandType == TEXT("add_blueprint_function_node") ||
+                         CommandType == TEXT("add_blueprint_get_component_node") ||
+                         CommandType == TEXT("add_blueprint_variable"))
+                {
+                    ResultJson = BlueprintNodeCommands->HandleCommand(CommandType, Params);
+                }
+                // Project Commands
+                else if (CommandType == TEXT("create_input_mapping"))
+                {
+                    ResultJson = ProjectCommands->HandleCommand(CommandType, Params);
+                }
+                // UMG Commands
+                else if (CommandType == TEXT("create_umg_widget_blueprint") ||
+                         CommandType == TEXT("add_text_block_to_widget") ||
+                         CommandType == TEXT("add_button_to_widget") ||
+                         CommandType == TEXT("bind_widget_event") ||
+                         CommandType == TEXT("set_text_block_binding") ||
+                         CommandType == TEXT("add_widget_to_viewport"))
+                {
+                    ResultJson = UMGCommands->HandleCommand(CommandType, Params);
+                }
+                else
+                {
+                    ResponseJson->SetBoolField(TEXT("ok"), false);
+                    ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
+                    TSharedPtr<FJsonObject> ErrorObject = MakeShared<FJsonObject>();
+                    ErrorObject->SetStringField(TEXT("code"), TEXT("UNKNOWN_COMMAND"));
+                    ErrorObject->SetStringField(TEXT("message"), FString::Printf(TEXT("Unknown command: %s"), *CommandType));
+                    ResponseJson->SetObjectField(TEXT("error"), ErrorObject);
+
+                    if (bIsMutation)
+                    {
+                        MutationPlan.bDryRun = true;
+                        AuditJson = FWriteGate::BuildAuditJson(MutationPlan, false);
+                    }
+
+                    FString ResultString;
+                    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
+                    FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);
+                    Promise.SetValue(ResultString);
+                    return;
+                }
+
+                // Check if the result contains an error
+                bool bSuccess = true;
+                FString ErrorMessage;
+
+                if (ResultJson.IsValid() && ResultJson->HasField(TEXT("success")))
+                {
+                    bSuccess = ResultJson->GetBoolField(TEXT("success"));
+                    if (!bSuccess && ResultJson->HasField(TEXT("error")))
+                    {
+                        ErrorMessage = ResultJson->GetStringField(TEXT("error"));
+                    }
+                }
+
+                if (bSuccess)
+                {
+                    ResponseJson->SetBoolField(TEXT("ok"), true);
+                    ResponseJson->SetStringField(TEXT("status"), TEXT("success"));
+                    if (ResultJson.IsValid())
+                    {
+                        ResponseJson->SetObjectField(TEXT("result"), ResultJson);
+                    }
+
+                    if (bIsMutation)
+                    {
+                        MutationPlan.bDryRun = false;
+                        AuditJson = FWriteGate::BuildAuditJson(MutationPlan, true);
+                    }
+                }
+                else
+                {
+                    ResponseJson->SetBoolField(TEXT("ok"), false);
+                    ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
+
+                    TSharedPtr<FJsonObject> ErrorObject = MakeShared<FJsonObject>();
+                    ErrorObject->SetStringField(TEXT("code"), TEXT("COMMAND_FAILED"));
+                    ErrorObject->SetStringField(TEXT("message"), ErrorMessage);
+                    ResponseJson->SetObjectField(TEXT("error"), ErrorObject);
+
+                    if (bIsMutation)
+                    {
+                        MutationPlan.bDryRun = false;
+                        AuditJson = FWriteGate::BuildAuditJson(MutationPlan, false);
+                    }
+                }
             }
-            else
+
+            if (AuditJson.IsValid())
             {
-                // Set error status and include the error message
-                ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
-                ResponseJson->SetStringField(TEXT("error"), ErrorMessage);
+                ResponseJson->SetObjectField(TEXT("audit"), AuditJson);
+
+                FString AuditString;
+                TSharedRef<TJsonWriter<>> AuditWriter = TJsonWriterFactory<>::Create(&AuditString);
+                FJsonSerializer::Serialize(AuditJson.ToSharedRef(), AuditWriter);
+                UE_LOG(LogTemp, Display, TEXT("[AUDIT] %s"), *AuditString);
             }
         }
         catch (const std::exception& e)
         {
+            ResponseJson->SetBoolField(TEXT("ok"), false);
             ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
-            ResponseJson->SetStringField(TEXT("error"), UTF8_TO_TCHAR(e.what()));
+            TSharedPtr<FJsonObject> ErrorObject = MakeShared<FJsonObject>();
+            ErrorObject->SetStringField(TEXT("code"), TEXT("EXCEPTION"));
+            ErrorObject->SetStringField(TEXT("message"), UTF8_TO_TCHAR(e.what()));
+            ResponseJson->SetObjectField(TEXT("error"), ErrorObject);
         }
-        
+
         FString ResultString;
         TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
         FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);

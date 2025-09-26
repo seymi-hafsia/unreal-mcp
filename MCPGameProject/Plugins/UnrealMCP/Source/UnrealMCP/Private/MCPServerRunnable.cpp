@@ -2,6 +2,7 @@
 
 #include "UnrealMCPBridge.h"
 #include "Protocol/Protocol.h"
+#include "Permissions/WriteGate.h"
 
 #include "Sockets.h"
 #include "SocketSubsystem.h"
@@ -193,6 +194,44 @@ bool FMCPServerRunnable::HandleProtocolMessage(UnrealMCP::Protocol::FProtocolCli
         if (MessageType.Equals(TEXT("handshake"), ESearchCase::IgnoreCase))
         {
                 UE_LOG(LogTemp, Warning, TEXT("[Protocol] Unexpected handshake message after initialization"));
+                return true;
+        }
+
+        if (MessageType.Equals(TEXT("capabilities"), ESearchCase::IgnoreCase))
+        {
+                bool bOk = false;
+                Message->TryGetBoolField(TEXT("ok"), bOk);
+                if (bOk && Message->HasTypedField<EJson::Object>(TEXT("enforcement")))
+                {
+                        const TSharedPtr<FJsonObject> Enforcement = Message->GetObjectField(TEXT("enforcement"));
+
+                        bool bAllowWrite = false;
+                        Enforcement->TryGetBoolField(TEXT("allowWrite"), bAllowWrite);
+
+                        bool bDryRun = true;
+                        Enforcement->TryGetBoolField(TEXT("dryRun"), bDryRun);
+
+                        TArray<FString> AllowedPaths;
+                        if (Enforcement->HasTypedField<EJson::Array>(TEXT("allowedPaths")))
+                        {
+                                const TArray<TSharedPtr<FJsonValue>>& PathValues = Enforcement->GetArrayField(TEXT("allowedPaths"));
+                                for (const TSharedPtr<FJsonValue>& Value : PathValues)
+                                {
+                                        if (Value.IsValid() && Value->Type == EJson::String)
+                                        {
+                                                AllowedPaths.Add(Value->AsString());
+                                        }
+                                }
+                        }
+
+                        FWriteGate::UpdateRemoteEnforcement(bAllowWrite, bDryRun, AllowedPaths);
+
+                        UE_LOG(LogTemp, Display, TEXT("[Protocol] Remote enforcement updated (allowWrite=%s, dryRun=%s, paths=%d)"),
+                                bAllowWrite ? TEXT("true") : TEXT("false"),
+                                bDryRun ? TEXT("true") : TEXT("false"),
+                                AllowedPaths.Num());
+                }
+
                 return true;
         }
 
