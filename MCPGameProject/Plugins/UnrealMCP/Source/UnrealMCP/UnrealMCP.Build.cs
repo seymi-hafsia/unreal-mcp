@@ -46,14 +46,15 @@ public class UnrealMCP : ModuleRules
 				"EditorSubsystem",
 				"Slate",
 				"SlateCore",
-				"UMG",
-				"Kismet",
-				"KismetCompiler",
-				"BlueprintGraph",
-				"Projects",
-				"AssetRegistry"
-			}
-		);
+                                "UMG",
+                                "Kismet",
+                                "KismetCompiler",
+                                "BlueprintGraph",
+                                "Projects",
+                                "AssetRegistry",
+                                "SourceControl"
+                        }
+                );
 		
 		if (Target.bBuildEditor == true)
 		{

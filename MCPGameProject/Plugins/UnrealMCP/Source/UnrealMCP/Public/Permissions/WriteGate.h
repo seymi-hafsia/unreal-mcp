@@ -41,6 +41,15 @@ public:
         /** Builds an audit JSON object from a plan. */
         static TSharedPtr<FJsonObject> BuildAuditJson(const FMutationPlan& Plan, bool bExecuted);
 
+        /** Shared transaction label used for MCP-driven mutations. */
+        static const FString& GetTransactionName();
+
+        /** Ensures the target content path is checked out when required by settings. */
+        static bool EnsureCheckoutForContentPath(const FString& ContentPath, TSharedPtr<FJsonObject>& OutError);
+
+        /** Creates a structured error payload for missing source control checkout. */
+        static TSharedPtr<FJsonObject> MakeSourceControlRequiredError(const FString& AssetPath, const FString& FailureMessage = FString());
+
         /** Creates an error payload for write-not-allowed responses. */
         static TSharedPtr<FJsonObject> MakeWriteNotAllowedError(const FString& CommandType);
 

@@ -58,6 +58,9 @@
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Commands/UnrealMCPUMGCommands.h"
 #include "Permissions/WriteGate.h"
+#include "Transactions/TransactionManager.h"
+
+#include "Misc/ScopeExit.h"
 
 // Default settings
 #define MCP_SERVER_HOST "127.0.0.1"
@@ -268,6 +271,41 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
 
             if (!bSkipExecution)
             {
+                if (bIsMutation)
+                {
+                    TSharedPtr<FJsonObject> CheckoutError;
+                    if (!FWriteGate::EnsureCheckoutForContentPath(TargetPath, CheckoutError))
+                    {
+                        ResponseJson->SetBoolField(TEXT("ok"), false);
+                        ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
+                        ResponseJson->SetObjectField(TEXT("error"), CheckoutError);
+
+                        MutationPlan.bDryRun = false;
+                        AuditJson = FWriteGate::BuildAuditJson(MutationPlan, false);
+
+                        FString ResultString;
+                        TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
+                        FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);
+                        Promise.SetValue(ResultString);
+                        return;
+                    }
+                }
+
+                bool bTransactionActive = false;
+                if (bIsMutation)
+                {
+                    FTransactionManager::Begin(FWriteGate::GetTransactionName());
+                    bTransactionActive = true;
+                }
+
+                ON_SCOPE_EXIT
+                {
+                    if (bTransactionActive)
+                    {
+                        FTransactionManager::End();
+                    }
+                };
+
                 if (CommandType == TEXT("ping"))
                 {
                     ResultJson = MakeShared<FJsonObject>();

@@ -1,7 +1,13 @@
 #include "Permissions/WriteGate.h"
 #include "UnrealMCPSettings.h"
 
+#include "ISourceControlModule.h"
+#include "ISourceControlOperation.h"
+#include "ISourceControlProvider.h"
+#include "Misc/PackageName.h"
+#include "Misc/Paths.h"
 #include "Misc/ScopeLock.h"
+#include "SourceControlOperations.h"
 
 namespace
 {
@@ -9,6 +15,7 @@ namespace
         bool GRemoteAllowWrite = false;
         bool GRemoteDryRun = true;
         TArray<FString> GRemoteAllowedPaths;
+        static constexpr const TCHAR* TransactionLabel = TEXT("MCP Mutation");
 
         FString ValueToAuditString(const TSharedPtr<FJsonValue>& Value)
         {
@@ -235,6 +242,8 @@ TSharedPtr<FJsonObject> FWriteGate::BuildAuditJson(const FMutationPlan& Plan, bo
         Audit->SetBoolField(TEXT("mutation"), true);
         Audit->SetBoolField(TEXT("dryRun"), Plan.bDryRun);
         Audit->SetBoolField(TEXT("executed"), bExecuted);
+        Audit->SetStringField(TEXT("transaction"), GetTransactionName());
+        Audit->SetBoolField(TEXT("undoAvailable"), bExecuted);
 
         TArray<TSharedPtr<FJsonValue>> Actions;
         for (const FMutationAction& Action : Plan.Actions)
@@ -253,6 +262,107 @@ TSharedPtr<FJsonObject> FWriteGate::BuildAuditJson(const FMutationPlan& Plan, bo
 
         Audit->SetArrayField(TEXT("actions"), Actions);
         return Audit;
+}
+
+const FString& FWriteGate::GetTransactionName()
+{
+        static const FString TransactionName(TransactionLabel);
+        return TransactionName;
+}
+
+bool FWriteGate::EnsureCheckoutForContentPath(const FString& ContentPath, TSharedPtr<FJsonObject>& OutError)
+{
+        const UUnrealMCPSettings* Settings = GetSettings();
+        if (!Settings || !Settings->RequireCheckout)
+        {
+                return true;
+        }
+
+        if (ContentPath.IsEmpty())
+        {
+                return true;
+        }
+
+        ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
+        if (!SourceControlModule.IsEnabled())
+        {
+                OutError = MakeSourceControlRequiredError(ContentPath, TEXT("Source control provider is disabled"));
+                return false;
+        }
+
+        ISourceControlProvider& Provider = SourceControlModule.GetProvider();
+        if (!Provider.IsEnabled())
+        {
+                OutError = MakeSourceControlRequiredError(ContentPath, TEXT("Source control provider is not available"));
+                return false;
+        }
+
+        FString PackagePath = ContentPath;
+        if (PackagePath.Contains(TEXT(".")))
+        {
+                PackagePath = FPackageName::ObjectPathToPackageName(PackagePath);
+        }
+
+        if (!FPackageName::IsValidLongPackageName(PackagePath))
+        {
+                return true;
+        }
+
+        FString AssetFilename;
+        if (!FPackageName::TryConvertLongPackageNameToFilename(PackagePath, AssetFilename, FPackageName::GetAssetPackageExtension()))
+        {
+                return true;
+        }
+
+        FString TargetFilename = AssetFilename;
+        FString MapFilename;
+        if (FPackageName::TryConvertLongPackageNameToFilename(PackagePath, MapFilename, FPackageName::GetMapPackageExtension()))
+        {
+                if (FPaths::FileExists(MapFilename))
+                {
+                        TargetFilename = MapFilename;
+                }
+        }
+
+        if (!FPaths::FileExists(TargetFilename))
+        {
+                // Asset does not exist yet (e.g., creation). Nothing to check out.
+                return true;
+        }
+
+        TSharedRef<FCheckOut, ESPMode::ThreadSafe> CheckOutOperation = ISourceControlOperation::Create<FCheckOut>();
+        const ECommandResult::Type Result = Provider.Execute(CheckOutOperation, TargetFilename);
+
+        if (Result != ECommandResult::Succeeded)
+        {
+                FString FailureMessage;
+                if (!CheckOutOperation->GetErrorText().IsEmpty())
+                {
+                        FailureMessage = CheckOutOperation->GetErrorText().ToString();
+                }
+
+                OutError = MakeSourceControlRequiredError(ContentPath, FailureMessage);
+                return false;
+        }
+
+        return true;
+}
+
+TSharedPtr<FJsonObject> FWriteGate::MakeSourceControlRequiredError(const FString& AssetPath, const FString& FailureMessage)
+{
+        TSharedPtr<FJsonObject> Error = MakeShared<FJsonObject>();
+        Error->SetStringField(TEXT("code"), TEXT("SOURCE_CONTROL_REQUIRED"));
+        Error->SetStringField(TEXT("message"), TEXT("Asset must be checked out before mutation"));
+
+        TSharedPtr<FJsonObject> Details = MakeShared<FJsonObject>();
+        Details->SetStringField(TEXT("asset"), NormalizeContentPath(AssetPath));
+        if (!FailureMessage.IsEmpty())
+        {
+                Details->SetStringField(TEXT("reason"), FailureMessage);
+        }
+
+        Error->SetObjectField(TEXT("details"), Details);
+        return Error;
 }
 
 TSharedPtr<FJsonObject> FWriteGate::MakeWriteNotAllowedError(const FString& CommandType)
