@@ -6,6 +6,15 @@
 #include "Interfaces/IPv4/IPv4Address.h"
 
 class UUnrealMCPBridge;
+class FJsonObject;
+
+namespace UnrealMCP
+{
+namespace Protocol
+{
+        class FProtocolClient;
+}
+}
 
 /**
  * Runnable class for the MCP server thread
@@ -22,13 +31,12 @@ public:
 	virtual void Stop() override;
 	virtual void Exit() override;
 
-protected:
-	void HandleClientConnection(TSharedPtr<FSocket> ClientSocket);
-	void ProcessMessage(TSharedPtr<FSocket> Client, const FString& Message);
-
 private:
-	UUnrealMCPBridge* Bridge;
-	TSharedPtr<FSocket> ListenerSocket;
-	TSharedPtr<FSocket> ClientSocket;
-	bool bRunning;
+        UUnrealMCPBridge* Bridge;
+        TSharedPtr<FSocket> ListenerSocket;
+        TSharedPtr<FSocket> ClientSocket;
+        bool bRunning;
+
+        void RunConnection(const TSharedPtr<FSocket>& InClientSocket);
+        bool HandleProtocolMessage(class UnrealMCP::Protocol::FProtocolClient& ProtocolClient, const TSharedRef<class FJsonObject>& Message);
 }; 
