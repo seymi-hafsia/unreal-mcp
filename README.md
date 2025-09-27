@@ -1,155 +1,80 @@
-<div align="center">
+# Unreal MCP — Remote control for Unreal Editor via MCP (UE 5.6)
 
-# Model Context Protocol for Unreal Engine
-<span style="color: #555555">unreal-mcp</span>
+> Contrôlez l’Éditeur Unreal depuis un serveur MCP (Python) et des agents externes.
+> Version compatible **UE 5.6**. Réseau fiabilisé avec **Protocol v1** (framed JSON + handshake + ping/pong).
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-5.6%2B-orange)](https://www.unrealengine.com)
-[![Python](https://img.shields.io/badge/Python-3.12%2B-yellow)](https://www.python.org)
-[![Status](https://img.shields.io/badge/Status-Experimental-red)](https://github.com/chongdashu/unreal-mcp)
+## ✨ Fonctionnalités actuelles
+- **Protocol v1** : framing binaire (uint32 + JSON), handshake versionné, heartbeats, schéma d’erreurs.
+- **Sécurité** : gates **AllowWrite / DryRun / AllowedContentRoots / Tool allow/deny-list** + audit JSON.
+- **Transactions & Undo** : toutes les mutations sont encapsulées dans des transactions éditeur.
+- **Source Control intégré** : `sc.status / sc.checkout / sc.add / sc.revert / sc.submit` (provider-agnostic).
+- **Assets v1 (lecture)** : `asset.find / asset.exists / asset.metadata` via Asset Registry.
+- **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
 
-</div>
+## 🔧 Installation rapide
 
-This project enables AI assistant clients like Cursor, Windsurf and Claude Desktop to control Unreal Engine through natural language using the Model Context Protocol (MCP).
+1. **Cloner** ce repo (ou votre fork) et ouvrir le projet UE.
+2. **Activer le plugin** *Unreal MCP* dans l’éditeur si nécessaire.
+3. **Vérifier UE 5.6** : le `.uproject` utilise `"EngineAssociation": "5.6"`.
+4. **Configurer** le serveur Python (voir `Python/README.md`) et lancer le serveur MCP.
+5. Dans UE : **Project Settings → Plugins → Unreal MCP**  
+   - `ServerHost=127.0.0.1`, `ServerPort=12029` (par défaut)  
+   - (optionnel) activer `bAutoConnectOnEditorStartup`
+6. **Diagnostics** : depuis la page de réglages, cliquez **Test Connection** puis **Send Ping**.
 
-## ⚠️ Experimental Status
+## ⚙️ Réglages plugin (résumé)
+- **Network** : host/port, timeouts, heartbeats, auto-connect.
+- **Security** : `AllowWrite`, `DryRun`, `RequireCheckout`, `AllowedContentRoots`, `AllowedTools/DeniedTools`.
+- **Source Control** : `EnableSourceControl`, `AutoConnectSourceControl`, `PreferredProvider`.
+- **Logging** : niveau verbose protocole, dossier de logs.
+- **Diagnostics** : boutons `Test Connection`, `Send Ping`, `Open Logs Folder`.
 
-This project is currently in an **EXPERIMENTAL** state. The API, functionality, and implementation details are subject to significant changes. While we encourage testing and feedback, please be aware that:
+> Par défaut, **AllowWrite=false** et **DryRun=true** → aucune écriture n’est effectuée tant que vous n’avez pas explicitement autorisé.
 
-- Breaking changes may occur without notice
-- Features may be incomplete or unstable
-- Documentation may be outdated or missing
-- Production use is not recommended at this time
+## 🧰 Outils exposés (MCP Tools)
 
-## 🌟 Overview
+### Lecture (toujours autorisées)
+| Tool              | Description                                 | Params clés                                      |
+|-------------------|---------------------------------------------|--------------------------------------------------|
+| `asset.find`      | Recherche d’assets via Asset Registry       | `paths[]`, `classNames[]`, `nameContains`, `limit/offset` |
+| `asset.exists`    | Existence + classe d’un asset               | `objectPath`                                     |
+| `asset.metadata`  | Métadonnées (class, tags, deps, size, …)    | `objectPath`                                     |
+| `sc.status`       | Statut SCM par fichier/asset                | `assets[]` ou `files[]`                          |
 
-The Unreal MCP integration provides comprehensive tools for controlling Unreal Engine through natural language:
+### Mutations (soumis aux gates & transactions)
+| Tool          | Description                   | Remarques |
+|---------------|-------------------------------|-----------|
+| `sc.checkout` | Checkout d’un lot de fichiers | No-op possible selon provider (Git) |
+| `sc.add`      | Marquer pour ajout            |           |
+| `sc.revert`   | Revert local                  |           |
+| `sc.submit`   | Submit/commit avec message    |           |
 
-| Category | Capabilities |
-|----------|-------------|
-| **Actor Management** | • Create and delete actors (cubes, spheres, lights, cameras, etc.)<br>• Set actor transforms (position, rotation, scale)<br>• Query actor properties and find actors by name<br>• List all actors in the current level |
-| **Blueprint Development** | • Create new Blueprint classes with custom components<br>• Add and configure components (mesh, camera, light, etc.)<br>• Set component properties and physics settings<br>• Compile Blueprints and spawn Blueprint actors<br>• Create input mappings for player controls |
-| **Blueprint Node Graph** | • Add event nodes (BeginPlay, Tick, etc.)<br>• Create function call nodes and connect them<br>• Add variables with custom types and default values<br>• Create component and self references<br>• Find and manage nodes in the graph |
-| **Editor Control** | • Focus viewport on specific actors or locations<br>• Control viewport camera orientation and distance |
+> **Transactions & Undo** : chaque mutation est faite dans une transaction éditeur (Ctrl+Z possible).  
+> **SCM** : si `RequireCheckout=true`, échec si l’asset n’est pas checkout.
 
-All these capabilities are accessible through natural language commands via AI assistants, making it easy to automate and control Unreal Engine workflows.
+## 🔐 Modèle de sécurité
+- **Read-only par défaut** : `AllowWrite=false`.  
+- **Dry-run** : si activé, les mutations renvoient un **plan** (`audit.actions[]`) sans rien changer.  
+- **AllowedContentRoots** : seules les écritures dans ces chemins `/Game/...` sont permises.  
+- **Allow/Deny-list** de tools : bloque/autorise par nom de tool, ex. `sc.submit`.
 
-## 🧩 Components
+## 🧪 Tests & CI (aperçu)
+- Protocol v1 testé (framing, ping/pong, timeouts).  
+- Tools lecture testés avec l’Asset Registry.  
+- Mutations enveloppées de transactions + SCM optionnel.  
+- (Conseillé) Nightly Automation/Gauntlet pour projets complexes.
 
-### Sample Project (MCPGameProject) `MCPGameProject`
-- Based off the Blank Project, but with the UnrealMCP plugin added.
+## 🛠 Développement local
+- Côté UE : modules `Json`, `JsonUtilities`, `Sockets`, `Networking`, `DeveloperSettings`, `SourceControl`.
+- Côté Python : lib standard (`socket`, `struct`, `json`, `argparse`, `selectors`).
 
-### Plugin (UnrealMCP) `MCPGameProject/Plugins/UnrealMCP`
-- Native TCP server for MCP communication
-- Integrates with Unreal Editor subsystems
-- Implements actor manipulation tools
-- Handles command execution and response handling
+## 🧯 Troubleshooting
+- **Connection refused (127.0.0.1:12029)** : serveur Python non lancé / port erroné (voir Settings).  
+- **WRITE_NOT_ALLOWED** : activer `AllowWrite` **et** vérifier `AllowedContentRoots`.  
+- **SOURCE_CONTROL_REQUIRED** : activer/brancher le provider SCM ou désactiver `RequireCheckout`.  
+- **Ping timeouts** : vérifier firewall/antivirus, `ReadTimeoutSec` et `HeartbeatIntervalSec`.
 
-### Python MCP Server `Python/unreal_mcp_server.py`
-- Implemented in `unreal_mcp_server.py`
-- Manages TCP socket connections to the C++ plugin (port 55557)
-- Handles command serialization and response parsing
-- Provides error handling and connection management
-- Loads and registers tool modules from the `tools` directory
-- Uses the FastMCP library to implement the Model Context Protocol
+## 📜 Licence & Contribuer
+- PRs bienvenues (features packs : Assets/Actors, Sequencer, Materials/MI, Niagara, Build/Test).  
+- Merci d’ouvrir une issue avec un **use case** clair et critères d’acceptation.
 
-## 📂 Directory Structure
-
-- **MCPGameProject/** - Example Unreal project
-  - **Plugins/UnrealMCP/** - C++ plugin source
-    - **Source/UnrealMCP/** - Plugin source code
-    - **UnrealMCP.uplugin** - Plugin definition
-
-- **Python/** - Python server and tools
-  - **tools/** - Tool modules for actor, editor, and blueprint operations
-  - **scripts/** - Example scripts and demos
-
-- **Docs/** - Comprehensive documentation
-  - See [Docs/README.md](Docs/README.md) for documentation index
-
-## 🚀 Quick Start Guide
-
-### Prerequisites
-- Unreal Engine 5.5+
-- Python 3.12+
-- MCP Client (e.g., Claude Desktop, Cursor, Windsurf)
-
-### Sample project
-
-For getting started quickly, feel free to use the starter project in `MCPGameProject`. This is a UE 5.5 Blank Starter Project with the `UnrealMCP.uplugin` already configured. 
-
-1. **Prepare the project**
-   - Right-click your .uproject file
-   - Generate Visual Studio project files
-2. **Build the project (including the plugin)**
-   - Open solution (`.sln`)
-   - Choose `Development Editor` as your target.
-   - Build
-
-### Plugin
-Otherwise, if you want to use the plugin in your existing project:
-
-1. **Copy the plugin to your project**
-   - Copy `MCPGameProject/Plugins/UnrealMCP` to your project's Plugins folder
-
-2. **Enable the plugin**
-   - Edit > Plugins
-   - Find "UnrealMCP" in Editor category
-   - Enable the plugin
-   - Restart editor when prompted
-
-3. **Build the plugin**
-   - Right-click your .uproject file
-   - Generate Visual Studio project files
-   - Open solution (`.sln)
-   - Build with your target platform and output settings
-
-### Python Server Setup
-
-See [Python/README.md](Python/README.md) for detailed Python setup instructions, including:
-- Setting up your Python environment
-- Running the MCP server
-- Using direct or server-based connections
-
-### Configuring your MCP Client
-
-Use the following JSON for your mcp configuration based on your MCP client.
-
-```json
-{
-  "mcpServers": {
-    "unrealMCP": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "<path/to/the/folder/PYTHON>",
-        "run",
-        "unreal_mcp_server.py"
-      ]
-    }
-  }
-}
-```
-
-An example is found in `mcp.json`
-
-### MCP Configuration Locations
-
-Depending on which MCP client you're using, the configuration file location will differ:
-
-| MCP Client | Configuration File Location | Notes |
-|------------|------------------------------|-------|
-| Claude Desktop | `~/.config/claude-desktop/mcp.json` | On Windows: `%USERPROFILE%\.config\claude-desktop\mcp.json` |
-| Cursor | `.cursor/mcp.json` | Located in your project root directory |
-| Windsurf | `~/.config/windsurf/mcp.json` | On Windows: `%USERPROFILE%\.config\windsurf\mcp.json` |
-
-Each client uses the same JSON format as shown in the example above. 
-Simply place the configuration in the appropriate location for your MCP client.
-
-
-## License
-MIT
-
-## Questions
-
-For questions, you can reach me on X/Twitter: [@chongdashu](https://www.x.com/chongdashu)
