@@ -73,6 +73,7 @@ UUnrealMCPBridge::UUnrealMCPBridge()
     BlueprintNodeCommands = MakeShared<FUnrealMCPBlueprintNodeCommands>();
     ProjectCommands = MakeShared<FUnrealMCPProjectCommands>();
     UMGCommands = MakeShared<FUnrealMCPUMGCommands>();
+    SourceControlCommands = MakeShared<FUnrealMCPSourceControlCommands>();
 
     FWriteGate::UpdateRemoteEnforcement(false, true, TArray<FString>());
 }
@@ -84,6 +85,7 @@ UUnrealMCPBridge::~UUnrealMCPBridge()
     BlueprintNodeCommands.Reset();
     ProjectCommands.Reset();
     UMGCommands.Reset();
+    SourceControlCommands.Reset();
 }
 
 // Initialize subsystem
@@ -271,7 +273,7 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
 
             if (!bSkipExecution)
             {
-                if (bIsMutation)
+                if (bIsMutation && !CommandType.StartsWith(TEXT("sc.")))
                 {
                     TSharedPtr<FJsonObject> CheckoutError;
                     if (!FWriteGate::EnsureCheckoutForContentPath(TargetPath, CheckoutError))
@@ -366,6 +368,10 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 {
                     ResultJson = UMGCommands->HandleCommand(CommandType, Params);
                 }
+                else if (CommandType.StartsWith(TEXT("sc.")))
+                {
+                    ResultJson = SourceControlCommands->HandleCommand(CommandType, Params);
+                }
                 else
                 {
                     ResponseJson->SetBoolField(TEXT("ok"), false);
@@ -392,12 +398,20 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 bool bSuccess = true;
                 FString ErrorMessage;
 
+                FString ErrorCode = TEXT("COMMAND_FAILED");
                 if (ResultJson.IsValid() && ResultJson->HasField(TEXT("success")))
                 {
                     bSuccess = ResultJson->GetBoolField(TEXT("success"));
-                    if (!bSuccess && ResultJson->HasField(TEXT("error")))
+                    if (!bSuccess)
                     {
-                        ErrorMessage = ResultJson->GetStringField(TEXT("error"));
+                        if (ResultJson->HasField(TEXT("error")))
+                        {
+                            ErrorMessage = ResultJson->GetStringField(TEXT("error"));
+                        }
+                        if (ResultJson->HasField(TEXT("errorCode")))
+                        {
+                            ErrorCode = ResultJson->GetStringField(TEXT("errorCode"));
+                        }
                     }
                 }
 
@@ -422,7 +436,12 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                     ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
 
                     TSharedPtr<FJsonObject> ErrorObject = MakeShared<FJsonObject>();
-                    ErrorObject->SetStringField(TEXT("code"), TEXT("COMMAND_FAILED"));
+                    if (ErrorMessage.IsEmpty())
+                    {
+                        ErrorMessage = TEXT("Command failed");
+                    }
+
+                    ErrorObject->SetStringField(TEXT("code"), ErrorCode);
                     ErrorObject->SetStringField(TEXT("message"), ErrorMessage);
                     ResponseJson->SetObjectField(TEXT("error"), ErrorObject);
 

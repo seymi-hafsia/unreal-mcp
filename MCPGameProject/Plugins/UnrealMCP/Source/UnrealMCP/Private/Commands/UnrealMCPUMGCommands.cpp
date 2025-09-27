@@ -25,6 +25,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "K2Node_Event.h"
+#include "SourceControlService.h"
 
 FUnrealMCPUMGCommands::FUnrealMCPUMGCommands()
 {
@@ -112,17 +113,35 @@ TSharedPtr<FJsonObject> FUnrealMCPUMGCommands::HandleCreateUMGWidgetBlueprint(co
 		WidgetBlueprint->WidgetTree->RootWidget = RootCanvas;
 	}
 
-	// Mark the package dirty and notify asset registry
-	Package->MarkPackageDirty();
-	FAssetRegistryModule::AssetCreated(WidgetBlueprint);
+        // Mark the package dirty and notify asset registry
+        Package->MarkPackageDirty();
+        FAssetRegistryModule::AssetCreated(WidgetBlueprint);
 
-	// Compile the blueprint
-	FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);
+        // Compile the blueprint
+        FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);
 
-	// Create success response
-	TSharedPtr<FJsonObject> ResultObj = MakeShared<FJsonObject>();
-	ResultObj->SetStringField(TEXT("name"), BlueprintName);
-	ResultObj->SetStringField(TEXT("path"), FullPath);
+        const FString FullAssetPath = PackagePath + AssetName;
+        UEditorAssetLibrary::SaveAsset(FullAssetPath, false);
+
+        if (FSourceControlService::IsEnabled())
+        {
+                TArray<FString> Assets;
+                Assets.Add(FullAssetPath);
+
+                TArray<FString> Files;
+                FString ConversionError;
+                if (FSourceControlService::AssetPathsToFiles(Assets, Files, ConversionError))
+                {
+                        TMap<FString, bool> PerFile;
+                        FString AddError;
+                        FSourceControlService::MarkForAdd(Files, PerFile, AddError);
+                }
+        }
+
+        // Create success response
+        TSharedPtr<FJsonObject> ResultObj = MakeShared<FJsonObject>();
+        ResultObj->SetStringField(TEXT("name"), BlueprintName);
+        ResultObj->SetStringField(TEXT("path"), FullPath);
 	return ResultObj;
 }
 

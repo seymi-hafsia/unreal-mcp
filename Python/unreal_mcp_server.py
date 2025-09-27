@@ -92,6 +92,11 @@ MUTATING_COMMANDS = {
     "bind_widget_event",
     "set_text_block_binding",
     "add_widget_to_viewport",
+    "sc.status",
+    "sc.checkout",
+    "sc.add",
+    "sc.revert",
+    "sc.submit",
 }
 
 
@@ -323,7 +328,7 @@ class UnrealConnection:
 
         if is_mutation:
             config = get_server_config()
-            if not config.allow_write:
+            if not config.allow_write and command != "sc.status":
                 error_payload = {
                     "ok": False,
                     "error": {

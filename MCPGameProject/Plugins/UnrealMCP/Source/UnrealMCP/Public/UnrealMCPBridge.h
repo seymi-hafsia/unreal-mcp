@@ -13,6 +13,7 @@
 #include "Commands/UnrealMCPBlueprintNodeCommands.h"
 #include "Commands/UnrealMCPProjectCommands.h"
 #include "Commands/UnrealMCPUMGCommands.h"
+#include "Commands/UnrealMCPSourceControlCommands.h"
 #include "UnrealMCPBridge.generated.h"
 
 class FMCPServerRunnable;
@@ -58,7 +59,8 @@ private:
 	// Command handler instances
 	TSharedPtr<FUnrealMCPEditorCommands> EditorCommands;
 	TSharedPtr<FUnrealMCPBlueprintCommands> BlueprintCommands;
-	TSharedPtr<FUnrealMCPBlueprintNodeCommands> BlueprintNodeCommands;
-	TSharedPtr<FUnrealMCPProjectCommands> ProjectCommands;
-	TSharedPtr<FUnrealMCPUMGCommands> UMGCommands;
-}; 
+        TSharedPtr<FUnrealMCPBlueprintNodeCommands> BlueprintNodeCommands;
+        TSharedPtr<FUnrealMCPProjectCommands> ProjectCommands;
+        TSharedPtr<FUnrealMCPUMGCommands> UMGCommands;
+        TSharedPtr<FUnrealMCPSourceControlCommands> SourceControlCommands;
+};
