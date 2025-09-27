@@ -20,6 +20,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
+#include "SourceControlService.h"
 
 FUnrealMCPBlueprintCommands::FUnrealMCPBlueprintCommands()
 {
@@ -153,9 +154,27 @@ TSharedPtr<FJsonObject> FUnrealMCPBlueprintCommands::HandleCreateBlueprint(const
         // Mark the package dirty
         Package->MarkPackageDirty();
 
+        const FString FullAssetPath = PackagePath + AssetName;
+        UEditorAssetLibrary::SaveAsset(FullAssetPath, false);
+
+        if (FSourceControlService::IsEnabled())
+        {
+            TArray<FString> Assets;
+            Assets.Add(FullAssetPath);
+
+            TArray<FString> Files;
+            FString ConversionError;
+            if (FSourceControlService::AssetPathsToFiles(Assets, Files, ConversionError))
+            {
+                TMap<FString, bool> PerFile;
+                FString AddError;
+                FSourceControlService::MarkForAdd(Files, PerFile, AddError);
+            }
+        }
+
         TSharedPtr<FJsonObject> ResultObj = MakeShared<FJsonObject>();
         ResultObj->SetStringField(TEXT("name"), AssetName);
-        ResultObj->SetStringField(TEXT("path"), PackagePath + AssetName);
+        ResultObj->SetStringField(TEXT("path"), FullAssetPath);
         return ResultObj;
     }
 

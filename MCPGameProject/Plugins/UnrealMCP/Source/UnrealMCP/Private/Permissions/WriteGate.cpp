@@ -1,13 +1,10 @@
 #include "Permissions/WriteGate.h"
 #include "UnrealMCPSettings.h"
 
-#include "ISourceControlModule.h"
-#include "ISourceControlOperation.h"
-#include "ISourceControlProvider.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopeLock.h"
-#include "SourceControlOperations.h"
+#include "SourceControlService.h"
 
 namespace
 {
@@ -85,7 +82,12 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType)
                 TEXT("add_button_to_widget"),
                 TEXT("bind_widget_event"),
                 TEXT("set_text_block_binding"),
-                TEXT("add_widget_to_viewport")
+                TEXT("add_widget_to_viewport"),
+                TEXT("sc.status"),
+                TEXT("sc.checkout"),
+                TEXT("sc.add"),
+                TEXT("sc.revert"),
+                TEXT("sc.submit")
         };
 
         return MutatingCommands.Contains(CommandType);
@@ -202,7 +204,7 @@ bool FWriteGate::IsPathAllowed(const FString& ContentPath, FString& OutReason)
 
 bool FWriteGate::CanMutate(const FString& CommandType, const FString& ContentPath, FString& OutReason)
 {
-        if (!IsWriteAllowed())
+        if (!IsWriteAllowed() && CommandType != TEXT("sc.status"))
         {
                 OutReason = TEXT("Write operations are disabled (allowWrite=false)");
                 return false;
@@ -221,18 +223,59 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
         FMutationPlan Plan;
         Plan.bDryRun = ShouldDryRun();
 
-        FMutationAction Action;
-        Action.Op = CommandType;
+        bool bAddedSpecificActions = false;
 
-        if (Params.IsValid())
+        if (CommandType.StartsWith(TEXT("sc.")) && Params.IsValid())
         {
-                for (const auto& Pair : Params->Values)
+                const TArray<TSharedPtr<FJsonValue>>* AssetsArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("assets"), AssetsArray))
                 {
-                        Action.Args.Add(Pair.Key, ValueToAuditString(Pair.Value));
+                        for (const TSharedPtr<FJsonValue>& Value : *AssetsArray)
+                        {
+                                if (Value->Type == EJson::String)
+                                {
+                                        FMutationAction AssetAction;
+                                        AssetAction.Op = CommandType;
+                                        AssetAction.Args.Add(TEXT("asset"), NormalizeContentPath(Value->AsString()));
+                                        Plan.Actions.Add(AssetAction);
+                                        bAddedSpecificActions = true;
+                                }
+                        }
+                }
+
+                const TArray<TSharedPtr<FJsonValue>>* FilesArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("files"), FilesArray))
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *FilesArray)
+                        {
+                                if (Value->Type == EJson::String)
+                                {
+                                        FMutationAction FileAction;
+                                        FileAction.Op = CommandType;
+                                        FileAction.Args.Add(TEXT("file"), Value->AsString());
+                                        Plan.Actions.Add(FileAction);
+                                        bAddedSpecificActions = true;
+                                }
+                        }
                 }
         }
 
-        Plan.Actions.Add(Action);
+        if (!bAddedSpecificActions)
+        {
+                FMutationAction Action;
+                Action.Op = CommandType;
+
+                if (Params.IsValid())
+                {
+                        for (const auto& Pair : Params->Values)
+                        {
+                                Action.Args.Add(Pair.Key, ValueToAuditString(Pair.Value));
+                        }
+                }
+
+                Plan.Actions.Add(Action);
+        }
+
         return Plan;
 }
 
@@ -283,20 +326,6 @@ bool FWriteGate::EnsureCheckoutForContentPath(const FString& ContentPath, TShare
                 return true;
         }
 
-        ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
-        if (!SourceControlModule.IsEnabled())
-        {
-                OutError = MakeSourceControlRequiredError(ContentPath, TEXT("Source control provider is disabled"));
-                return false;
-        }
-
-        ISourceControlProvider& Provider = SourceControlModule.GetProvider();
-        if (!Provider.IsEnabled())
-        {
-                OutError = MakeSourceControlRequiredError(ContentPath, TEXT("Source control provider is not available"));
-                return false;
-        }
-
         FString PackagePath = ContentPath;
         if (PackagePath.Contains(TEXT(".")))
         {
@@ -308,41 +337,37 @@ bool FWriteGate::EnsureCheckoutForContentPath(const FString& ContentPath, TShare
                 return true;
         }
 
-        FString AssetFilename;
-        if (!FPackageName::TryConvertLongPackageNameToFilename(PackagePath, AssetFilename, FPackageName::GetAssetPackageExtension()))
+        TArray<FString> AssetPaths;
+        AssetPaths.Add(PackagePath);
+
+        TArray<FString> Files;
+        FString ConversionError;
+        if (!FSourceControlService::AssetPathsToFiles(AssetPaths, Files, ConversionError))
         {
-                return true;
-        }
-
-        FString TargetFilename = AssetFilename;
-        FString MapFilename;
-        if (FPackageName::TryConvertLongPackageNameToFilename(PackagePath, MapFilename, FPackageName::GetMapPackageExtension()))
-        {
-                if (FPaths::FileExists(MapFilename))
-                {
-                        TargetFilename = MapFilename;
-                }
-        }
-
-        if (!FPaths::FileExists(TargetFilename))
-        {
-                // Asset does not exist yet (e.g., creation). Nothing to check out.
-                return true;
-        }
-
-        TSharedRef<FCheckOut, ESPMode::ThreadSafe> CheckOutOperation = ISourceControlOperation::Create<FCheckOut>();
-        const ECommandResult::Type Result = Provider.Execute(CheckOutOperation, TargetFilename);
-
-        if (Result != ECommandResult::Succeeded)
-        {
-                FString FailureMessage;
-                if (!CheckOutOperation->GetErrorText().IsEmpty())
-                {
-                        FailureMessage = CheckOutOperation->GetErrorText().ToString();
-                }
-
-                OutError = MakeSourceControlRequiredError(ContentPath, FailureMessage);
+                OutError = MakeSourceControlRequiredError(ContentPath, ConversionError);
                 return false;
+        }
+
+        if (Files.Num() == 0)
+        {
+                return true;
+        }
+
+        TMap<FString, bool> PerFileResult;
+        FString CheckoutError;
+        if (!FSourceControlService::Checkout(Files, PerFileResult, CheckoutError))
+        {
+                OutError = MakeSourceControlRequiredError(ContentPath, CheckoutError);
+                return false;
+        }
+
+        for (const TPair<FString, bool>& Pair : PerFileResult)
+        {
+                if (!Pair.Value)
+                {
+                        OutError = MakeSourceControlRequiredError(ContentPath, CheckoutError);
+                        return false;
+                }
         }
 
         return true;
@@ -409,6 +434,21 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
         if (!Params.IsValid())
         {
                 return FString();
+        }
+
+        if (CommandType.StartsWith(TEXT("sc.")))
+        {
+                const TArray<TSharedPtr<FJsonValue>>* AssetsArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("assets"), AssetsArray))
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *AssetsArray)
+                        {
+                                if (Value->Type == EJson::String)
+                                {
+                                        return NormalizeContentPath(Value->AsString());
+                                }
+                        }
+                }
         }
 
         static const TArray<FString> CandidateKeys = {

@@ -31,5 +31,17 @@ public:
         UPROPERTY(EditAnywhere, config, Category="Permissions")
         bool RequireCheckout;
 
+        /** Enable integration with Unreal's source control subsystem. */
+        UPROPERTY(EditAnywhere, config, Category="Source Control")
+        bool EnableSourceControl;
+
+        /** Automatically connect to the configured source control provider. */
+        UPROPERTY(EditAnywhere, config, Category="Source Control")
+        bool AutoConnectSourceControl;
+
+        /** Preferred source control provider name (optional). */
+        UPROPERTY(EditAnywhere, config, Category="Source Control")
+        FString PreferredProvider;
+
         virtual FName GetCategoryName() const override;
 };
