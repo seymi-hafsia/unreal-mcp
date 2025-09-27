@@ -58,6 +58,7 @@
 #include "Commands/UnrealMCPProjectCommands.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Commands/UnrealMCPUMGCommands.h"
+#include "Assets/AssetQuery.h"
 #include "Permissions/WriteGate.h"
 #include "Transactions/TransactionManager.h"
 #include "UnrealMCPLog.h"
@@ -455,6 +456,254 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                          CommandType == TEXT("add_widget_to_viewport"))
                 {
                     ResultJson = UMGCommands->HandleCommand(CommandType, Params);
+                }
+                else if (CommandType == TEXT("asset.find") ||
+                         CommandType == TEXT("asset.exists") ||
+                         CommandType == TEXT("asset.metadata"))
+                {
+                    if (CommandType == TEXT("asset.find"))
+                    {
+                        FAssetFindParams QueryParams;
+                        if (Params.IsValid())
+                        {
+                            const TArray<TSharedPtr<FJsonValue>>* PathsArray = nullptr;
+                            if (Params->TryGetArrayField(TEXT("paths"), PathsArray))
+                            {
+                                for (const TSharedPtr<FJsonValue>& Value : *PathsArray)
+                                {
+                                    if (Value.IsValid() && Value->Type == EJson::String)
+                                    {
+                                        FString PathValue = Value->AsString();
+                                        PathValue.TrimStartAndEndInline();
+                                        if (!PathValue.IsEmpty())
+                                        {
+                                            QueryParams.Paths.Add(MoveTemp(PathValue));
+                                        }
+                                    }
+                                }
+                            }
+
+                            const TArray<TSharedPtr<FJsonValue>>* ClassArray = nullptr;
+                            if (Params->TryGetArrayField(TEXT("classNames"), ClassArray))
+                            {
+                                for (const TSharedPtr<FJsonValue>& Value : *ClassArray)
+                                {
+                                    if (Value.IsValid() && Value->Type == EJson::String)
+                                    {
+                                        FString ClassName = Value->AsString();
+                                        ClassName.TrimStartAndEndInline();
+                                        if (!ClassName.IsEmpty())
+                                        {
+                                            QueryParams.ClassNames.Add(MoveTemp(ClassName));
+                                        }
+                                    }
+                                }
+                            }
+
+                            FString NameContains;
+                            if (Params->TryGetStringField(TEXT("nameContains"), NameContains))
+                            {
+                                NameContains.TrimStartAndEndInline();
+                                if (!NameContains.IsEmpty())
+                                {
+                                    QueryParams.NameContains = NameContains;
+                                }
+                            }
+
+                            const TSharedPtr<FJsonObject>* TagQueryObject = nullptr;
+                            if (Params->TryGetObjectField(TEXT("tagQuery"), TagQueryObject))
+                            {
+                                for (const auto& TagPair : (*TagQueryObject)->Values)
+                                {
+                                    TArray<FString> TagValues;
+                                    if (TagPair.Value->Type == EJson::Array)
+                                    {
+                                        for (const TSharedPtr<FJsonValue>& TagValue : TagPair.Value->AsArray())
+                                        {
+                                            if (TagValue->Type == EJson::String)
+                                            {
+                                                TagValues.Add(TagValue->AsString());
+                                            }
+                                            else if (TagValue->Type == EJson::Number)
+                                            {
+                                                TagValues.Add(FString::SanitizeFloat(TagValue->AsNumber()));
+                                            }
+                                            else if (TagValue->Type == EJson::Boolean)
+                                            {
+                                                TagValues.Add(TagValue->AsBool() ? TEXT("true") : TEXT("false"));
+                                            }
+                                        }
+                                    }
+                                    else if (TagPair.Value->Type == EJson::String)
+                                    {
+                                        TagValues.Add(TagPair.Value->AsString());
+                                    }
+                                    else if (TagPair.Value->Type == EJson::Number)
+                                    {
+                                        TagValues.Add(FString::SanitizeFloat(TagPair.Value->AsNumber()));
+                                    }
+                                    else if (TagPair.Value->Type == EJson::Boolean)
+                                    {
+                                        TagValues.Add(TagPair.Value->AsBool() ? TEXT("true") : TEXT("false"));
+                                    }
+
+                                    if (TagValues.Num() > 0)
+                                    {
+                                        QueryParams.TagQuery.Add(FName(*TagPair.Key), MoveTemp(TagValues));
+                                    }
+                                }
+                            }
+
+                            if (Params->HasTypedField<EJson::Boolean>(TEXT("recursive")))
+                            {
+                                QueryParams.bRecursive = Params->GetBoolField(TEXT("recursive"));
+                            }
+
+                            if (Params->HasTypedField<EJson::Number>(TEXT("limit")))
+                            {
+                                QueryParams.Limit = static_cast<int32>(Params->GetNumberField(TEXT("limit")));
+                            }
+
+                            if (Params->HasTypedField<EJson::Number>(TEXT("offset")))
+                            {
+                                QueryParams.Offset = static_cast<int32>(Params->GetNumberField(TEXT("offset")));
+                            }
+
+                            const TSharedPtr<FJsonObject>* SortObject = nullptr;
+                            if (Params->TryGetObjectField(TEXT("sort"), SortObject) && SortObject->IsValid())
+                            {
+                                FString SortBy;
+                                if ((*SortObject)->TryGetStringField(TEXT("by"), SortBy))
+                                {
+                                    if (SortBy.Equals(TEXT("class"), ESearchCase::IgnoreCase))
+                                    {
+                                        QueryParams.SortBy = FAssetFindParams::ESortBy::Class;
+                                    }
+                                    else if (SortBy.Equals(TEXT("path"), ESearchCase::IgnoreCase))
+                                    {
+                                        QueryParams.SortBy = FAssetFindParams::ESortBy::Path;
+                                    }
+                                    else
+                                    {
+                                        QueryParams.SortBy = FAssetFindParams::ESortBy::Name;
+                                    }
+                                }
+
+                                FString SortOrder;
+                                if ((*SortObject)->TryGetStringField(TEXT("order"), SortOrder))
+                                {
+                                    QueryParams.bSortAscending = !SortOrder.Equals(TEXT("desc"), ESearchCase::IgnoreCase);
+                                }
+                            }
+                        }
+
+                        if (QueryParams.Paths.Num() == 0 &&
+                            QueryParams.ClassNames.Num() == 0 &&
+                            !QueryParams.NameContains.IsSet() &&
+                            QueryParams.TagQuery.Num() == 0)
+                        {
+                            ResultJson = FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Provide at least one filter (paths, classNames, nameContains, or tagQuery)"));
+                            ResultJson->SetStringField(TEXT("errorCode"), TEXT("ASSET_FIND_INVALID_FILTER"));
+                        }
+                        else
+                        {
+                            int32 Total = 0;
+                            TArray<FAssetLite> Items;
+                            FString QueryError;
+                            if (!FAssetQuery::Find(QueryParams, Total, Items, QueryError))
+                            {
+                                ResultJson = FUnrealMCPCommonUtils::CreateErrorResponse(QueryError);
+                                ResultJson->SetStringField(TEXT("errorCode"), TEXT("ASSET_FIND_FAILED"));
+                            }
+                            else
+                            {
+                                TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
+                                Data->SetNumberField(TEXT("total"), Total);
+
+                                TArray<TSharedPtr<FJsonValue>> ItemsArray;
+                                for (const FAssetLite& Item : Items)
+                                {
+                                    TSharedPtr<FJsonObject> ItemObject = MakeShared<FJsonObject>();
+                                    ItemObject->SetStringField(TEXT("objectPath"), Item.ObjectPath);
+                                    ItemObject->SetStringField(TEXT("packagePath"), Item.PackagePath);
+                                    ItemObject->SetStringField(TEXT("assetName"), Item.AssetName);
+                                    ItemObject->SetStringField(TEXT("class"), Item.ClassName);
+
+                                    TSharedPtr<FJsonObject> TagsJson = MakeShared<FJsonObject>();
+                                    for (const TPair<FString, TArray<FString>>& TagPair : Item.Tags)
+                                    {
+                                        TArray<TSharedPtr<FJsonValue>> TagValues;
+                                        for (const FString& TagValue : TagPair.Value)
+                                        {
+                                            TagValues.Add(MakeShared<FJsonValueString>(TagValue));
+                                        }
+                                        TagsJson->SetArrayField(TagPair.Key, TagValues);
+                                    }
+
+                                    ItemObject->SetObjectField(TEXT("tags"), TagsJson);
+                                    ItemsArray.Add(MakeShared<FJsonValueObject>(ItemObject));
+                                }
+
+                                Data->SetArrayField(TEXT("items"), ItemsArray);
+                                ResultJson = FUnrealMCPCommonUtils::CreateSuccessResponse(Data);
+                            }
+                        }
+                    }
+                    else if (CommandType == TEXT("asset.exists"))
+                    {
+                        FString ObjectPath;
+                        if (Params.IsValid() && Params->TryGetStringField(TEXT("objectPath"), ObjectPath))
+                        {
+                            ObjectPath.TrimStartAndEndInline();
+                            bool bExists = false;
+                            FString ClassName;
+                            FString ExistsError;
+                            if (!FAssetQuery::Exists(ObjectPath, bExists, ClassName, ExistsError))
+                            {
+                                ResultJson = FUnrealMCPCommonUtils::CreateErrorResponse(ExistsError);
+                                ResultJson->SetStringField(TEXT("errorCode"), TEXT("ASSET_EXISTS_FAILED"));
+                            }
+                            else
+                            {
+                                TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
+                                Data->SetBoolField(TEXT("exists"), bExists);
+                                if (!ClassName.IsEmpty())
+                                {
+                                    Data->SetStringField(TEXT("class"), ClassName);
+                                }
+                                ResultJson = FUnrealMCPCommonUtils::CreateSuccessResponse(Data);
+                            }
+                        }
+                        else
+                        {
+                            ResultJson = FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing objectPath parameter"));
+                            ResultJson->SetStringField(TEXT("errorCode"), TEXT("ASSET_EXISTS_FAILED"));
+                        }
+                    }
+                    else if (CommandType == TEXT("asset.metadata"))
+                    {
+                        FString ObjectPath;
+                        if (Params.IsValid() && Params->TryGetStringField(TEXT("objectPath"), ObjectPath))
+                        {
+                            ObjectPath.TrimStartAndEndInline();
+                            TSharedPtr<FJsonObject> MetadataJson;
+                            FString MetadataError;
+                            if (!FAssetQuery::Metadata(ObjectPath, MetadataJson, MetadataError))
+                            {
+                                ResultJson = FUnrealMCPCommonUtils::CreateErrorResponse(MetadataError);
+                                ResultJson->SetStringField(TEXT("errorCode"), TEXT("ASSET_METADATA_FAILED"));
+                            }
+                            else
+                            {
+                                ResultJson = FUnrealMCPCommonUtils::CreateSuccessResponse(MetadataJson);
+                            }
+                        }
+                        else
+                        {
+                            ResultJson = FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Missing objectPath parameter"));
+                            ResultJson->SetStringField(TEXT("errorCode"), TEXT("ASSET_METADATA_FAILED"));
+                        }
+                    }
                 }
                 else if (CommandType.StartsWith(TEXT("sc.")))
                 {
