@@ -2,12 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
+#include "Engine/EngineTypes.h"
 #include "UnrealMCPSettings.generated.h"
 
 /**
- * Project-wide settings for Unreal MCP permissions and enforcement.
+ * Project-wide settings for the Unreal MCP plugin.
  */
-UCLASS(config=Game, defaultconfig, meta=(DisplayName="Unreal MCP"))
+UCLASS(config=Editor, defaultconfig, meta=(DisplayName="Unreal MCP"))
 class UNREALMCP_API UUnrealMCPSettings : public UDeveloperSettings
 {
         GENERATED_BODY()
@@ -15,33 +16,70 @@ class UNREALMCP_API UUnrealMCPSettings : public UDeveloperSettings
 public:
         UUnrealMCPSettings();
 
-        /** When false, all write operations are rejected regardless of dry-run state. */
-        UPROPERTY(EditAnywhere, config, Category="Permissions")
-        bool AllowWrite;
+        // === Network ===
+        /** Host interface where the MCP socket server binds. */
+        UPROPERTY(EditAnywhere, config, Category="Network")
+        FString ServerHost = TEXT("127.0.0.1");
 
-        /** When true, mutations are planned but not executed. */
-        UPROPERTY(EditAnywhere, config, Category="Permissions")
-        bool DryRun;
+        /** Port used by the MCP socket server. */
+        UPROPERTY(EditAnywhere, config, Category="Network", meta=(ClampMin="1", ClampMax="65535"))
+        int32 ServerPort = 12029;
 
-        /** Whitelisted content root folders (e.g. /Game/Core). Empty means no paths are allowed. */
-        UPROPERTY(EditAnywhere, config, Category="Permissions")
+        /** Maximum number of seconds to wait for a client handshake. */
+        UPROPERTY(EditAnywhere, config, Category="Network", meta=(ClampMin="1.0", ToolTip="Seconds"))
+        float ConnectTimeoutSec = 5.0f;
+
+        /** Socket read timeout in seconds before declaring the connection idle. */
+        UPROPERTY(EditAnywhere, config, Category="Network", meta=(ClampMin="1.0", ToolTip="Seconds"))
+        float ReadTimeoutSec = 60.0f;
+
+        /** Automatically start the MCP server when the editor boots. */
+        UPROPERTY(EditAnywhere, config, Category="Network")
+        bool bAutoConnectOnEditorStartup = false;
+
+        /** Interval in seconds for heartbeat pings to remote clients. */
+        UPROPERTY(EditAnywhere, config, Category="Network", meta=(ClampMin="0.1", ClampMax="60.0"))
+        float HeartbeatIntervalSec = 15.0f;
+
+        // === Security ===
+        UPROPERTY(EditAnywhere, config, Category="Security")
+        bool AllowWrite = false;
+
+        UPROPERTY(EditAnywhere, config, Category="Security")
+        bool DryRun = true;
+
+        UPROPERTY(EditAnywhere, config, Category="Security")
+        bool RequireCheckout = false;
+
+        UPROPERTY(EditAnywhere, config, Category="Security")
         TArray<FDirectoryPath> AllowedContentRoots;
 
-        /** Require assets to be checked out in source control before mutation. */
-        UPROPERTY(EditAnywhere, config, Category="Permissions")
-        bool RequireCheckout;
+        UPROPERTY(EditAnywhere, config, Category="Security")
+        TArray<FString> AllowedTools;
 
-        /** Enable integration with Unreal's source control subsystem. */
+        UPROPERTY(EditAnywhere, config, Category="Security")
+        TArray<FString> DeniedTools;
+
+        // === Source Control ===
         UPROPERTY(EditAnywhere, config, Category="Source Control")
-        bool EnableSourceControl;
+        bool EnableSourceControl = true;
 
-        /** Automatically connect to the configured source control provider. */
         UPROPERTY(EditAnywhere, config, Category="Source Control")
-        bool AutoConnectSourceControl;
+        bool AutoConnectSourceControl = true;
 
-        /** Preferred source control provider name (optional). */
         UPROPERTY(EditAnywhere, config, Category="Source Control")
         FString PreferredProvider;
 
-        virtual FName GetCategoryName() const override;
+        // === Logging ===
+        UPROPERTY(EditAnywhere, config, Category="Logging")
+        bool bEnableProtocolVerboseLogs = false;
+
+        UPROPERTY(EditAnywhere, config, Category="Logging")
+        FDirectoryPath LogsDirectory;
+
+        virtual FName GetCategoryName() const override { return TEXT("Plugins"); }
+        virtual FText GetSectionText() const override { return NSLOCTEXT("UnrealMCP", "SettingsSection", "Unreal MCP"); }
+
+        /** Resolves the log directory from settings or defaults. */
+        FString GetEffectiveLogsDirectory() const;
 };

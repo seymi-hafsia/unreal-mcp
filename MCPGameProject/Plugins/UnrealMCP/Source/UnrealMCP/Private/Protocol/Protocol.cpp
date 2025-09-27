@@ -8,6 +8,8 @@
 #include "Sockets.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
+#include "UnrealMCPLog.h"
+#include "UnrealMCPSettings.h"
 
 namespace UnrealMCP
 {
@@ -17,6 +19,12 @@ namespace
 {
     constexpr uint32 MaxFrameSize = 4 * 1024 * 1024; // 4 MiB safety limit
     constexpr uint32 LegacyMaxSize = 512 * 1024;      // 512 KiB legacy payload guard
+
+    bool ShouldEmitVerbose()
+    {
+        const UUnrealMCPSettings* Settings = GetDefault<UUnrealMCPSettings>();
+        return Settings && Settings->bEnableProtocolVerboseLogs;
+    }
 
     FString GetSocketErrorMessage(const TCHAR* Operation)
     {
@@ -484,7 +492,10 @@ bool FProtocolClient::PerformHandshake(const FString& EngineVersion, const FStri
     FString RemoteSessionId;
     Handshake->TryGetStringField(TEXT("sessionId"), RemoteSessionId);
 
-    UE_LOG(LogTemp, Display, TEXT("[Protocol] Handshake received - Engine: %s, Plugin: %s, Session: %s"), *RemoteEngineVersion, *RemotePluginVersion, *RemoteSessionId);
+    if (ShouldEmitVerbose())
+    {
+        UE_LOG(LogUnrealMCP, Verbose, TEXT("[Protocol] Handshake received - Engine: %s, Plugin: %s, Session: %s"), *RemoteEngineVersion, *RemotePluginVersion, *RemoteSessionId);
+    }
 
     TSharedRef<FJsonObject> Ack = MakeShared<FJsonObject>();
     Ack->SetStringField(TEXT("type"), TEXT("handshake/ack"));

@@ -38,21 +38,22 @@ public class UnrealMCP : ModuleRules
 			}
 		);
 		
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"UnrealEd",
-				"EditorScriptingUtilities",
-				"EditorSubsystem",
-				"Slate",
-				"SlateCore",
+                PrivateDependencyModuleNames.AddRange(
+                        new string[]
+                        {
+                                "UnrealEd",
+                                "EditorScriptingUtilities",
+                                "EditorSubsystem",
+                                "Slate",
+                                "SlateCore",
                                 "UMG",
                                 "Kismet",
                                 "KismetCompiler",
                                 "BlueprintGraph",
                                 "Projects",
                                 "AssetRegistry",
-                                "SourceControl"
+                                "SourceControl",
+                                "Settings"
                         }
                 );
 		

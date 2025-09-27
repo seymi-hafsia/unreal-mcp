@@ -10,6 +10,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonWriter.h"
+#include <stdexcept>
 #include "Engine/StaticMeshActor.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/PointLight.h"
@@ -59,12 +60,10 @@
 #include "Commands/UnrealMCPUMGCommands.h"
 #include "Permissions/WriteGate.h"
 #include "Transactions/TransactionManager.h"
+#include "UnrealMCPLog.h"
+#include "UnrealMCPSettings.h"
 
 #include "Misc/ScopeExit.h"
-
-// Default settings
-#define MCP_SERVER_HOST "127.0.0.1"
-#define MCP_SERVER_PORT 55557
 
 UUnrealMCPBridge::UUnrealMCPBridge()
 {
@@ -75,7 +74,7 @@ UUnrealMCPBridge::UUnrealMCPBridge()
     UMGCommands = MakeShared<FUnrealMCPUMGCommands>();
     SourceControlCommands = MakeShared<FUnrealMCPSourceControlCommands>();
 
-    FWriteGate::UpdateRemoteEnforcement(false, true, TArray<FString>());
+    FWriteGate::UpdateRemoteEnforcement(false, true, TArray<FString>(), TArray<FString>(), TArray<FString>());
 }
 
 UUnrealMCPBridge::~UUnrealMCPBridge()
@@ -91,23 +90,54 @@ UUnrealMCPBridge::~UUnrealMCPBridge()
 // Initialize subsystem
 void UUnrealMCPBridge::Initialize(FSubsystemCollectionBase& Collection)
 {
-    UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Initializing"));
-    
+    UE_LOG(LogUnrealMCP, Display, TEXT("UnrealMCPBridge: Initializing"));
+
     bIsRunning = false;
     ListenerSocket = nullptr;
     ConnectionSocket = nullptr;
     ServerThread = nullptr;
-    Port = MCP_SERVER_PORT;
-    FIPv4Address::Parse(MCP_SERVER_HOST, ServerAddress);
 
-    // Start the server automatically
-    StartServer();
+    const UUnrealMCPSettings* Settings = GetDefault<UUnrealMCPSettings>();
+    if (Settings)
+    {
+        FString Host = Settings->ServerHost;
+        Host.TrimStartAndEndInline();
+
+        FIPv4Address ParsedAddress;
+        if (!FIPv4Address::Parse(Host, ParsedAddress))
+        {
+            if (Host.Equals(TEXT("localhost"), ESearchCase::IgnoreCase))
+            {
+                ParsedAddress = FIPv4Address::InternalLoopback;
+            }
+            else
+            {
+                ParsedAddress = FIPv4Address::Any;
+                UE_LOG(LogUnrealMCP, Warning, TEXT("UnrealMCPBridge: Invalid ServerHost '%s', defaulting to %s"), *Host, *ParsedAddress.ToString());
+            }
+        }
+
+        ServerAddress = ParsedAddress;
+        Port = static_cast<uint16>(FMath::Clamp(Settings->ServerPort, 1, 65535));
+
+        if (Settings->bAutoConnectOnEditorStartup)
+        {
+            StartServer();
+        }
+    }
+    else
+    {
+        ServerAddress = FIPv4Address::InternalLoopback;
+        Port = 12029;
+        UE_LOG(LogUnrealMCP, Warning, TEXT("UnrealMCPBridge: Failed to load settings, using defaults"));
+        StartServer();
+    }
 }
 
 // Clean up resources when subsystem is destroyed
 void UUnrealMCPBridge::Deinitialize()
 {
-    UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Shutting down"));
+    UE_LOG(LogUnrealMCP, Display, TEXT("UnrealMCPBridge: Shutting down"));
     StopServer();
 }
 
@@ -116,15 +146,46 @@ void UUnrealMCPBridge::StartServer()
 {
     if (bIsRunning)
     {
-        UE_LOG(LogTemp, Warning, TEXT("UnrealMCPBridge: Server is already running"));
+        UE_LOG(LogUnrealMCP, Warning, TEXT("UnrealMCPBridge: Server is already running"));
         return;
     }
+
+    const UUnrealMCPSettings* Settings = GetDefault<UUnrealMCPSettings>();
+    if (!Settings)
+    {
+        UE_LOG(LogUnrealMCP, Error, TEXT("UnrealMCPBridge: Cannot start server without settings"));
+        return;
+    }
+
+    FString Host = Settings->ServerHost;
+    Host.TrimStartAndEndInline();
+
+    FIPv4Address BindAddress;
+    if (!FIPv4Address::Parse(Host, BindAddress))
+    {
+        if (Host.Equals(TEXT("localhost"), ESearchCase::IgnoreCase))
+        {
+            BindAddress = FIPv4Address::InternalLoopback;
+        }
+        else if (Host.Equals(TEXT("0.0.0.0"), ESearchCase::IgnoreCase))
+        {
+            BindAddress = FIPv4Address::Any;
+        }
+        else
+        {
+            BindAddress = ServerAddress;
+            UE_LOG(LogUnrealMCP, Warning, TEXT("UnrealMCPBridge: Unable to parse ServerHost '%s', using %s"), *Host, *BindAddress.ToString());
+        }
+    }
+    ServerAddress = BindAddress;
+
+    Port = static_cast<uint16>(FMath::Clamp(Settings->ServerPort, 1, 65535));
 
     // Create socket subsystem
     ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
     if (!SocketSubsystem)
     {
-        UE_LOG(LogTemp, Error, TEXT("UnrealMCPBridge: Failed to get socket subsystem"));
+        UE_LOG(LogUnrealMCP, Error, TEXT("UnrealMCPBridge: Failed to get socket subsystem"));
         return;
     }
 
@@ -132,7 +193,7 @@ void UUnrealMCPBridge::StartServer()
     TSharedPtr<FSocket> NewListenerSocket = MakeShareable(SocketSubsystem->CreateSocket(NAME_Stream, TEXT("UnrealMCPListener"), false));
     if (!NewListenerSocket.IsValid())
     {
-        UE_LOG(LogTemp, Error, TEXT("UnrealMCPBridge: Failed to create listener socket"));
+        UE_LOG(LogUnrealMCP, Error, TEXT("UnrealMCPBridge: Failed to create listener socket"));
         return;
     }
 
@@ -141,34 +202,39 @@ void UUnrealMCPBridge::StartServer()
     NewListenerSocket->SetNonBlocking(true);
 
     // Bind to address
-    FIPv4Endpoint Endpoint(ServerAddress, Port);
+    FIPv4Endpoint Endpoint(BindAddress, Port);
     if (!NewListenerSocket->Bind(*Endpoint.ToInternetAddr()))
     {
-        UE_LOG(LogTemp, Error, TEXT("UnrealMCPBridge: Failed to bind listener socket to %s:%d"), *ServerAddress.ToString(), Port);
+        UE_LOG(LogUnrealMCP, Error, TEXT("UnrealMCPBridge: Failed to bind listener socket to %s:%d"), *BindAddress.ToString(), Port);
         return;
     }
 
     // Start listening
     if (!NewListenerSocket->Listen(5))
     {
-        UE_LOG(LogTemp, Error, TEXT("UnrealMCPBridge: Failed to start listening"));
+        UE_LOG(LogUnrealMCP, Error, TEXT("UnrealMCPBridge: Failed to start listening"));
         return;
     }
 
     ListenerSocket = NewListenerSocket;
     bIsRunning = true;
-    UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Server started on %s:%d"), *ServerAddress.ToString(), Port);
+    UE_LOG(LogUnrealMCP, Display, TEXT("UnrealMCPBridge: Server started on %s:%d"), *BindAddress.ToString(), Port);
 
     // Start server thread
+    FMCPServerConfig ServerConfig;
+    ServerConfig.HandshakeTimeoutSeconds = Settings->ConnectTimeoutSec;
+    ServerConfig.ReadTimeoutSeconds = Settings->ReadTimeoutSec;
+    ServerConfig.HeartbeatIntervalSeconds = Settings->HeartbeatIntervalSec;
+
     ServerThread = FRunnableThread::Create(
-        new FMCPServerRunnable(this, ListenerSocket),
+        new FMCPServerRunnable(this, ListenerSocket, ServerConfig),
         TEXT("UnrealMCPServerThread"),
         0, TPri_Normal
     );
 
     if (!ServerThread)
     {
-        UE_LOG(LogTemp, Error, TEXT("UnrealMCPBridge: Failed to create server thread"));
+        UE_LOG(LogUnrealMCP, Error, TEXT("UnrealMCPBridge: Failed to create server thread"));
         StopServer();
         return;
     }
@@ -205,13 +271,13 @@ void UUnrealMCPBridge::StopServer()
         ListenerSocket.Reset();
     }
 
-    UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Server stopped"));
+    UE_LOG(LogUnrealMCP, Display, TEXT("UnrealMCPBridge: Server stopped"));
 }
 
 // Execute a command received from a client
 FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params)
 {
-    UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Executing command: %s"), *CommandType);
+    UE_LOG(LogUnrealMCP, Display, TEXT("UnrealMCPBridge: Executing command: %s"), *CommandType);
 
     // Create a promise to wait for the result
     TPromise<FString> Promise;
@@ -230,6 +296,28 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
             FMutationPlan MutationPlan;
             bool bSkipExecution = false;
             TSharedPtr<FJsonObject> AuditJson;
+
+            FString ToolReason;
+            if (!FWriteGate::IsToolAllowed(CommandType, ToolReason))
+            {
+                ResponseJson->SetBoolField(TEXT("ok"), false);
+                ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
+                ResponseJson->SetObjectField(TEXT("error"), FWriteGate::MakeToolNotAllowedError(CommandType, ToolReason));
+
+                if (bIsMutation)
+                {
+                    MutationPlan = FWriteGate::BuildPlan(CommandType, Params);
+                    MutationPlan.bDryRun = true;
+                    AuditJson = FWriteGate::BuildAuditJson(MutationPlan, false);
+                    ResponseJson->SetObjectField(TEXT("audit"), AuditJson);
+                }
+
+                FString ResultString;
+                TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
+                FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);
+                Promise.SetValue(ResultString);
+                return;
+            }
 
             if (bIsMutation)
             {
@@ -460,7 +548,7 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 FString AuditString;
                 TSharedRef<TJsonWriter<>> AuditWriter = TJsonWriterFactory<>::Create(&AuditString);
                 FJsonSerializer::Serialize(AuditJson.ToSharedRef(), AuditWriter);
-                UE_LOG(LogTemp, Display, TEXT("[AUDIT] %s"), *AuditString);
+                UE_LOG(LogUnrealMCP, Display, TEXT("[AUDIT] %s"), *AuditString);
             }
         }
         catch (const std::exception& e)

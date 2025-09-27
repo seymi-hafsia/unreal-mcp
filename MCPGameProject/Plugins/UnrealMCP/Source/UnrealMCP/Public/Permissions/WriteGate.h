@@ -35,6 +35,9 @@ public:
         /** Validates the write gate for a command and path, returning false if blocked. */
         static bool CanMutate(const FString& CommandType, const FString& ContentPath, FString& OutReason);
 
+        /** Validates the tool allow/deny lists for a command. */
+        static bool IsToolAllowed(const FString& CommandType, FString& OutReason);
+
         /** Builds a simple mutation plan for auditing. */
         static FMutationPlan BuildPlan(const FString& CommandType, const TSharedPtr<FJsonObject>& Params);
 
@@ -56,8 +59,11 @@ public:
         /** Creates an error payload when a path is outside of the allowlist. */
         static TSharedPtr<FJsonObject> MakePathNotAllowedError(const FString& Path, const FString& Reason);
 
+        /** Creates an error payload when a tool is blocked by policy. */
+        static TSharedPtr<FJsonObject> MakeToolNotAllowedError(const FString& CommandType, const FString& Reason);
+
         /** Updates remote enforcement flags received from the Python server. */
-        static void UpdateRemoteEnforcement(bool bAllowWrite, bool bDryRun, const TArray<FString>& AllowedPaths);
+        static void UpdateRemoteEnforcement(bool bAllowWrite, bool bDryRun, const TArray<FString>& AllowedPaths, const TArray<FString>& AllowedTools, const TArray<FString>& DeniedTools);
 
         /** Resolves a potential content path from known command parameters. */
         static FString ResolvePathForCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params);
