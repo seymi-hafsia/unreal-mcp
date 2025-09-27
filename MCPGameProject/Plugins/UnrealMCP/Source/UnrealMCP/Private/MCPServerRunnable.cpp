@@ -3,6 +3,7 @@
 #include "UnrealMCPBridge.h"
 #include "Protocol/Protocol.h"
 #include "Permissions/WriteGate.h"
+#include "UnrealMCPLog.h"
 
 #include "Sockets.h"
 #include "SocketSubsystem.h"
@@ -17,9 +18,6 @@
 
 namespace
 {
-        constexpr double HandshakeTimeoutSeconds = 10.0;
-        constexpr double PingIntervalSeconds = 15.0;
-        constexpr double IdleTimeoutSeconds = 60.0;
         constexpr double ReceivePollSeconds = 1.0;
         const TCHAR* ProtocolPluginVersion = TEXT("1.0.0");
 
@@ -29,12 +27,13 @@ namespace
         }
 }
 
-FMCPServerRunnable::FMCPServerRunnable(UUnrealMCPBridge* InBridge, TSharedPtr<FSocket> InListenerSocket)
+FMCPServerRunnable::FMCPServerRunnable(UUnrealMCPBridge* InBridge, TSharedPtr<FSocket> InListenerSocket, const FMCPServerConfig& InConfig)
         : Bridge(InBridge)
         , ListenerSocket(InListenerSocket)
         , bRunning(true)
+        , Config(InConfig)
 {
-        UE_LOG(LogTemp, Display, TEXT("MCPServerRunnable: Created server runnable"));
+        UE_LOG(LogUnrealMCP, Display, TEXT("MCPServerRunnable: Created server runnable"));
 }
 
 FMCPServerRunnable::~FMCPServerRunnable()
@@ -48,7 +47,7 @@ bool FMCPServerRunnable::Init()
 
 uint32 FMCPServerRunnable::Run()
 {
-        UE_LOG(LogTemp, Display, TEXT("MCPServerRunnable: Server thread starting..."));
+        UE_LOG(LogUnrealMCP, Display, TEXT("MCPServerRunnable: Server thread starting..."));
 
         while (bRunning)
         {
@@ -58,7 +57,7 @@ uint32 FMCPServerRunnable::Run()
                         ClientSocket = MakeShareable(ListenerSocket->Accept(TEXT("MCPClient")));
                         if (ClientSocket.IsValid())
                         {
-                                UE_LOG(LogTemp, Display, TEXT("MCPServerRunnable: Client connection accepted"));
+                                UE_LOG(LogUnrealMCP, Display, TEXT("MCPServerRunnable: Client connection accepted"));
 
                                 ClientSocket->SetNoDelay(true);
                                 ClientSocket->SetNonBlocking(false);
@@ -73,7 +72,7 @@ uint32 FMCPServerRunnable::Run()
                 FPlatformProcess::Sleep(0.05f);
         }
 
-        UE_LOG(LogTemp, Display, TEXT("MCPServerRunnable: Server thread stopping"));
+        UE_LOG(LogUnrealMCP, Display, TEXT("MCPServerRunnable: Server thread stopping"));
         return 0;
 }
 
@@ -100,9 +99,13 @@ void FMCPServerRunnable::RunConnection(const TSharedPtr<FSocket>& InClientSocket
 
         FProtocolClient ProtocolClient(InClientSocket);
         FString HandshakeError;
+        const double HandshakeTimeoutSeconds = FMath::Max(1.0, Config.HandshakeTimeoutSeconds);
+        const double IdleTimeoutSeconds = FMath::Max(1.0, Config.ReadTimeoutSeconds);
+        const double PingIntervalSeconds = FMath::Max(0.1, Config.HeartbeatIntervalSeconds);
+
         if (!ProtocolClient.PerformHandshake(EngineVersionString, ProtocolPluginVersion, SessionId, HandshakeError, HandshakeTimeoutSeconds))
         {
-                UE_LOG(LogTemp, Warning, TEXT("[Protocol] Handshake failed: %s"), *HandshakeError);
+                UE_LOG(LogUnrealMCP, Warning, TEXT("[Protocol] Handshake failed: %s"), *HandshakeError);
                 InClientSocket->Close();
                 return;
         }
@@ -130,7 +133,7 @@ void FMCPServerRunnable::RunConnection(const TSharedPtr<FSocket>& InClientSocket
                                 FString PingError;
                                 if (!ProtocolClient.SendPing(PingError))
                                 {
-                                        UE_LOG(LogTemp, Warning, TEXT("[Protocol] Failed to send ping: %s"), *PingError);
+                                        UE_LOG(LogUnrealMCP, Warning, TEXT("[Protocol] Failed to send ping: %s"), *PingError);
                                         break;
                                 }
 
@@ -139,13 +142,13 @@ void FMCPServerRunnable::RunConnection(const TSharedPtr<FSocket>& InClientSocket
                 }
                 else if (!ReadResult.Error.IsEmpty())
                 {
-                        UE_LOG(LogTemp, Warning, TEXT("[Protocol] Read error: %s"), *ReadResult.Error);
+                        UE_LOG(LogUnrealMCP, Warning, TEXT("[Protocol] Read error: %s"), *ReadResult.Error);
                         break;
                 }
 
                 if ((FPlatformTime::Seconds() - ProtocolClient.GetLastReceivedTime()) > IdleTimeoutSeconds)
                 {
-                        UE_LOG(LogTemp, Warning, TEXT("[Protocol] Inactivity timeout, closing connection"));
+                        UE_LOG(LogUnrealMCP, Warning, TEXT("[Protocol] Inactivity timeout, closing connection"));
                         break;
                 }
         }
@@ -180,7 +183,7 @@ bool FMCPServerRunnable::HandleProtocolMessage(UnrealMCP::Protocol::FProtocolCli
                 FString PongError;
                 if (!ProtocolClient.SendPong(static_cast<int64>(TimestampValue), PongError))
                 {
-                        UE_LOG(LogTemp, Warning, TEXT("[Protocol] Failed to send pong: %s"), *PongError);
+                        UE_LOG(LogUnrealMCP, Warning, TEXT("[Protocol] Failed to send pong: %s"), *PongError);
                         return false;
                 }
                 return true;
@@ -193,7 +196,7 @@ bool FMCPServerRunnable::HandleProtocolMessage(UnrealMCP::Protocol::FProtocolCli
 
         if (MessageType.Equals(TEXT("handshake"), ESearchCase::IgnoreCase))
         {
-                UE_LOG(LogTemp, Warning, TEXT("[Protocol] Unexpected handshake message after initialization"));
+                UE_LOG(LogUnrealMCP, Warning, TEXT("[Protocol] Unexpected handshake message after initialization"));
                 return true;
         }
 
@@ -224,12 +227,40 @@ bool FMCPServerRunnable::HandleProtocolMessage(UnrealMCP::Protocol::FProtocolCli
                                 }
                         }
 
-                        FWriteGate::UpdateRemoteEnforcement(bAllowWrite, bDryRun, AllowedPaths);
+                        TArray<FString> AllowedTools;
+                        if (Enforcement->HasTypedField<EJson::Array>(TEXT("allowedTools")))
+                        {
+                                const TArray<TSharedPtr<FJsonValue>>& ToolValues = Enforcement->GetArrayField(TEXT("allowedTools"));
+                                for (const TSharedPtr<FJsonValue>& Value : ToolValues)
+                                {
+                                        if (Value.IsValid() && Value->Type == EJson::String)
+                                        {
+                                                AllowedTools.Add(Value->AsString());
+                                        }
+                                }
+                        }
 
-                        UE_LOG(LogTemp, Display, TEXT("[Protocol] Remote enforcement updated (allowWrite=%s, dryRun=%s, paths=%d)"),
+                        TArray<FString> DeniedTools;
+                        if (Enforcement->HasTypedField<EJson::Array>(TEXT("deniedTools")))
+                        {
+                                const TArray<TSharedPtr<FJsonValue>>& ToolValues = Enforcement->GetArrayField(TEXT("deniedTools"));
+                                for (const TSharedPtr<FJsonValue>& Value : ToolValues)
+                                {
+                                        if (Value.IsValid() && Value->Type == EJson::String)
+                                        {
+                                                DeniedTools.Add(Value->AsString());
+                                        }
+                                }
+                        }
+
+                        FWriteGate::UpdateRemoteEnforcement(bAllowWrite, bDryRun, AllowedPaths, AllowedTools, DeniedTools);
+
+                        UE_LOG(LogUnrealMCP, Display, TEXT("[Protocol] Remote enforcement updated (allowWrite=%s, dryRun=%s, paths=%d, allowedTools=%d, deniedTools=%d)"),
                                 bAllowWrite ? TEXT("true") : TEXT("false"),
                                 bDryRun ? TEXT("true") : TEXT("false"),
-                                AllowedPaths.Num());
+                                AllowedPaths.Num(),
+                                AllowedTools.Num(),
+                                DeniedTools.Num());
                 }
 
                 return true;
@@ -260,7 +291,7 @@ bool FMCPServerRunnable::HandleProtocolMessage(UnrealMCP::Protocol::FProtocolCli
         FString SendError;
         if (!ProtocolClient.SendMessage(ResponseObject.ToSharedRef(), SendError))
         {
-                UE_LOG(LogTemp, Warning, TEXT("[Protocol] Failed to send response: %s"), *SendError);
+                UE_LOG(LogUnrealMCP, Warning, TEXT("[Protocol] Failed to send response: %s"), *SendError);
                 return false;
         }
 

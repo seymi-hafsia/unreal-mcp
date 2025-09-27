@@ -12,6 +12,8 @@ namespace
         bool GRemoteAllowWrite = false;
         bool GRemoteDryRun = true;
         TArray<FString> GRemoteAllowedPaths;
+        TArray<FString> GRemoteAllowedTools;
+        TArray<FString> GRemoteDeniedTools;
         static constexpr const TCHAR* TransactionLabel = TEXT("MCP Mutation");
 
         FString ValueToAuditString(const TSharedPtr<FJsonValue>& Value)
@@ -43,6 +45,23 @@ namespace
         {
                 FScopeLock Lock(&GRemoteStateMutex);
                 return GRemoteAllowedPaths;
+        }
+
+        TArray<FString> ReadRemoteAllowedTools()
+        {
+                FScopeLock Lock(&GRemoteStateMutex);
+                return GRemoteAllowedTools;
+        }
+
+        TArray<FString> ReadRemoteDeniedTools()
+        {
+                FScopeLock Lock(&GRemoteStateMutex);
+                return GRemoteDeniedTools;
+        }
+
+        bool MatchesTool(const FString& Pattern, const FString& Command)
+        {
+                return Pattern.Equals(Command, ESearchCase::IgnoreCase);
         }
 }
 
@@ -204,6 +223,11 @@ bool FWriteGate::IsPathAllowed(const FString& ContentPath, FString& OutReason)
 
 bool FWriteGate::CanMutate(const FString& CommandType, const FString& ContentPath, FString& OutReason)
 {
+        if (!IsToolAllowed(CommandType, OutReason))
+        {
+                return false;
+        }
+
         if (!IsWriteAllowed() && CommandType != TEXT("sc.status"))
         {
                 OutReason = TEXT("Write operations are disabled (allowWrite=false)");
@@ -215,6 +239,82 @@ bool FWriteGate::CanMutate(const FString& CommandType, const FString& ContentPat
                 return false;
         }
 
+        return true;
+}
+
+bool FWriteGate::IsToolAllowed(const FString& CommandType, FString& OutReason)
+{
+        const UUnrealMCPSettings* Settings = GetSettings();
+        if (Settings)
+        {
+                for (const FString& DeniedTool : Settings->DeniedTools)
+                {
+                        FString Normalized = DeniedTool;
+                        Normalized.TrimStartAndEndInline();
+                        if (!Normalized.IsEmpty() && MatchesTool(Normalized, CommandType))
+                        {
+                                OutReason = TEXT("Tool denied by project settings");
+                                return false;
+                        }
+                }
+
+                if (Settings->AllowedTools.Num() > 0)
+                {
+                        bool bAllowed = false;
+                        for (const FString& AllowedTool : Settings->AllowedTools)
+                        {
+                                FString Normalized = AllowedTool;
+                                Normalized.TrimStartAndEndInline();
+                                if (!Normalized.IsEmpty() && MatchesTool(Normalized, CommandType))
+                                {
+                                        bAllowed = true;
+                                        break;
+                                }
+                        }
+
+                        if (!bAllowed)
+                        {
+                                OutReason = TEXT("Tool not present in AllowedTools");
+                                return false;
+                        }
+                }
+        }
+
+        const TArray<FString> RemoteDenied = ReadRemoteDeniedTools();
+        for (const FString& DeniedTool : RemoteDenied)
+        {
+                FString Normalized = DeniedTool;
+                Normalized.TrimStartAndEndInline();
+                if (!Normalized.IsEmpty() && MatchesTool(Normalized, CommandType))
+                {
+                        OutReason = TEXT("Tool denied by remote enforcement");
+                        return false;
+                }
+        }
+
+        const TArray<FString> RemoteAllowed = ReadRemoteAllowedTools();
+        if (RemoteAllowed.Num() > 0)
+        {
+                bool bAllowed = false;
+                for (const FString& AllowedTool : RemoteAllowed)
+                {
+                        FString Normalized = AllowedTool;
+                        Normalized.TrimStartAndEndInline();
+                        if (!Normalized.IsEmpty() && MatchesTool(Normalized, CommandType))
+                        {
+                                bAllowed = true;
+                                break;
+                        }
+                }
+
+                if (!bAllowed)
+                {
+                        OutReason = TEXT("Tool not permitted by remote enforcement");
+                        return false;
+                }
+        }
+
+        OutReason.Reset();
         return true;
 }
 
@@ -412,7 +512,19 @@ TSharedPtr<FJsonObject> FWriteGate::MakePathNotAllowedError(const FString& Path,
         return Error;
 }
 
-void FWriteGate::UpdateRemoteEnforcement(bool bAllowWrite, bool bDryRun, const TArray<FString>& AllowedPaths)
+TSharedPtr<FJsonObject> FWriteGate::MakeToolNotAllowedError(const FString& CommandType, const FString& Reason)
+{
+        TSharedPtr<FJsonObject> Error = MakeShared<FJsonObject>();
+        Error->SetStringField(TEXT("code"), TEXT("TOOL_DENIED"));
+        Error->SetStringField(TEXT("message"), Reason);
+
+        TSharedPtr<FJsonObject> Details = MakeShared<FJsonObject>();
+        Details->SetStringField(TEXT("tool"), CommandType);
+        Error->SetObjectField(TEXT("details"), Details);
+        return Error;
+}
+
+void FWriteGate::UpdateRemoteEnforcement(bool bAllowWrite, bool bDryRun, const TArray<FString>& AllowedPaths, const TArray<FString>& AllowedTools, const TArray<FString>& DeniedTools)
 {
         FScopeLock Lock(&GRemoteStateMutex);
         GRemoteAllowWrite = bAllowWrite;
@@ -425,6 +537,28 @@ void FWriteGate::UpdateRemoteEnforcement(bool bAllowWrite, bool bDryRun, const T
                 if (!Normalized.IsEmpty())
                 {
                         GRemoteAllowedPaths.AddUnique(Normalized);
+                }
+        }
+
+        GRemoteAllowedTools.Reset();
+        for (const FString& Tool : AllowedTools)
+        {
+                FString Normalized = Tool;
+                Normalized.TrimStartAndEndInline();
+                if (!Normalized.IsEmpty())
+                {
+                        GRemoteAllowedTools.AddUnique(Normalized);
+                }
+        }
+
+        GRemoteDeniedTools.Reset();
+        for (const FString& Tool : DeniedTools)
+        {
+                FString Normalized = Tool;
+                Normalized.TrimStartAndEndInline();
+                if (!Normalized.IsEmpty())
+                {
+                        GRemoteDeniedTools.AddUnique(Normalized);
                 }
         }
 }

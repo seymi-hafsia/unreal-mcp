@@ -16,9 +16,7 @@
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
 #include "EdGraphSchema_K2.h"
-
-// Declare the log category
-DEFINE_LOG_CATEGORY_STATIC(LogUnrealMCP, Log, All);
+#include "UnrealMCPLog.h"
 
 FUnrealMCPBlueprintNodeCommands::FUnrealMCPBlueprintNodeCommands()
 {
