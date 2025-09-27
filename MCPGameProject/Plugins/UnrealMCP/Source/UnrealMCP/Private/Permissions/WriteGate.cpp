@@ -589,6 +589,7 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
                 TEXT("path"),
                 TEXT("asset_path"),
                 TEXT("asset"),
+                TEXT("objectPath"),
                 TEXT("blueprint_path"),
                 TEXT("content_path"),
                 TEXT("target_path"),
