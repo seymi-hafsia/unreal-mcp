@@ -62,6 +62,7 @@
 #include "Assets/AssetImport.h"
 #include "Assets/AssetQuery.h"
 #include "Actors/ActorTools.h"
+#include "EditorNav/EditorNavTools.h"
 #include "Permissions/WriteGate.h"
 #include "Transactions/TransactionManager.h"
 #include "UnrealMCPLog.h"
@@ -295,7 +296,7 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
         try
         {
             TSharedPtr<FJsonObject> ResultJson;
-            const bool bIsMutation = FWriteGate::IsMutationCommand(CommandType);
+            const bool bIsMutation = FWriteGate::IsMutationCommand(CommandType, Params);
             const FString TargetPath = FWriteGate::ResolvePathForCommand(CommandType, Params);
             FMutationPlan MutationPlan;
             bool bSkipExecution = false;
@@ -727,6 +728,18 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 else if (CommandType == TEXT("actor.tag"))
                 {
                     ResultJson = FActorTools::Tag(Params);
+                }
+                else if (CommandType == TEXT("level.select"))
+                {
+                    ResultJson = FEditorNavTools::LevelSelect(Params);
+                }
+                else if (CommandType == TEXT("viewport.focus"))
+                {
+                    ResultJson = FEditorNavTools::ViewportFocus(Params);
+                }
+                else if (CommandType == TEXT("camera.bookmark"))
+                {
+                    ResultJson = FEditorNavTools::CameraBookmark(Params);
                 }
                 else if (CommandType == TEXT("asset.create_folder"))
                 {
