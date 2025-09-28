@@ -9,6 +9,7 @@
 - **Transactions & Undo** : toutes les mutations sont encapsulées dans des transactions éditeur.
 - **Source Control intégré** : `sc.status / sc.checkout / sc.add / sc.revert / sc.submit` (provider-agnostic).
 - **Assets v1 (lecture)** : `asset.find / asset.exists / asset.metadata` via Asset Registry.
+- **Assets v2 (CRUD)** : `asset.create_folder / asset.rename / asset.delete / asset.fix_redirectors / asset.save_all`.
 - **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
 
 ## 🔧 Installation rapide
@@ -49,7 +50,29 @@
 | `sc.revert`   | Revert local                  |           |
 | `sc.submit`   | Submit/commit avec message    |           |
 
-> **Transactions & Undo** : chaque mutation est faite dans une transaction éditeur (Ctrl+Z possible).  
+| Tool                    | Description                           | Notes                                                  |
+|-------------------------|---------------------------------------|--------------------------------------------------------|
+| `asset.create_folder`   | Créer un dossier `/Game/...`          | Respecte `AllowedContentRoots`                         |
+| `asset.rename`          | Renommer/déplacer un asset (package)  | Crée un redirector (corrigez via `asset.fix_redirectors`) |
+| `asset.delete`          | Supprimer un ou plusieurs assets      | `force=false` bloque si référencé                      |
+| `asset.fix_redirectors` | Corriger les redirectors dans un path | Utilise `AssetTools`, compatible récursif              |
+| `asset.save_all`        | Sauvegarder assets modifiés           | Scope global ou par `paths[]`, `modifiedOnly` optionnel |
+
+```jsonc
+// Exemple : asset.rename
+{
+  "fromObjectPath": "/Game/Core/Old/BP_SpellProjectile.BP_SpellProjectile",
+  "toPackagePath": "/Game/Core/Spells/BP_SpellProjectile"
+}
+
+// Exemple : asset.fix_redirectors
+{
+  "paths": ["/Game/Core", "/Game/Art"],
+  "recursive": true
+}
+```
+
+> **Transactions & Undo** : chaque mutation est faite dans une transaction éditeur (Ctrl+Z possible).
 > **SCM** : si `RequireCheckout=true`, échec si l’asset n’est pas checkout.
 
 ## 🔐 Modèle de sécurité

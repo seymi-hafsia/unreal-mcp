@@ -325,7 +325,123 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
 
         bool bAddedSpecificActions = false;
 
-        if (CommandType.StartsWith(TEXT("sc.")) && Params.IsValid())
+        if (CommandType == TEXT("asset.create_folder") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("mkdir");
+
+                FString Path;
+                if (Params->TryGetStringField(TEXT("path"), Path))
+                {
+                        Action.Args.Add(TEXT("path"), NormalizeContentPath(Path));
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType == TEXT("asset.rename") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("rename");
+
+                FString FromObjectPath;
+                if (Params->TryGetStringField(TEXT("fromObjectPath"), FromObjectPath))
+                {
+                        const FString FromPackage = FPackageName::ObjectPathToPackageName(NormalizeContentPath(FromObjectPath));
+                        Action.Args.Add(TEXT("from"), FromPackage);
+                }
+
+                FString ToPackagePath;
+                if (Params->TryGetStringField(TEXT("toPackagePath"), ToPackagePath))
+                {
+                        Action.Args.Add(TEXT("to"), NormalizeContentPath(ToPackagePath));
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType == TEXT("asset.delete") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* ObjectPaths = nullptr;
+                if (Params->TryGetArrayField(TEXT("objectPaths"), ObjectPaths))
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *ObjectPaths)
+                        {
+                                if (Value->Type == EJson::String)
+                                {
+                                        FMutationAction Action;
+                                        Action.Op = TEXT("delete");
+                                        Action.Args.Add(TEXT("objectPath"), NormalizeContentPath(Value->AsString()));
+                                        Plan.Actions.Add(Action);
+                                }
+                        }
+
+                        if (Plan.Actions.Num() > 0)
+                        {
+                                return Plan;
+                        }
+                }
+        }
+        else if (CommandType == TEXT("asset.fix_redirectors") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* Paths = nullptr;
+                if (Params->TryGetArrayField(TEXT("paths"), Paths))
+                {
+                        bool bAny = false;
+                        for (const TSharedPtr<FJsonValue>& Value : *Paths)
+                        {
+                                if (Value->Type == EJson::String)
+                                {
+                                        FMutationAction Action;
+                                        Action.Op = TEXT("fix_redirectors");
+                                        Action.Args.Add(TEXT("path"), NormalizeContentPath(Value->AsString()));
+                                        if (Params->HasTypedField<EJson::Boolean>(TEXT("recursive")))
+                                        {
+                                                Action.Args.Add(TEXT("recursive"), Params->GetBoolField(TEXT("recursive")) ? TEXT("true") : TEXT("false"));
+                                        }
+                                        Plan.Actions.Add(Action);
+                                        bAny = true;
+                                }
+                        }
+
+                        if (bAny)
+                        {
+                                return Plan;
+                        }
+                }
+        }
+        else if (CommandType == TEXT("asset.save_all") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("save_all");
+
+                const TArray<TSharedPtr<FJsonValue>>* Paths = nullptr;
+                if (Params->TryGetArrayField(TEXT("paths"), Paths))
+                {
+                        TArray<FString> NormalizedPaths;
+                        for (const TSharedPtr<FJsonValue>& Value : *Paths)
+                        {
+                                if (Value->Type == EJson::String)
+                                {
+                                        NormalizedPaths.Add(NormalizeContentPath(Value->AsString()));
+                                }
+                        }
+
+                        if (NormalizedPaths.Num() > 0)
+                        {
+                                Action.Args.Add(TEXT("paths"), FString::Join(NormalizedPaths, TEXT(",")));
+                        }
+                }
+
+                if (Params->HasTypedField<EJson::Boolean>(TEXT("modifiedOnly")))
+                {
+                        Action.Args.Add(TEXT("modifiedOnly"), Params->GetBoolField(TEXT("modifiedOnly")) ? TEXT("true") : TEXT("false"));
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType.StartsWith(TEXT("sc.")) && Params.IsValid())
         {
                 const TArray<TSharedPtr<FJsonValue>>* AssetsArray = nullptr;
                 if (Params->TryGetArrayField(TEXT("assets"), AssetsArray))
@@ -590,6 +706,8 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
                 TEXT("asset_path"),
                 TEXT("asset"),
                 TEXT("objectPath"),
+                TEXT("fromObjectPath"),
+                TEXT("toPackagePath"),
                 TEXT("blueprint_path"),
                 TEXT("content_path"),
                 TEXT("target_path"),
@@ -616,6 +734,51 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
         if (Params->HasTypedField<EJson::String>(TEXT("widget_name")))
         {
                 return NormalizeContentPath(Params->GetStringField(TEXT("widget_name")));
+        }
+
+        if (CommandType == TEXT("asset.delete") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* ObjectPaths = nullptr;
+                if (Params->TryGetArrayField(TEXT("objectPaths"), ObjectPaths))
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *ObjectPaths)
+                        {
+                                if (Value->Type == EJson::String)
+                                {
+                                        return NormalizeContentPath(Value->AsString());
+                                }
+                        }
+                }
+        }
+
+        if (CommandType == TEXT("asset.fix_redirectors") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* Paths = nullptr;
+                if (Params->TryGetArrayField(TEXT("paths"), Paths))
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *Paths)
+                        {
+                                if (Value->Type == EJson::String)
+                                {
+                                        return NormalizeContentPath(Value->AsString());
+                                }
+                        }
+                }
+        }
+
+        if (CommandType == TEXT("asset.save_all") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* Paths = nullptr;
+                if (Params->TryGetArrayField(TEXT("paths"), Paths))
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *Paths)
+                        {
+                                if (Value->Type == EJson::String)
+                                {
+                                        return NormalizeContentPath(Value->AsString());
+                                }
+                        }
+                }
         }
 
         return FString();

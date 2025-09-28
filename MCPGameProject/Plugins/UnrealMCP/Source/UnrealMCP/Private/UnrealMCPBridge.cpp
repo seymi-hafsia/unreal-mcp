@@ -58,6 +58,7 @@
 #include "Commands/UnrealMCPProjectCommands.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Commands/UnrealMCPUMGCommands.h"
+#include "Assets/AssetCrud.h"
 #include "Assets/AssetQuery.h"
 #include "Permissions/WriteGate.h"
 #include "Transactions/TransactionManager.h"
@@ -704,6 +705,26 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                             ResultJson->SetStringField(TEXT("errorCode"), TEXT("ASSET_METADATA_FAILED"));
                         }
                     }
+                }
+                else if (CommandType == TEXT("asset.create_folder"))
+                {
+                    ResultJson = FAssetCrud::CreateFolder(Params);
+                }
+                else if (CommandType == TEXT("asset.rename"))
+                {
+                    ResultJson = FAssetCrud::Rename(Params);
+                }
+                else if (CommandType == TEXT("asset.delete"))
+                {
+                    ResultJson = FAssetCrud::Delete(Params);
+                }
+                else if (CommandType == TEXT("asset.fix_redirectors"))
+                {
+                    ResultJson = FAssetCrud::FixRedirectors(Params);
+                }
+                else if (CommandType == TEXT("asset.save_all"))
+                {
+                    ResultJson = FAssetCrud::SaveAll(Params);
                 }
                 else if (CommandType.StartsWith(TEXT("sc.")))
                 {
