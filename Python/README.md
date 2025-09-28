@@ -54,7 +54,8 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
 
 * Lecture : `asset.find`, `asset.exists`, `asset.metadata`, `sc.status`
 * Mutations : `sc.checkout`, `sc.add`, `sc.revert`, `sc.submit`
-  *(soumis à allowWrite/dryRun/allowedPaths)*
+* Assets CRUD : `asset.create_folder`, `asset.rename`, `asset.delete`, `asset.fix_redirectors`, `asset.save_all`
+  *(toutes les mutations respectent `allow_write`, `dry_run`, `allowed_paths` et nécessitent checkout/mark-for-add selon réglages)*
 
 ## Débogage
 
