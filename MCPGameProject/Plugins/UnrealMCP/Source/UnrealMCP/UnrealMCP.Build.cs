@@ -54,7 +54,8 @@ public class UnrealMCP : ModuleRules
                                 "AssetRegistry",
                                 "AssetTools",
                                 "SourceControl",
-                                "Settings"
+                                "Settings",
+                                "LevelEditor"
                         }
                 );
 		

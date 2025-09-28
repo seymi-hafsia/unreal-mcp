@@ -61,6 +61,7 @@
 #include "Assets/AssetCrud.h"
 #include "Assets/AssetImport.h"
 #include "Assets/AssetQuery.h"
+#include "Actors/ActorTools.h"
 #include "Permissions/WriteGate.h"
 #include "Transactions/TransactionManager.h"
 #include "UnrealMCPLog.h"
@@ -706,6 +707,26 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                             ResultJson->SetStringField(TEXT("errorCode"), TEXT("ASSET_METADATA_FAILED"));
                         }
                     }
+                }
+                else if (CommandType == TEXT("actor.spawn"))
+                {
+                    ResultJson = FActorTools::Spawn(Params);
+                }
+                else if (CommandType == TEXT("actor.destroy"))
+                {
+                    ResultJson = FActorTools::Destroy(Params);
+                }
+                else if (CommandType == TEXT("actor.attach"))
+                {
+                    ResultJson = FActorTools::Attach(Params);
+                }
+                else if (CommandType == TEXT("actor.transform"))
+                {
+                    ResultJson = FActorTools::Transform(Params);
+                }
+                else if (CommandType == TEXT("actor.tag"))
+                {
+                    ResultJson = FActorTools::Tag(Params);
                 }
                 else if (CommandType == TEXT("asset.create_folder"))
                 {
