@@ -11,6 +11,7 @@
 - **Assets v1 (lecture)** : `asset.find / asset.exists / asset.metadata` via Asset Registry.
 - **Assets v2 (CRUD)** : `asset.create_folder / asset.rename / asset.delete / asset.fix_redirectors / asset.save_all`.
 - **Assets v3 (Batch Import)** : `asset.batch_import` pour importer FBX/Textures/Audio avec presets, options et SCM.
+- **Actors v1 (Editor)** : `actor.spawn / actor.destroy / actor.attach / actor.transform / actor.tag` (transactions, sélection, audit).
 - **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
 
 ## 🔧 Installation rapide
@@ -59,6 +60,27 @@
 | `asset.fix_redirectors` | Corriger les redirectors dans un path | Utilise `AssetTools`, compatible récursif              |
 | `asset.save_all`        | Sauvegarder assets modifiés           | Scope global ou par `paths[]`, `modifiedOnly` optionnel |
 | `asset.batch_import`    | Importer un lot de fichiers           | Presets FBX/Textures/Audio, dry-run, SCM, conflits      |
+
+#### Actors
+
+| Tool             | Description                          | Notes                                                   |
+|------------------|--------------------------------------|---------------------------------------------------------|
+| `actor.spawn`    | Instancier un acteur (classe ou BP)  | Transform + tags optionnels, sélection possible         |
+| `actor.destroy`  | Détruire un ou plusieurs acteurs     | `allowMissing=true` ignore les références absentes      |
+| `actor.attach`   | Attacher un acteur à un parent       | Supporte `keepWorldTransform`, `socketName`, weld       |
+| `actor.transform`| Appliquer set/add sur location/rot/scale | `set` absolu puis `add` (delta)                        |
+| `actor.tag`      | Ajouter/retirer/remplacer des tags   | `replace` (array ou `null`), `add`, `remove`            |
+
+```jsonc
+// Exemple : actor.spawn
+{
+  "classPath": "/Script/Engine.StaticMeshActor",
+  "location": [0.0, 0.0, 150.0],
+  "rotation": [0.0, 90.0, 0.0],
+  "tags": ["SpawnedByMCP"],
+  "select": true
+}
+```
 
 ```jsonc
 // Exemple : asset.rename

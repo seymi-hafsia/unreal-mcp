@@ -56,6 +56,7 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
 * Mutations : `sc.checkout`, `sc.add`, `sc.revert`, `sc.submit`
 * Assets CRUD : `asset.create_folder`, `asset.rename`, `asset.delete`, `asset.fix_redirectors`, `asset.save_all`
 * Assets Batch Import : `asset.batch_import` (FBX/Textures/Audio, presets/options, SCM)
+* Actors (Editor) : `actor.spawn`, `actor.destroy`, `actor.attach`, `actor.transform`, `actor.tag`
   *(toutes les mutations respectent `allow_write`, `dry_run`, `allowed_paths` et nécessitent checkout/mark-for-add selon réglages)*
 
 > `asset.batch_import` peut prendre plusieurs secondes (import FBX + textures). La réponse contient le détail par fichier (`created/skipped/overwritten`, warnings, audit).

@@ -4,10 +4,16 @@
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopeLock.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonWriter.h"
 #include "SourceControlService.h"
 
 namespace
 {
+        FString SerializeJsonValue(const TSharedPtr<FJsonValue>& Value);
+        FString SerializeArrayField(const TSharedPtr<FJsonObject>& Object, const FString& FieldName);
+        FString SerializeObjectField(const TSharedPtr<FJsonObject>& Object, const FString& FieldName);
+
         FCriticalSection GRemoteStateMutex;
         bool GRemoteAllowWrite = false;
         bool GRemoteDryRun = true;
@@ -32,9 +38,8 @@ namespace
                 case EJson::Boolean:
                         return Value->AsBool() ? TEXT("true") : TEXT("false");
                 case EJson::Array:
-                        return TEXT("<array>");
                 case EJson::Object:
-                        return TEXT("<object>");
+                        return SerializeJsonValue(Value);
                 case EJson::Null:
                 default:
                         return TEXT("<null>");
@@ -63,6 +68,87 @@ namespace
         {
                 return Pattern.Equals(Command, ESearchCase::IgnoreCase);
         }
+
+        FString SerializeJsonValue(const TSharedPtr<FJsonValue>& Value)
+        {
+                if (!Value.IsValid())
+                {
+                        return TEXT("<null>");
+                }
+
+                FString Serialized;
+                TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Serialized);
+                if (FJsonSerializer::Serialize(Value.ToSharedRef(), Writer))
+                {
+                        return Serialized;
+                }
+
+                return TEXT("<error>");
+        }
+
+        FString SerializeArrayField(const TSharedPtr<FJsonObject>& Object, const FString& FieldName)
+        {
+                if (!Object.IsValid())
+                {
+                        return FString();
+                }
+
+                const TArray<TSharedPtr<FJsonValue>>* Array = nullptr;
+                if (!Object->TryGetArrayField(FieldName, Array))
+                {
+                        return FString();
+                }
+
+                FString Serialized;
+                TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Serialized);
+                Writer->WriteArrayStart();
+                for (const TSharedPtr<FJsonValue>& Value : *Array)
+                {
+                        if (!Value.IsValid())
+                        {
+                                Writer->WriteNull();
+                        }
+                        else if (Value->Type == EJson::Number)
+                        {
+                                Writer->WriteValue(Value->AsNumber());
+                        }
+                        else if (Value->Type == EJson::Boolean)
+                        {
+                                Writer->WriteValue(Value->AsBool());
+                        }
+                        else if (Value->Type == EJson::String)
+                        {
+                                Writer->WriteValue(Value->AsString());
+                        }
+                        else
+                        {
+                                Writer->WriteRawJSONValue(SerializeJsonValue(Value));
+                        }
+                }
+                Writer->WriteArrayEnd();
+                Writer->Close();
+
+                return Serialized;
+        }
+
+        FString SerializeObjectField(const TSharedPtr<FJsonObject>& Object, const FString& FieldName)
+        {
+                if (!Object.IsValid() || !Object->HasField(FieldName))
+                {
+                        return FString();
+                }
+
+                const TSharedPtr<FJsonObject>* ChildObject = nullptr;
+                if (!Object->TryGetObjectField(FieldName, ChildObject))
+                {
+                        return FString();
+                }
+
+                FString Serialized;
+                TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Serialized);
+                FJsonSerializer::Serialize(ChildObject->ToSharedRef(), Writer);
+                return Serialized;
+        }
 }
 
 const UUnrealMCPSettings* FWriteGate::GetSettings()
@@ -77,6 +163,11 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType)
                 TEXT("create_actor"),
                 TEXT("delete_actor"),
                 TEXT("set_actor_transform"),
+                TEXT("actor.spawn"),
+                TEXT("actor.destroy"),
+                TEXT("actor.attach"),
+                TEXT("actor.transform"),
+                TEXT("actor.tag"),
                 TEXT("set_actor_property"),
                 TEXT("spawn_blueprint_actor"),
                 TEXT("create_blueprint"),
@@ -382,6 +473,187 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
                                 return Plan;
                         }
                 }
+        }
+        else if (CommandType == TEXT("actor.spawn") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("spawn");
+
+                FString ClassPath;
+                if (Params->TryGetStringField(TEXT("classPath"), ClassPath))
+                {
+                        Action.Args.Add(TEXT("class"), ClassPath);
+                }
+
+                const FString LocationString = SerializeArrayField(Params, TEXT("location"));
+                if (!LocationString.IsEmpty())
+                {
+                        Action.Args.Add(TEXT("location"), LocationString);
+                }
+
+                const FString RotationString = SerializeArrayField(Params, TEXT("rotation"));
+                if (!RotationString.IsEmpty())
+                {
+                        Action.Args.Add(TEXT("rotation"), RotationString);
+                }
+
+                const FString ScaleString = SerializeArrayField(Params, TEXT("scale"));
+                if (!ScaleString.IsEmpty())
+                {
+                        Action.Args.Add(TEXT("scale"), ScaleString);
+                }
+
+                const FString TagsString = SerializeArrayField(Params, TEXT("tags"));
+                if (!TagsString.IsEmpty())
+                {
+                        Action.Args.Add(TEXT("tags"), TagsString);
+                }
+
+                if (Params->HasTypedField<EJson::Boolean>(TEXT("select")))
+                {
+                        Action.Args.Add(TEXT("select"), Params->GetBoolField(TEXT("select")) ? TEXT("true") : TEXT("false"));
+                }
+
+                if (Params->HasTypedField<EJson::Boolean>(TEXT("deferred")))
+                {
+                        Action.Args.Add(TEXT("deferred"), Params->GetBoolField(TEXT("deferred")) ? TEXT("true") : TEXT("false"));
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType == TEXT("actor.destroy") && Params.IsValid())
+        {
+                const bool bHasAllowMissingFlag = Params->HasTypedField<EJson::Boolean>(TEXT("allowMissing"));
+                const bool bAllowMissing = bHasAllowMissingFlag && Params->GetBoolField(TEXT("allowMissing"));
+
+                const TArray<TSharedPtr<FJsonValue>>* ActorsArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("actors"), ActorsArray))
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *ActorsArray)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::String)
+                                {
+                                        FMutationAction Action;
+                                        Action.Op = TEXT("destroy");
+                                        Action.Args.Add(TEXT("actor"), Value->AsString());
+                                        if (bHasAllowMissingFlag)
+                                        {
+                                                Action.Args.Add(TEXT("allowMissing"), bAllowMissing ? TEXT("true") : TEXT("false"));
+                                        }
+                                        Plan.Actions.Add(Action);
+                                }
+                        }
+
+                        if (Plan.Actions.Num() > 0)
+                        {
+                                return Plan;
+                        }
+                }
+        }
+        else if (CommandType == TEXT("actor.attach") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("attach");
+
+                FString Child;
+                if (Params->TryGetStringField(TEXT("child"), Child))
+                {
+                        Action.Args.Add(TEXT("child"), Child);
+                }
+
+                FString Parent;
+                if (Params->TryGetStringField(TEXT("parent"), Parent))
+                {
+                        Action.Args.Add(TEXT("parent"), Parent);
+                }
+
+                if (Params->HasField(TEXT("socketName")))
+                {
+                        FString Socket;
+                        if (Params->TryGetStringField(TEXT("socketName"), Socket))
+                        {
+                                Action.Args.Add(TEXT("socket"), Socket);
+                        }
+                }
+
+                if (Params->HasTypedField<EJson::Boolean>(TEXT("keepWorldTransform")))
+                {
+                        Action.Args.Add(TEXT("keepWorldTransform"), Params->GetBoolField(TEXT("keepWorldTransform")) ? TEXT("true") : TEXT("false"));
+                }
+
+                if (Params->HasTypedField<EJson::Boolean>(TEXT("weldSimulatedBodies")))
+                {
+                        Action.Args.Add(TEXT("weldSimulatedBodies"), Params->GetBoolField(TEXT("weldSimulatedBodies")) ? TEXT("true") : TEXT("false"));
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType == TEXT("actor.transform") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("transform");
+
+                FString ActorId;
+                if (Params->TryGetStringField(TEXT("actor"), ActorId))
+                {
+                        Action.Args.Add(TEXT("actor"), ActorId);
+                }
+
+                const FString SetString = SerializeObjectField(Params, TEXT("set"));
+                if (!SetString.IsEmpty())
+                {
+                        Action.Args.Add(TEXT("set"), SetString);
+                }
+
+                const FString AddString = SerializeObjectField(Params, TEXT("add"));
+                if (!AddString.IsEmpty())
+                {
+                        Action.Args.Add(TEXT("add"), AddString);
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType == TEXT("actor.tag") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("tag");
+
+                FString ActorId;
+                if (Params->TryGetStringField(TEXT("actor"), ActorId))
+                {
+                        Action.Args.Add(TEXT("actor"), ActorId);
+                }
+
+                if (Params->HasField(TEXT("replace")))
+                {
+                        const TSharedPtr<FJsonValue> ReplaceValue = Params->TryGetField(TEXT("replace"));
+                        if (!ReplaceValue.IsValid() || ReplaceValue->Type == EJson::Null)
+                        {
+                                Action.Args.Add(TEXT("replace"), TEXT("null"));
+                        }
+                        else
+                        {
+                                Action.Args.Add(TEXT("replace"), SerializeJsonValue(ReplaceValue));
+                        }
+                }
+
+                const FString AddTags = SerializeArrayField(Params, TEXT("add"));
+                if (!AddTags.IsEmpty())
+                {
+                        Action.Args.Add(TEXT("add"), AddTags);
+                }
+
+                const FString RemoveTags = SerializeArrayField(Params, TEXT("remove"));
+                if (!RemoveTags.IsEmpty())
+                {
+                        Action.Args.Add(TEXT("remove"), RemoveTags);
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
         }
         else if (CommandType == TEXT("asset.fix_redirectors") && Params.IsValid())
         {
