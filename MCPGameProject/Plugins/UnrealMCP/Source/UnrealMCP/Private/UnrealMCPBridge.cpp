@@ -59,6 +59,7 @@
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Commands/UnrealMCPUMGCommands.h"
 #include "Assets/AssetCrud.h"
+#include "Assets/AssetImport.h"
 #include "Assets/AssetQuery.h"
 #include "Permissions/WriteGate.h"
 #include "Transactions/TransactionManager.h"
@@ -725,6 +726,10 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 else if (CommandType == TEXT("asset.save_all"))
                 {
                     ResultJson = FAssetCrud::SaveAll(Params);
+                }
+                else if (CommandType == TEXT("asset.batch_import"))
+                {
+                    ResultJson = FAssetImport::BatchImport(Params);
                 }
                 else if (CommandType.StartsWith(TEXT("sc.")))
                 {

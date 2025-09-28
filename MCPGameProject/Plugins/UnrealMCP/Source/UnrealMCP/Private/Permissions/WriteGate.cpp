@@ -106,7 +106,8 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType)
                 TEXT("sc.checkout"),
                 TEXT("sc.add"),
                 TEXT("sc.revert"),
-                TEXT("sc.submit")
+                TEXT("sc.submit"),
+                TEXT("asset.batch_import")
         };
 
         return MutatingCommands.Contains(CommandType);
@@ -441,6 +442,34 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
                 Plan.Actions.Add(Action);
                 return Plan;
         }
+        else if (CommandType == TEXT("asset.batch_import") && Params.IsValid())
+        {
+                FString DestPath;
+                if (Params->TryGetStringField(TEXT("destPath"), DestPath))
+                {
+                        const FString NormalizedDest = NormalizeContentPath(DestPath);
+                        const TArray<TSharedPtr<FJsonValue>>* Files = nullptr;
+                        if (Params->TryGetArrayField(TEXT("files"), Files))
+                        {
+                                for (const TSharedPtr<FJsonValue>& Value : *Files)
+                                {
+                                        if (Value->Type == EJson::String)
+                                        {
+                                                FMutationAction Action;
+                                                Action.Op = TEXT("import");
+                                                Action.Args.Add(TEXT("file"), Value->AsString());
+                                                Action.Args.Add(TEXT("dest"), NormalizedDest);
+                                                Plan.Actions.Add(Action);
+                                        }
+                                }
+
+                                if (Plan.Actions.Num() > 0)
+                                {
+                                        return Plan;
+                                }
+                        }
+                }
+        }
         else if (CommandType.StartsWith(TEXT("sc.")) && Params.IsValid())
         {
                 const TArray<TSharedPtr<FJsonValue>>* AssetsArray = nullptr;
@@ -714,7 +743,8 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
                 TEXT("parent_path"),
                 TEXT("widget_path"),
                 TEXT("source_path"),
-                TEXT("package_path")
+                TEXT("package_path"),
+                TEXT("destPath")
         };
 
         for (const FString& Key : CandidateKeys)

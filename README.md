@@ -10,6 +10,7 @@
 - **Source Control intégré** : `sc.status / sc.checkout / sc.add / sc.revert / sc.submit` (provider-agnostic).
 - **Assets v1 (lecture)** : `asset.find / asset.exists / asset.metadata` via Asset Registry.
 - **Assets v2 (CRUD)** : `asset.create_folder / asset.rename / asset.delete / asset.fix_redirectors / asset.save_all`.
+- **Assets v3 (Batch Import)** : `asset.batch_import` pour importer FBX/Textures/Audio avec presets, options et SCM.
 - **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
 
 ## 🔧 Installation rapide
@@ -57,6 +58,7 @@
 | `asset.delete`          | Supprimer un ou plusieurs assets      | `force=false` bloque si référencé                      |
 | `asset.fix_redirectors` | Corriger les redirectors dans un path | Utilise `AssetTools`, compatible récursif              |
 | `asset.save_all`        | Sauvegarder assets modifiés           | Scope global ou par `paths[]`, `modifiedOnly` optionnel |
+| `asset.batch_import`    | Importer un lot de fichiers           | Presets FBX/Textures/Audio, dry-run, SCM, conflits      |
 
 ```jsonc
 // Exemple : asset.rename
@@ -69,6 +71,13 @@
 {
   "paths": ["/Game/Core", "/Game/Art"],
   "recursive": true
+}
+
+// Exemple : asset.batch_import
+{
+  "destPath": "/Game/Art/Characters/Orc",
+  "files": ["D:/Imports/Orc/mesh/Orc.fbx", "D:/Imports/Orc/textures/Orc_Diffuse.png"],
+  "preset": "fbx_character"
 }
 ```
 
