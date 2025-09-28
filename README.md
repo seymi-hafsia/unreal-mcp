@@ -12,6 +12,7 @@
 - **Assets v2 (CRUD)** : `asset.create_folder / asset.rename / asset.delete / asset.fix_redirectors / asset.save_all`.
 - **Assets v3 (Batch Import)** : `asset.batch_import` pour importer FBX/Textures/Audio avec presets, options et SCM.
 - **Actors v1 (Editor)** : `actor.spawn / actor.destroy / actor.attach / actor.transform / actor.tag` (transactions, sélection, audit).
+- **Camera helpers (Editor)** : `level.select / viewport.focus / camera.bookmark` (navigation + bookmarks, session & persistance).
 - **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
 
 ## 🔧 Installation rapide
@@ -71,6 +72,14 @@
 | `actor.transform`| Appliquer set/add sur location/rot/scale | `set` absolu puis `add` (delta)                        |
 | `actor.tag`      | Ajouter/retirer/remplacer des tags   | `replace` (array ou `null`), `add`, `remove`            |
 
+#### Éditeur
+
+| Tool              | Type      | Description                               | Notes                                                |
+|-------------------|-----------|-------------------------------------------|------------------------------------------------------|
+| `level.select`    | read-only | Sélectionner des acteurs par filtres      | `mode=replace|add|remove`, support tags/classes        |
+| `viewport.focus`  | read-only | Recentrer la caméra éditeur               | Acteurs, box ou location; `orbit` = cadrage orbital  |
+| `camera.bookmark` | mixte     | `set/jump/list` de bookmarks caméra       | `persist=true` écrit dans le niveau (mutant + gate)  |
+
 ```jsonc
 // Exemple : actor.spawn
 {
@@ -79,6 +88,31 @@
   "rotation": [0.0, 90.0, 0.0],
   "tags": ["SpawnedByMCP"],
   "select": true
+}
+```
+
+```jsonc
+// Exemple : level.select
+{
+  "filters": {
+    "nameContains": "Dummy",
+    "classNames": ["BP_TrainingDummy_C"],
+    "tags": ["Training"]
+  },
+  "mode": "replace",
+  "selectChildren": false
+}
+```
+
+```jsonc
+// Exemple : viewport.focus
+{
+  "actors": [
+    "/Game/Maps/UEDPIE_0_Untitled.Untitled:PersistentLevel.BP_TrainingDummy_C_2",
+    "/Game/Maps/UEDPIE_0_Untitled.Untitled:PersistentLevel.StaticMeshActor_15"
+  ],
+  "orbit": true,
+  "transitionSec": 0.0
 }
 ```
 

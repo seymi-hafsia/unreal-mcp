@@ -44,6 +44,7 @@ public class UnrealMCP : ModuleRules
                                 "UnrealEd",
                                 "EditorScriptingUtilities",
                                 "EditorSubsystem",
+                                "Blutility",
                                 "Slate",
                                 "SlateCore",
                                 "UMG",

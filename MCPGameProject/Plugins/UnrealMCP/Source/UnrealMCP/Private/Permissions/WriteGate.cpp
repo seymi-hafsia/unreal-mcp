@@ -1,5 +1,9 @@
 #include "Permissions/WriteGate.h"
 #include "UnrealMCPSettings.h"
+#include "Editor.h"
+#include "Engine/Level.h"
+#include "Engine/World.h"
+#include "UObject/Package.h"
 
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
@@ -156,7 +160,7 @@ const UUnrealMCPSettings* FWriteGate::GetSettings()
         return GetDefault<UUnrealMCPSettings>();
 }
 
-bool FWriteGate::IsMutationCommand(const FString& CommandType)
+bool FWriteGate::IsMutationCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params)
 {
         static const TSet<FString> MutatingCommands = {
                 TEXT("spawn_actor"),
@@ -201,7 +205,24 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType)
                 TEXT("asset.batch_import")
         };
 
-        return MutatingCommands.Contains(CommandType);
+        if (MutatingCommands.Contains(CommandType))
+        {
+                return true;
+        }
+
+        if (CommandType == TEXT("camera.bookmark") && Params.IsValid())
+        {
+                FString Op;
+                if (Params->TryGetStringField(TEXT("op"), Op) && Op.Equals(TEXT("set"), ESearchCase::IgnoreCase))
+                {
+                        if (Params->HasTypedField<EJson::Boolean>(TEXT("persist")) && Params->GetBoolField(TEXT("persist")))
+                        {
+                                return true;
+                        }
+                }
+        }
+
+        return false;
 }
 
 bool FWriteGate::IsWriteAllowed()
@@ -417,7 +438,35 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
 
         bool bAddedSpecificActions = false;
 
-        if (CommandType == TEXT("asset.create_folder") && Params.IsValid())
+        if (CommandType == TEXT("camera.bookmark") && Params.IsValid())
+        {
+                FString Op;
+                if (Params->TryGetStringField(TEXT("op"), Op) && Op.Equals(TEXT("set"), ESearchCase::IgnoreCase))
+                {
+                        if (Params->HasTypedField<EJson::Boolean>(TEXT("persist")) && Params->GetBoolField(TEXT("persist")))
+                        {
+                                FMutationAction Action;
+                                Action.Op = TEXT("bookmark_persist");
+
+                                if (Params->HasTypedField<EJson::Number>(TEXT("index")))
+                                {
+                                        Action.Args.Add(TEXT("index"), FString::FromInt(static_cast<int32>(Params->GetNumberField(TEXT("index")))));
+                                }
+                                else if (Params->HasTypedField<EJson::String>(TEXT("index")))
+                                {
+                                        Action.Args.Add(TEXT("index"), Params->GetStringField(TEXT("index")));
+                                }
+                                else
+                                {
+                                        Action.Args.Add(TEXT("index"), TEXT("0"));
+                                }
+
+                                Plan.Actions.Add(Action);
+                                return Plan;
+                        }
+                }
+        }
+        else if (CommandType == TEXT("asset.create_folder") && Params.IsValid())
         {
                 FMutationAction Action;
                 Action.Op = TEXT("mkdir");
@@ -985,6 +1034,32 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
         if (!Params.IsValid())
         {
                 return FString();
+        }
+
+        if (CommandType == TEXT("camera.bookmark") && Params.IsValid())
+        {
+                FString Op;
+                if (Params->TryGetStringField(TEXT("op"), Op) && Op.Equals(TEXT("set"), ESearchCase::IgnoreCase))
+                {
+                        if (Params->HasTypedField<EJson::Boolean>(TEXT("persist")) && Params->GetBoolField(TEXT("persist")))
+                        {
+#if WITH_EDITOR
+                                if (GEditor)
+                                {
+                                        if (UWorld* World = GEditor->GetEditorWorldContext().World())
+                                        {
+                                                if (ULevel* Level = World->GetCurrentLevel())
+                                                {
+                                                        if (UPackage* Package = Level->GetOutermost())
+                                                        {
+                                                                return NormalizeContentPath(Package->GetName());
+                                                        }
+                                                }
+                                        }
+                                }
+#endif
+                        }
+                }
         }
 
         if (CommandType.StartsWith(TEXT("sc.")))

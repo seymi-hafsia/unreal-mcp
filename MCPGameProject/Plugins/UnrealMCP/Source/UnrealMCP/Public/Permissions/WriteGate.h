@@ -21,7 +21,7 @@ struct FMutationPlan
 class UNREALMCP_API FWriteGate
 {
 public:
-        static bool IsMutationCommand(const FString& CommandType);
+        static bool IsMutationCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params);
 
         /** Returns true when writes are allowed after considering plugin and remote settings. */
         static bool IsWriteAllowed();
