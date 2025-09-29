@@ -62,6 +62,8 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
   *(création + mutations : bind/unbind/list, ajout de pistes transform/visibility/property/camera-cut ; export JSON/CSV read-only)*
 * Materials : `mi.create`, `mi.set_params`
   *(création et overrides de Material Instances — pas de modifications du graph de matériau)*
+* Niagara (Editor) : `niagara.spawn_component`, `niagara.set_user_params`, `niagara.activate`, `niagara.deactivate`
+  *(mutations scène côté Éditeur/PIE — pas d’édition structurelle des systèmes Niagara)*
 * Navigation éditeur : `level.select`, `viewport.focus`, `camera.bookmark` (`persist=true` pour `set` ⇒ mutation, sinon lecture)
 
 > `asset.batch_import` peut prendre plusieurs secondes (import FBX + textures). La réponse contient le détail par fichier (`created/skipped/overwritten`, warnings, audit).
@@ -73,5 +75,5 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
 
 ## Roadmap (extraits)
 
-* Packs à venir : Actors/Levels, Sequencer avancé, Material Instances set, Niagara spawn & params, BuildCookRun & Gauntlet.
+* Packs à venir : Actors/Levels avancés, Sequencer avancé, BuildCookRun & Gauntlet.
 

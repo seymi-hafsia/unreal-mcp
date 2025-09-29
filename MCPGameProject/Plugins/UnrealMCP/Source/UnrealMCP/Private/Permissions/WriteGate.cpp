@@ -208,7 +208,11 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType, const TSharedPtr<
                 TEXT("sequence.create"),
                 TEXT("sequence.bind_actors"),
                 TEXT("sequence.unbind"),
-                TEXT("sequence.add_tracks")
+                TEXT("sequence.add_tracks"),
+                TEXT("niagara.spawn_component"),
+                TEXT("niagara.set_user_params"),
+                TEXT("niagara.activate"),
+                TEXT("niagara.deactivate")
         };
 
         if (MutatingCommands.Contains(CommandType))
@@ -764,6 +768,130 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
                 if (Params->HasTypedField<EJson::Boolean>(TEXT("modifiedOnly")))
                 {
                         Action.Args.Add(TEXT("modifiedOnly"), Params->GetBoolField(TEXT("modifiedOnly")) ? TEXT("true") : TEXT("false"));
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType == TEXT("niagara.spawn_component") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("spawn_niagara");
+
+                FString SystemPath;
+                if (Params->TryGetStringField(TEXT("systemPath"), SystemPath))
+                {
+                        Action.Args.Add(TEXT("system"), SystemPath);
+                }
+
+                const TSharedPtr<FJsonObject>* AttachObject = nullptr;
+                if (Params->TryGetObjectField(TEXT("attach"), AttachObject) && AttachObject && AttachObject->IsValid())
+                {
+                        FString ActorPath;
+                        if ((*AttachObject)->TryGetStringField(TEXT("actorPath"), ActorPath))
+                        {
+                                Action.Args.Add(TEXT("attachTo"), ActorPath);
+                        }
+
+                        FString SocketName;
+                        if ((*AttachObject)->TryGetStringField(TEXT("socketName"), SocketName) && !SocketName.IsEmpty())
+                        {
+                                Action.Args.Add(TEXT("socket"), SocketName);
+                        }
+
+                        if ((*AttachObject)->HasTypedField<EJson::Boolean>(TEXT("keepWorldTransform")))
+                        {
+                                Action.Args.Add(TEXT("keepWorld"), (*AttachObject)->GetBoolField(TEXT("keepWorldTransform")) ? TEXT("true") : TEXT("false"));
+                        }
+                }
+                else
+                {
+                        const FString TransformString = SerializeObjectField(Params, TEXT("transform"));
+                        if (!TransformString.IsEmpty())
+                        {
+                                Action.Args.Add(TEXT("transform"), TransformString);
+                        }
+                }
+
+                if (Params->HasTypedField<EJson::Boolean>(TEXT("autoActivate")))
+                {
+                        Action.Args.Add(TEXT("autoActivate"), Params->GetBoolField(TEXT("autoActivate")) ? TEXT("true") : TEXT("false"));
+                }
+
+                if (Params->HasTypedField<EJson::Boolean>(TEXT("select")))
+                {
+                        Action.Args.Add(TEXT("select"), Params->GetBoolField(TEXT("select")) ? TEXT("true") : TEXT("false"));
+                }
+
+                const FString InitialParamsString = SerializeObjectField(Params, TEXT("initialUserParams"));
+                if (!InitialParamsString.IsEmpty())
+                {
+                        Action.Args.Add(TEXT("params"), InitialParamsString);
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType == TEXT("niagara.set_user_params") && Params.IsValid())
+        {
+                FString ComponentPath;
+                Params->TryGetStringField(TEXT("componentPath"), ComponentPath);
+
+                const TSharedPtr<FJsonObject>* ParamObject = nullptr;
+                if (Params->TryGetObjectField(TEXT("params"), ParamObject) && ParamObject && ParamObject->IsValid())
+                {
+                        for (const auto& Pair : (*ParamObject)->Values)
+                        {
+                                FMutationAction Action;
+                                Action.Op = TEXT("set_user_param");
+                                if (!ComponentPath.IsEmpty())
+                                {
+                                        Action.Args.Add(TEXT("component"), ComponentPath);
+                                }
+                                Action.Args.Add(TEXT("name"), Pair.Key);
+                                Action.Args.Add(TEXT("value"), SerializeJsonValue(Pair.Value));
+                                Plan.Actions.Add(Action);
+                        }
+
+                        if (Plan.Actions.Num() > 0)
+                        {
+                                return Plan;
+                        }
+                }
+        }
+        else if (CommandType == TEXT("niagara.activate") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("activate_niagara");
+
+                FString ComponentPath;
+                if (Params->TryGetStringField(TEXT("componentPath"), ComponentPath))
+                {
+                        Action.Args.Add(TEXT("component"), ComponentPath);
+                }
+
+                if (Params->HasTypedField<EJson::Boolean>(TEXT("reset")))
+                {
+                        Action.Args.Add(TEXT("reset"), Params->GetBoolField(TEXT("reset")) ? TEXT("true") : TEXT("false"));
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType == TEXT("niagara.deactivate") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("deactivate_niagara");
+
+                FString ComponentPath;
+                if (Params->TryGetStringField(TEXT("componentPath"), ComponentPath))
+                {
+                        Action.Args.Add(TEXT("component"), ComponentPath);
+                }
+
+                if (Params->HasTypedField<EJson::Boolean>(TEXT("immediate")))
+                {
+                        Action.Args.Add(TEXT("immediate"), Params->GetBoolField(TEXT("immediate")) ? TEXT("true") : TEXT("false"));
                 }
 
                 Plan.Actions.Add(Action);
