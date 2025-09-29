@@ -203,7 +203,9 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType, const TSharedPtr<
                 TEXT("sc.revert"),
                 TEXT("sc.submit"),
                 TEXT("asset.batch_import"),
-                TEXT("sequence.create")
+                TEXT("sequence.create"),
+                TEXT("sequence.bind_actors"),
+                TEXT("sequence.unbind")
         };
 
         if (MutatingCommands.Contains(CommandType))
@@ -851,6 +853,74 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
                                         BindAction.Op = TEXT("bind_actor");
                                         BindAction.Args.Add(TEXT("actor"), Value->AsString());
                                         Plan.Actions.Add(BindAction);
+                                }
+                        }
+                }
+
+                return Plan;
+        }
+        else if (CommandType == TEXT("sequence.bind_actors") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* ActorsArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("actorPaths"), ActorsArray) && ActorsArray)
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *ActorsArray)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::String)
+                                {
+                                        FString ActorPath = Value->AsString();
+                                        ActorPath.TrimStartAndEndInline();
+                                        if (!ActorPath.IsEmpty())
+                                        {
+                                                FMutationAction Action;
+                                                Action.Op = TEXT("bind");
+                                                Action.Args.Add(TEXT("actor"), ActorPath);
+                                                Plan.Actions.Add(Action);
+                                        }
+                                }
+                        }
+                }
+
+                return Plan;
+        }
+        else if (CommandType == TEXT("sequence.unbind") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* BindingArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("bindingIds"), BindingArray) && BindingArray)
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *BindingArray)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::String)
+                                {
+                                        FString BindingId = Value->AsString();
+                                        BindingId.TrimStartAndEndInline();
+                                        if (!BindingId.IsEmpty())
+                                        {
+                                                FMutationAction Action;
+                                                Action.Op = TEXT("unbind");
+                                                Action.Args.Add(TEXT("bindingId"), BindingId);
+                                                Plan.Actions.Add(Action);
+                                        }
+                                }
+                        }
+                }
+
+                const TArray<TSharedPtr<FJsonValue>>* ActorsArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("actorPaths"), ActorsArray) && ActorsArray)
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *ActorsArray)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::String)
+                                {
+                                        FString ActorPath = Value->AsString();
+                                        ActorPath.TrimStartAndEndInline();
+                                        if (!ActorPath.IsEmpty())
+                                        {
+                                                FMutationAction Action;
+                                                Action.Op = TEXT("unbind");
+                                                Action.Args.Add(TEXT("actor"), ActorPath);
+                                                Plan.Actions.Add(Action);
+                                        }
                                 }
                         }
                 }
