@@ -75,9 +75,12 @@
 
 #### Sequencer
 
-| Tool              | Description                               | Notes                                                           |
-|-------------------|-------------------------------------------|-----------------------------------------------------------------|
-| `sequence.create` | Crée un Level Sequence (fps, durée, eval) | Caméra Cine + CameraCut optionnels ; bind d'acteurs existants |
+| Tool                     | Description                                      | Notes                                                  |
+|--------------------------|--------------------------------------------------|--------------------------------------------------------|
+| `sequence.create`        | Crée un Level Sequence (fps, durée, eval)        | Caméra Cine + CameraCut optionnels ; bind d'acteurs existants |
+| `sequence.bind_actors`   | Lier un ou plusieurs acteurs à un Sequence       | Options `skipIfAlreadyBound`, `overwriteIfExists`, `labelPrefix`, `save` |
+| `sequence.unbind`        | Retirer des bindings par GUID ou acteur          | Mutant ; support `save`, audit détaillé                |
+| `sequence.list_bindings` | Lister les bindings existants d'un Sequence      | Read-only ; renvoie GUID, label, acteur courant        |
 
 ```jsonc
 // Exemple : sequence.create minimal
@@ -86,6 +89,21 @@
   "displayRate": [24, 1],
   "durationFrames": 240,
   "evaluationType": "WithSubFrames"
+}
+```
+
+```jsonc
+// Exemple : sequence.bind_actors
+{
+  "sequencePath": "/Game/Cinematics/Seq/SEQ_Intro.SEQ_Intro",
+  "actorPaths": [
+    "/Game/Maps/UEDPIE_0_Map.Map:PersistentLevel.BP_TrainingDummy_C_2",
+    "/Game/Maps/UEDPIE_0_Map.Map:PersistentLevel.CineCam_Intro"
+  ],
+  "skipIfAlreadyBound": true,
+  "labelPrefix": "Dummy_",
+  "overwriteIfExists": false,
+  "save": true
 }
 ```
 

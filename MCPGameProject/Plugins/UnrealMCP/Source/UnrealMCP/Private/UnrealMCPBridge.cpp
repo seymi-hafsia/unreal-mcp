@@ -63,6 +63,7 @@
 #include "Assets/AssetQuery.h"
 #include "Actors/ActorTools.h"
 #include "EditorNav/EditorNavTools.h"
+#include "Sequencer/SequenceBindings.h"
 #include "Sequencer/SequenceTools.h"
 #include "Permissions/WriteGate.h"
 #include "Transactions/TransactionManager.h"
@@ -769,6 +770,18 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 else if (CommandType == TEXT("sequence.create"))
                 {
                     ResultJson = FSequenceTools::Create(Params);
+                }
+                else if (CommandType == TEXT("sequence.bind_actors"))
+                {
+                    ResultJson = FSequenceBindings::BindActors(Params);
+                }
+                else if (CommandType == TEXT("sequence.unbind"))
+                {
+                    ResultJson = FSequenceBindings::Unbind(Params);
+                }
+                else if (CommandType == TEXT("sequence.list_bindings"))
+                {
+                    ResultJson = FSequenceBindings::List(Params);
                 }
                 else if (CommandType.StartsWith(TEXT("sc.")))
                 {
