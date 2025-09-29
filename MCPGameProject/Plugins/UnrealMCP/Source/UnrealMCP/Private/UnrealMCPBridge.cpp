@@ -64,6 +64,7 @@
 #include "Actors/ActorTools.h"
 #include "EditorNav/EditorNavTools.h"
 #include "Sequencer/SequenceBindings.h"
+#include "Sequencer/SequenceExport.h"
 #include "Sequencer/SequenceTools.h"
 #include "Sequencer/SequenceTracks.h"
 #include "Permissions/WriteGate.h"
@@ -787,6 +788,10 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 else if (CommandType == TEXT("sequence.add_tracks"))
                 {
                     ResultJson = FSequenceTracks::AddTracks(Params);
+                }
+                else if (CommandType == TEXT("sequence.export"))
+                {
+                    ResultJson = FSequenceExport::Export(Params);
                 }
                 else if (CommandType.StartsWith(TEXT("sc.")))
                 {
