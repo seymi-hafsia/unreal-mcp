@@ -82,6 +82,7 @@
 | `sequence.unbind`        | Retirer des bindings par GUID ou acteur          | Mutant ; support `save`, audit détaillé                |
 | `sequence.list_bindings` | Lister les bindings existants d'un Sequence      | Read-only ; renvoie GUID, label, acteur courant        |
 | `sequence.add_tracks`    | Ajouter des pistes (Transform/Visibility/Property) + cuts caméra | Mutant ; overwrite/dryRun/save, SCM + audit |
+| `sequence.export`        | Exporter un Sequence en JSON/CSV (bindings, pistes, clés)        | Read-only ; filtres `include.*`, `frameRange`, CSV aplati |
 
 ```jsonc
 // Exemple : sequence.create minimal
@@ -131,6 +132,33 @@
   ],
   "overwrite": false,
   "save": true
+}
+```
+
+```jsonc
+// Exemple : sequence.export (JSON)
+{
+  "sequencePath": "/Game/Cinematics/Seq/SEQ_Intro.SEQ_Intro",
+  "format": "json",
+  "include": {
+    "tracks": ["Transform", "Visibility"],
+    "keys": true
+  },
+  "frameRange": { "start": 0, "end": 120 },
+  "worldActorPaths": true
+}
+```
+
+```jsonc
+// Exemple : sequence.export (CSV)
+{
+  "sequencePath": "/Game/Cinematics/Seq/SEQ_Intro.SEQ_Intro",
+  "format": "csv",
+  "include": {
+    "tracks": ["Transform", "CameraCut"],
+    "bindings": true
+  },
+  "flattenProperties": true
 }
 ```
 
