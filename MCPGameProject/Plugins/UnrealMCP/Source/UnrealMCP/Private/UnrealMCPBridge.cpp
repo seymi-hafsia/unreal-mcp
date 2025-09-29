@@ -67,6 +67,7 @@
 #include "Sequencer/SequenceExport.h"
 #include "Sequencer/SequenceTools.h"
 #include "Sequencer/SequenceTracks.h"
+#include "Materials/MaterialInstanceTools.h"
 #include "Permissions/WriteGate.h"
 #include "Transactions/TransactionManager.h"
 #include "UnrealMCPLog.h"
@@ -768,6 +769,14 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 else if (CommandType == TEXT("asset.batch_import"))
                 {
                     ResultJson = FAssetImport::BatchImport(Params);
+                }
+                else if (CommandType == TEXT("mi.create"))
+                {
+                    ResultJson = FMaterialInstanceTools::Create(Params);
+                }
+                else if (CommandType == TEXT("mi.set_params"))
+                {
+                    ResultJson = FMaterialInstanceTools::SetParameters(Params);
                 }
                 else if (CommandType == TEXT("sequence.create"))
                 {
