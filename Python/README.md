@@ -117,6 +117,60 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
 * **iOS/macOS** : packaging produit `.ipa`/`.app` dans les sous-dossiers correspondants.
 * `pak`, `iostore`, `compressed`, `nodebuginfo`, `archiveDir` et autres options sont exposées un-à-un via les paramètres du tool.
 
+## Automation
+
+### Prérequis généraux
+
+* `UnrealEditor-Cmd` doit être disponible sous `<engineRoot>/Engine/Binaries/<Platform>/` (même moteur que le projet).
+* `RunUAT.bat`/`.sh` doit être exécutable depuis le serveur Python (identique à `uat.buildcookrun`).
+* Les tests Gauntlet nécessitent un build déjà cooké/stagé (`build.path`) accessible depuis la machine serveur.
+
+### `automation.run_specs`
+
+* Lance les Automation Tests en mode Editor via `UnrealEditor-Cmd`.
+* Paramètres principaux : `tests[]` (joker `*` accepté), `map`, `headless` (`-NullRHI`), `extraArgs[]`, `timeoutMinutes`.
+* Logs : `logs/automation/automation_YYYY-MM-DD_HH-MM-SS.log` + export XML sous `logs/automation/reports/report_*/` (si généré).
+* Résultats : `results.total/passed/failed/skipped` + `results.failures[]`. Un échec de test n’implique pas `ok=false` si le process retourne `0`.
+* Erreurs structurées possibles : `ENGINE_NOT_FOUND`, `UPROJECT_NOT_FOUND`, `TIMEOUT`, `PROCESS_FAILED`, `REPORT_PARSE_FAILED`.
+
+```json
+{
+  "tool": "automation.run_specs",
+  "params": {
+    "engineRoot": "D:/UE_5.6",
+    "uproject": "D:/Proj/MyGame/MyGame.uproject",
+    "tests": ["Project.Functional", "MySuite.*"],
+    "headless": true,
+    "timeoutMinutes": 30
+  }
+}
+```
+
+### `gauntlet.run`
+
+* Déclenche `RunUAT Gauntlet` sur un build existant (`build.path`). Une seule plateforme par invocation.
+* Paramètres clés : `test`, `platform`, `config` (client config), `extraArgs[]` (transmis tels quels), `timeoutMinutes`.
+* Logs : `logs/gauntlet/gauntlet_uat_YYYY-MM-DD_HH-MM-SS.log` + tentative de détection du log Gauntlet (`logs.gauntletLog`).
+* Résultats : `results.total/passed/failed` + `results.artifactsDir` si détecté. `ok` reflète l’exit code RunUAT (tests échoués ⇒ `results.failed>0`).
+* Erreurs structurées : `ENGINE_NOT_FOUND`, `UPROJECT_NOT_FOUND`, `BUILD_PATH_NOT_FOUND`, `PLATFORM_UNSUPPORTED`, `PROCESS_FAILED`, `TIMEOUT`, `REPORT_PARSE_FAILED`.
+
+```json
+{
+  "tool": "gauntlet.run",
+  "params": {
+    "engineRoot": "D:/UE_5.6",
+    "uproject": "D:/Proj/MyGame/MyGame.uproject",
+    "test": "MyGauntletSuite",
+    "platform": "Win64",
+    "config": "Development",
+    "build": { "path": "D:/Builds/MyGame/Windows/MyGame/WindowsNoEditor" },
+    "timeoutMinutes": 90
+  }
+}
+```
+
+> `ok` reflète le statut process (`exitCode == 0`). Inspectez `results.failed` pour distinguer les échecs de tests.
+
 ## Débogage
 
 * Lancer avec `--verbose` (si option dispo) ou consulter les logs côté Éditeur (Saved/Logs).
