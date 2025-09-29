@@ -203,6 +203,8 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType, const TSharedPtr<
                 TEXT("sc.revert"),
                 TEXT("sc.submit"),
                 TEXT("asset.batch_import"),
+                TEXT("mi.create"),
+                TEXT("mi.set_params"),
                 TEXT("sequence.create"),
                 TEXT("sequence.bind_actors"),
                 TEXT("sequence.unbind"),
@@ -795,6 +797,98 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
                         }
                 }
         }
+        else if (CommandType == TEXT("mi.create") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("create_mi");
+
+                FString Parent;
+                if (Params->TryGetStringField(TEXT("parent"), Parent))
+                {
+                        Action.Args.Add(TEXT("parent"), Parent);
+                }
+
+                FString MiPath;
+                if (Params->TryGetStringField(TEXT("miPath"), MiPath))
+                {
+                        Action.Args.Add(TEXT("dst"), NormalizeContentPath(MiPath));
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType == TEXT("mi.set_params") && Params.IsValid())
+        {
+                FString MiObjectPath;
+                if (Params->TryGetStringField(TEXT("miObjectPath"), MiObjectPath))
+                {
+                        FMutationAction TargetAction;
+                        TargetAction.Op = TEXT("mi_target");
+                        TargetAction.Args.Add(TEXT("mi"), NormalizeContentPath(MiObjectPath));
+                        Plan.Actions.Add(TargetAction);
+                }
+
+                if (Params->HasTypedField<EJson::Boolean>(TEXT("clearUnset")) && Params->GetBoolField(TEXT("clearUnset")))
+                {
+                        FMutationAction ClearAction;
+                        ClearAction.Op = TEXT("clear_overrides");
+                        Plan.Actions.Add(ClearAction);
+                }
+
+                const TSharedPtr<FJsonObject>* ScalarsObject = nullptr;
+                if (Params->TryGetObjectField(TEXT("scalars"), ScalarsObject) && ScalarsObject && ScalarsObject->IsValid())
+                {
+                        for (const auto& Pair : (*ScalarsObject)->Values)
+                        {
+                                FMutationAction Action;
+                                Action.Op = TEXT("set_scalar");
+                                Action.Args.Add(TEXT("name"), Pair.Key);
+                                Action.Args.Add(TEXT("value"), ValueToAuditString(Pair.Value));
+                                Plan.Actions.Add(Action);
+                        }
+                }
+
+                const TSharedPtr<FJsonObject>* VectorsObject = nullptr;
+                if (Params->TryGetObjectField(TEXT("vectors"), VectorsObject) && VectorsObject && VectorsObject->IsValid())
+                {
+                        for (const auto& Pair : (*VectorsObject)->Values)
+                        {
+                                FMutationAction Action;
+                                Action.Op = TEXT("set_vector");
+                                Action.Args.Add(TEXT("name"), Pair.Key);
+                                Action.Args.Add(TEXT("value"), ValueToAuditString(Pair.Value));
+                                Plan.Actions.Add(Action);
+                        }
+                }
+
+                const TSharedPtr<FJsonObject>* TexturesObject = nullptr;
+                if (Params->TryGetObjectField(TEXT("textures"), TexturesObject) && TexturesObject && TexturesObject->IsValid())
+                {
+                        for (const auto& Pair : (*TexturesObject)->Values)
+                        {
+                                FMutationAction Action;
+                                Action.Op = TEXT("set_texture");
+                                Action.Args.Add(TEXT("name"), Pair.Key);
+                                Action.Args.Add(TEXT("value"), ValueToAuditString(Pair.Value));
+                                Plan.Actions.Add(Action);
+                        }
+                }
+
+                const TSharedPtr<FJsonObject>* SwitchesObject = nullptr;
+                if (Params->TryGetObjectField(TEXT("switches"), SwitchesObject) && SwitchesObject && SwitchesObject->IsValid())
+                {
+                        for (const auto& Pair : (*SwitchesObject)->Values)
+                        {
+                                FMutationAction Action;
+                                Action.Op = TEXT("set_switch");
+                                Action.Args.Add(TEXT("name"), Pair.Key);
+                                Action.Args.Add(TEXT("value"), ValueToAuditString(Pair.Value));
+                                Plan.Actions.Add(Action);
+                        }
+                }
+
+                return Plan;
+        }
         else if (CommandType == TEXT("sequence.create") && Params.IsValid())
         {
                 FString SequencePath;
@@ -1305,6 +1399,16 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
                                 }
                         }
                 }
+        }
+
+        if (Params->HasTypedField<EJson::String>(TEXT("miPath")))
+        {
+                return NormalizeContentPath(Params->GetStringField(TEXT("miPath")));
+        }
+
+        if (Params->HasTypedField<EJson::String>(TEXT("miObjectPath")))
+        {
+                return NormalizeContentPath(Params->GetStringField(TEXT("miObjectPath")));
         }
 
         static const TArray<FString> CandidateKeys = {

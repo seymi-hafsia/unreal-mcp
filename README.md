@@ -12,6 +12,7 @@
 - **Assets v2 (CRUD)** : `asset.create_folder / asset.rename / asset.delete / asset.fix_redirectors / asset.save_all`.
 - **Assets v3 (Batch Import)** : `asset.batch_import` pour importer FBX/Textures/Audio avec presets, options et SCM.
 - **Sequencer v1** : `sequence.create` pour générer un Level Sequence (fps, durée, évaluation, caméra/camera-cut/bind optionnels).
+- **Materials v1 (Material Instances)** : `mi.create` et `mi.set_params` pour créer des MI et régler leurs overrides.
 - **Actors v1 (Editor)** : `actor.spawn / actor.destroy / actor.attach / actor.transform / actor.tag` (transactions, sélection, audit).
 - **Camera helpers (Editor)** : `level.select / viewport.focus / camera.bookmark` (navigation + bookmarks, session & persistance).
 - **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
@@ -62,6 +63,26 @@
 | `asset.fix_redirectors` | Corriger les redirectors dans un path | Utilise `AssetTools`, compatible récursif              |
 | `asset.save_all`        | Sauvegarder assets modifiés           | Scope global ou par `paths[]`, `modifiedOnly` optionnel |
 | `asset.batch_import`    | Importer un lot de fichiers           | Presets FBX/Textures/Audio, dry-run, SCM, conflits      |
+
+#### Materials
+
+| Tool            | Description                                                   | Notes                                                   |
+|-----------------|----------------------------------------------------------------|---------------------------------------------------------|
+| `mi.create`     | Crée une Material Instance enfant d'un Material ou d'une MI    | Respecte `AllowedContentRoots`, overwrite option, SCM   |
+| `mi.set_params` | Applique des overrides Scalar/Vector/Texture/StaticSwitch sur une MI existante | Support `clearUnset`, sauvegarde, audit détaillé |
+
+```jsonc
+// Exemple : mi.set_params
+{
+  "miObjectPath": "/Game/Materials/Instances/MI_Master_Red.MI_Master_Red",
+  "scalars": { "Roughness": 0.35, "Metallic": 1.0 },
+  "vectors": { "BaseColor": [1.0, 0.1, 0.1, 1.0] },
+  "textures": { "Albedo": "/Game/Art/Textures/T_Orc_Diffuse.T_Orc_Diffuse" },
+  "switches": { "UseDetail": true },
+  "clearUnset": false,
+  "save": true
+}
+```
 
 #### Actors
 

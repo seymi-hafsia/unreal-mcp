@@ -60,6 +60,8 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
   *(toutes les mutations respectent `allow_write`, `dry_run`, `allowed_paths` et nécessitent checkout/mark-for-add selon réglages)*
 * Sequencer : `sequence.create`, `sequence.bind_actors`, `sequence.unbind`, `sequence.list_bindings`, `sequence.add_tracks`, `sequence.export`
   *(création + mutations : bind/unbind/list, ajout de pistes transform/visibility/property/camera-cut ; export JSON/CSV read-only)*
+* Materials : `mi.create`, `mi.set_params`
+  *(création et overrides de Material Instances — pas de modifications du graph de matériau)*
 * Navigation éditeur : `level.select`, `viewport.focus`, `camera.bookmark` (`persist=true` pour `set` ⇒ mutation, sinon lecture)
 
 > `asset.batch_import` peut prendre plusieurs secondes (import FBX + textures). La réponse contient le détail par fichier (`created/skipped/overwritten`, warnings, audit).
