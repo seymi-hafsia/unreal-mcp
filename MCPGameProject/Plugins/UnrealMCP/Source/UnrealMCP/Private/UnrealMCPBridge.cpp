@@ -61,6 +61,7 @@
 #include "Assets/AssetCrud.h"
 #include "Assets/AssetImport.h"
 #include "Assets/AssetQuery.h"
+#include "Niagara/NiagaraTools.h"
 #include "Actors/ActorTools.h"
 #include "EditorNav/EditorNavTools.h"
 #include "Sequencer/SequenceBindings.h"
@@ -757,6 +758,22 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 else if (CommandType == TEXT("asset.delete"))
                 {
                     ResultJson = FAssetCrud::Delete(Params);
+                }
+                else if (CommandType == TEXT("niagara.spawn_component"))
+                {
+                    ResultJson = FNiagaraTools::SpawnComponent(Params);
+                }
+                else if (CommandType == TEXT("niagara.set_user_params"))
+                {
+                    ResultJson = FNiagaraTools::SetUserParameters(Params);
+                }
+                else if (CommandType == TEXT("niagara.activate"))
+                {
+                    ResultJson = FNiagaraTools::Activate(Params);
+                }
+                else if (CommandType == TEXT("niagara.deactivate"))
+                {
+                    ResultJson = FNiagaraTools::Deactivate(Params);
                 }
                 else if (CommandType == TEXT("asset.fix_redirectors"))
                 {

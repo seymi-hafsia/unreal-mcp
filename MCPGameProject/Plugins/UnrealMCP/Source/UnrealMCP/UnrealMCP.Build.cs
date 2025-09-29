@@ -22,26 +22,28 @@ public class UnrealMCP : ModuleRules
 			}
 		);
 		
-		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-				"CoreUObject",
-				"Engine",
-				"InputCore",
-				"Networking",
-				"Sockets",
-				"HTTP",
-				"Json",
-				"JsonUtilities",
-				"DeveloperSettings"
-			}
-		);
-		
+                PublicDependencyModuleNames.AddRange(
+                        new string[]
+                        {
+                                "Core",
+                                "CoreUObject",
+                                "Engine",
+                                "InputCore",
+                                "Networking",
+                                "Sockets",
+                                "HTTP",
+                                "Json",
+                                "JsonUtilities",
+                                "DeveloperSettings"
+                        }
+                );
+
                 PrivateDependencyModuleNames.AddRange(
                         new string[]
                         {
                                 "UnrealEd",
+                                "Niagara",
+                                "NiagaraCore",
                                 "EditorScriptingUtilities",
                                 "EditorSubsystem",
                                 "Blutility",

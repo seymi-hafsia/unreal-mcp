@@ -13,6 +13,7 @@
 - **Assets v3 (Batch Import)** : `asset.batch_import` pour importer FBX/Textures/Audio avec presets, options et SCM.
 - **Sequencer v1** : `sequence.create` pour générer un Level Sequence (fps, durée, évaluation, caméra/camera-cut/bind optionnels).
 - **Materials v1 (Material Instances)** : `mi.create` et `mi.set_params` pour créer des MI et régler leurs overrides.
+- **Niagara v1 (Editor)** : `niagara.spawn_component / niagara.set_user_params / niagara.activate / niagara.deactivate`.
 - **Actors v1 (Editor)** : `actor.spawn / actor.destroy / actor.attach / actor.transform / actor.tag` (transactions, sélection, audit).
 - **Camera helpers (Editor)** : `level.select / viewport.focus / camera.bookmark` (navigation + bookmarks, session & persistance).
 - **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
@@ -81,6 +82,34 @@
   "switches": { "UseDetail": true },
   "clearUnset": false,
   "save": true
+}
+```
+
+#### Niagara (Editor)
+
+| Tool                      | Description                                                       | Notes                                                          |
+|---------------------------|-------------------------------------------------------------------|----------------------------------------------------------------|
+| `niagara.spawn_component` | Instancie un `UNiagaraComponent` à partir d’un `UNiagaraSystem`   | Attach à un acteur existant ou spawn libre, `autoActivate`, sélection optionnelle |
+| `niagara.set_user_params` | Définit des User Parameters typés (float, bool, int, vector, color, texture/mesh…) | Mutant : transaction + audit, support `saveActor`              |
+| `niagara.activate`        | Active un composant Niagara (option `reset`)                      | Respecte Undo/Redo, audit                                      |
+| `niagara.deactivate`      | Désactive un composant Niagara (option `immediate`)               | `DeactivateImmediate` si demandé, audit                        |
+
+```jsonc
+// Exemple : niagara.spawn_component
+{
+  "systemPath": "/Game/VFX/Systems/NS_Fire.NS_Fire",
+  "attach": {
+    "actorPath": "/Game/Maps/UEDPIE_0_Map.Map:PersistentLevel.SM_Statue_1",
+    "socketName": "FX_Socket",
+    "keepWorldTransform": true
+  },
+  "autoActivate": true,
+  "initialUserParams": {
+    "Float:Intensity": 2.5,
+    "Vector:Tint": [1.0, 0.5, 0.2, 1.0],
+    "Bool:Loop": true
+  },
+  "select": true
 }
 ```
 
