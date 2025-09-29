@@ -16,7 +16,7 @@
 - **Niagara v1 (Editor)** : `niagara.spawn_component / niagara.set_user_params / niagara.activate / niagara.deactivate`.
 - **Actors v1 (Editor)** : `actor.spawn / actor.destroy / actor.attach / actor.transform / actor.tag` (transactions, sélection, audit).
 - **Camera helpers (Editor)** : `level.select / viewport.focus / camera.bookmark` (navigation + bookmarks, session & persistance).
-- **Build & Test v1** : wrapper RunUAT `BuildCookRun` côté serveur Python (logs persistants, artefacts, dry-run).
+- **Build & Test v2** : wrappers RunUAT `BuildCookRun`, `automation.run_specs` (Editor-Cmd) et `gauntlet.run` (cooked) avec logs persistants & parsing basique.
 - **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
 
 ## 🔧 Installation rapide
@@ -283,6 +283,8 @@
 | Tool               | Type     | Description                                     | Notes                                |
 | ------------------ | -------- | ----------------------------------------------- | ------------------------------------ |
 | `uat.buildcookrun` | external | Lance RunUAT BuildCookRun (cook/stage/package…) | Logs persistants, artefacts, dry-run |
+| `automation.run_specs` | external | Lance Automation Tests via UnrealEditor-Cmd | Export log/XML, parsing basique |
+| `gauntlet.run` | external | Lance Gauntlet sur build packagé | Logs UAT + Gauntlet, artifacts |
 
 ```json
 {
@@ -297,6 +299,14 @@
     "archive": true
   }
 }
+```
+
+```json
+{"tool":"automation.run_specs","params":{"engineRoot":"D:/UE_5.6","uproject":"D:/Proj/MyGame/MyGame.uproject","tests":["Project.Functional"],"timeoutMinutes":30}}
+```
+
+```json
+{"tool":"gauntlet.run","params":{"engineRoot":"D:/UE_5.6","uproject":"D:/Proj/MyGame/MyGame.uproject","test":"MyGauntletSuite","platform":"Win64","build":{"path":"D:/Builds/MyGame/WindowsNoEditor"}}}
 ```
 
   > **Transactions & Undo** : chaque mutation est faite dans une transaction éditeur (Ctrl+Z possible).
