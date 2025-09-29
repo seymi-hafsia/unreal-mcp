@@ -202,7 +202,8 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType, const TSharedPtr<
                 TEXT("sc.add"),
                 TEXT("sc.revert"),
                 TEXT("sc.submit"),
-                TEXT("asset.batch_import")
+                TEXT("asset.batch_import"),
+                TEXT("sequence.create")
         };
 
         if (MutatingCommands.Contains(CommandType))
@@ -791,6 +792,71 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
                         }
                 }
         }
+        else if (CommandType == TEXT("sequence.create") && Params.IsValid())
+        {
+                FString SequencePath;
+                const bool bHasPath = Params->TryGetStringField(TEXT("sequencePath"), SequencePath);
+                const FString NormalizedPath = bHasPath ? NormalizeContentPath(SequencePath) : FString();
+
+                const bool bOverwrite = Params->HasTypedField<EJson::Boolean>(TEXT("overwriteIfExists")) && Params->GetBoolField(TEXT("overwriteIfExists"));
+                if (bOverwrite)
+                {
+                        FMutationAction DeleteAction;
+                        DeleteAction.Op = TEXT("delete_sequence");
+                        if (!NormalizedPath.IsEmpty())
+                        {
+                                DeleteAction.Args.Add(TEXT("path"), NormalizedPath);
+                        }
+                        Plan.Actions.Add(DeleteAction);
+                }
+
+                FMutationAction CreateAction;
+                CreateAction.Op = TEXT("create_sequence");
+                if (!NormalizedPath.IsEmpty())
+                {
+                        CreateAction.Args.Add(TEXT("path"), NormalizedPath);
+                }
+                Plan.Actions.Add(CreateAction);
+
+                const bool bCreateCamera = Params->HasTypedField<EJson::Boolean>(TEXT("createCamera")) && Params->GetBoolField(TEXT("createCamera"));
+                const bool bAddCameraCut = Params->HasTypedField<EJson::Boolean>(TEXT("addCameraCut")) && Params->GetBoolField(TEXT("addCameraCut"));
+
+                if (bCreateCamera)
+                {
+                        FMutationAction CameraAction;
+                        CameraAction.Op = TEXT("spawn_camera");
+                        FString CameraName;
+                        if (Params->TryGetStringField(TEXT("cameraName"), CameraName) && !CameraName.IsEmpty())
+                        {
+                                CameraAction.Args.Add(TEXT("name"), CameraName);
+                        }
+                        Plan.Actions.Add(CameraAction);
+
+                        if (bAddCameraCut)
+                        {
+                                FMutationAction CutAction;
+                                CutAction.Op = TEXT("add_camera_cut");
+                                Plan.Actions.Add(CutAction);
+                        }
+                }
+
+                const TArray<TSharedPtr<FJsonValue>>* ActorsArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("bindActors"), ActorsArray) && ActorsArray)
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *ActorsArray)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::String)
+                                {
+                                        FMutationAction BindAction;
+                                        BindAction.Op = TEXT("bind_actor");
+                                        BindAction.Args.Add(TEXT("actor"), Value->AsString());
+                                        Plan.Actions.Add(BindAction);
+                                }
+                        }
+                }
+
+                return Plan;
+        }
         else if (CommandType.StartsWith(TEXT("sc.")) && Params.IsValid())
         {
                 const TArray<TSharedPtr<FJsonValue>>* AssetsArray = nullptr;
@@ -1091,7 +1157,8 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
                 TEXT("widget_path"),
                 TEXT("source_path"),
                 TEXT("package_path"),
-                TEXT("destPath")
+                TEXT("destPath"),
+                TEXT("sequencePath")
         };
 
         for (const FString& Key : CandidateKeys)

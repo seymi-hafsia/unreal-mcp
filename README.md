@@ -11,6 +11,7 @@
 - **Assets v1 (lecture)** : `asset.find / asset.exists / asset.metadata` via Asset Registry.
 - **Assets v2 (CRUD)** : `asset.create_folder / asset.rename / asset.delete / asset.fix_redirectors / asset.save_all`.
 - **Assets v3 (Batch Import)** : `asset.batch_import` pour importer FBX/Textures/Audio avec presets, options et SCM.
+- **Sequencer v1** : `sequence.create` pour générer un Level Sequence (fps, durée, évaluation, caméra/camera-cut/bind optionnels).
 - **Actors v1 (Editor)** : `actor.spawn / actor.destroy / actor.attach / actor.transform / actor.tag` (transactions, sélection, audit).
 - **Camera helpers (Editor)** : `level.select / viewport.focus / camera.bookmark` (navigation + bookmarks, session & persistance).
 - **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
@@ -71,6 +72,22 @@
 | `actor.attach`   | Attacher un acteur à un parent       | Supporte `keepWorldTransform`, `socketName`, weld       |
 | `actor.transform`| Appliquer set/add sur location/rot/scale | `set` absolu puis `add` (delta)                        |
 | `actor.tag`      | Ajouter/retirer/remplacer des tags   | `replace` (array ou `null`), `add`, `remove`            |
+
+#### Sequencer
+
+| Tool              | Description                               | Notes                                                           |
+|-------------------|-------------------------------------------|-----------------------------------------------------------------|
+| `sequence.create` | Crée un Level Sequence (fps, durée, eval) | Caméra Cine + CameraCut optionnels ; bind d'acteurs existants |
+
+```jsonc
+// Exemple : sequence.create minimal
+{
+  "sequencePath": "/Game/Cinematics/Seq/SEQ_Intro",
+  "displayRate": [24, 1],
+  "durationFrames": 240,
+  "evaluationType": "WithSubFrames"
+}
+```
 
 #### Éditeur
 

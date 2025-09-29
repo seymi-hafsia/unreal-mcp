@@ -56,7 +56,13 @@ public class UnrealMCP : ModuleRules
                                 "AssetTools",
                                 "SourceControl",
                                 "Settings",
-                                "LevelEditor"
+                                "LevelEditor",
+                                "MovieScene",
+                                "LevelSequence",
+                                "MovieSceneTracks",
+                                "SequencerScripting",
+                                "MovieSceneTools",
+                                "CinematicCamera"
                         }
                 );
 		
