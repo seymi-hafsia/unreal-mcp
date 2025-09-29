@@ -16,6 +16,7 @@
 - **Niagara v1 (Editor)** : `niagara.spawn_component / niagara.set_user_params / niagara.activate / niagara.deactivate`.
 - **Actors v1 (Editor)** : `actor.spawn / actor.destroy / actor.attach / actor.transform / actor.tag` (transactions, sélection, audit).
 - **Camera helpers (Editor)** : `level.select / viewport.focus / camera.bookmark` (navigation + bookmarks, session & persistance).
+- **Build & Test v1** : wrapper RunUAT `BuildCookRun` côté serveur Python (logs persistants, artefacts, dry-run).
 - **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
 
 ## 🔧 Installation rapide
@@ -277,8 +278,29 @@
 }
 ```
 
-> **Transactions & Undo** : chaque mutation est faite dans une transaction éditeur (Ctrl+Z possible).
-> **SCM** : si `RequireCheckout=true`, échec si l’asset n’est pas checkout.
+### Build & Test
+
+| Tool               | Type     | Description                                     | Notes                                |
+| ------------------ | -------- | ----------------------------------------------- | ------------------------------------ |
+| `uat.buildcookrun` | external | Lance RunUAT BuildCookRun (cook/stage/package…) | Logs persistants, artefacts, dry-run |
+
+```json
+{
+  "tool": "uat.buildcookrun",
+  "params": {
+    "engineRoot": "D:/UE_5.6",
+    "uproject": "D:/Proj/MyGame/MyGame.uproject",
+    "platforms": ["Win64"],
+    "cook": true,
+    "stage": true,
+    "package": true,
+    "archive": true
+  }
+}
+```
+
+  > **Transactions & Undo** : chaque mutation est faite dans une transaction éditeur (Ctrl+Z possible).
+  > **SCM** : si `RequireCheckout=true`, échec si l’asset n’est pas checkout.
 
 ## 🔐 Modèle de sécurité
 - **Read-only par défaut** : `AllowWrite=false`.  

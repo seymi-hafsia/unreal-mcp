@@ -68,6 +68,55 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
 
 > `asset.batch_import` peut prendre plusieurs secondes (import FBX + textures). La réponse contient le détail par fichier (`created/skipped/overwritten`, warnings, audit).
 
+## Build & Test
+
+### Prérequis
+
+* Accès en lecture/écriture au dossier projet (`Saved/Cooked`, `Saved/StagedBuilds`, `Saved/Logs`) et au dossier d’archive cible.
+* `RunUAT.bat` (Windows) ou `RunUAT.sh` (macOS/Linux) présent sous `Engine/Build/BatchFiles` du moteur utilisé.
+* Droits suffisants pour lancer des processus externes depuis le serveur Python.
+
+### Variables d’environnement utiles
+
+* `UE_ENGINE_ROOT` : utilisé si `engineRoot` n’est pas fourni dans les paramètres du tool.
+* Les entrées `env{}` passées dans les paramètres (ex. `UE_SDKS_ROOT`, `ANDROID_HOME`, `NDKROOT`) sont fusionnées dans l’environnement du processus RunUAT.
+
+### Exemple d’appel minimal
+
+```json
+{
+  "tool": "uat.buildcookrun",
+  "params": {
+    "engineRoot": "D:/UE_5.6",
+    "uproject": "D:/Proj/MyGame/MyGame.uproject",
+    "platforms": ["Win64"],
+    "cook": true,
+    "stage": true,
+    "package": true,
+    "archive": true,
+    "timeoutMinutes": 120
+  }
+}
+```
+
+`dryRun=true` renvoie uniquement la commande et les dossiers touchés, sans lancer RunUAT.
+
+### Structure de la réponse
+
+* `ok`, `exitCode`, `durationSec`, `commandLine` : statut d’exécution et temps passé par plateforme.
+* `logs.uatLog` et `logs.cookLog` (si trouvé) : chemins absolus vers les fichiers de log persistants.
+* `artifacts[]` : chemins d’artefacts détectés (`*.exe`, `*.pak`, `*.apk`, `*.ipa`, etc.).
+* `highlights[]` : extraits notables du log (cook terminé, pak/iostore, archive…).
+* `warnings[]` : informations non bloquantes (ex. `ARTIFACTS_NOT_FOUND`).
+* `results[]` : présent uniquement en cas de build multi-plateformes (une entrée par plateforme).
+
+### Notes plateformes
+
+* **Windows** : artefacts typiques dans `ArchiveDir/Windows/<Project>/WindowsNoEditor/` (EXE + .pak/.ucas/.utoc).
+* **Android** : APK/OBB repérés dans `ArchiveDir/Android*/` selon le flavour configuré.
+* **iOS/macOS** : packaging produit `.ipa`/`.app` dans les sous-dossiers correspondants.
+* `pak`, `iostore`, `compressed`, `nodebuginfo`, `archiveDir` et autres options sont exposées un-à-un via les paramètres du tool.
+
 ## Débogage
 
 * Lancer avec `--verbose` (si option dispo) ou consulter les logs côté Éditeur (Saved/Logs).
