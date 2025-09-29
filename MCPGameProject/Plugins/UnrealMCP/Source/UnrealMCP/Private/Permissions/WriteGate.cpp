@@ -205,7 +205,8 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType, const TSharedPtr<
                 TEXT("asset.batch_import"),
                 TEXT("sequence.create"),
                 TEXT("sequence.bind_actors"),
-                TEXT("sequence.unbind")
+                TEXT("sequence.unbind"),
+                TEXT("sequence.add_tracks")
         };
 
         if (MutatingCommands.Contains(CommandType))
@@ -922,6 +923,99 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
                                                 Plan.Actions.Add(Action);
                                         }
                                 }
+                        }
+                }
+
+                return Plan;
+        }
+        else if (CommandType == TEXT("sequence.add_tracks") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* BindingsArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("bindings"), BindingsArray) && BindingsArray)
+                {
+                        for (const TSharedPtr<FJsonValue>& BindingValue : *BindingsArray)
+                        {
+                                if (!BindingValue.IsValid() || BindingValue->Type != EJson::Object)
+                                {
+                                        continue;
+                                }
+
+                                TSharedPtr<FJsonObject> BindingObject = BindingValue->AsObject();
+                                FString ActorPath;
+                                BindingObject->TryGetStringField(TEXT("actorPath"), ActorPath);
+
+                                const TArray<TSharedPtr<FJsonValue>>* TracksArray = nullptr;
+                                if (BindingObject->TryGetArrayField(TEXT("tracks"), TracksArray) && TracksArray)
+                                {
+                                        for (const TSharedPtr<FJsonValue>& TrackValue : *TracksArray)
+                                        {
+                                                if (!TrackValue.IsValid() || TrackValue->Type != EJson::Object)
+                                                {
+                                                        continue;
+                                                }
+
+                                                TSharedPtr<FJsonObject> TrackObject = TrackValue->AsObject();
+                                                FString TrackType;
+                                                TrackObject->TryGetStringField(TEXT("type"), TrackType);
+
+                                                FMutationAction Action;
+                                                Action.Op = TEXT("add_track");
+                                                if (!TrackType.IsEmpty())
+                                                {
+                                                        Action.Args.Add(TEXT("type"), TrackType);
+                                                }
+                                                if (!ActorPath.IsEmpty())
+                                                {
+                                                        Action.Args.Add(TEXT("actor"), ActorPath);
+                                                }
+
+                                                if (TrackObject->HasTypedField<EJson::String>(TEXT("propertyPath")))
+                                                {
+                                                        Action.Args.Add(TEXT("property"), TrackObject->GetStringField(TEXT("propertyPath")));
+                                                }
+
+                                                Plan.Actions.Add(Action);
+                                        }
+                                }
+                        }
+                }
+
+                const TArray<TSharedPtr<FJsonValue>>* CameraCutsArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("cameraCuts"), CameraCutsArray) && CameraCutsArray)
+                {
+                        for (const TSharedPtr<FJsonValue>& CutValue : *CameraCutsArray)
+                        {
+                                if (!CutValue.IsValid() || CutValue->Type != EJson::Object)
+                                {
+                                        continue;
+                                }
+
+                                TSharedPtr<FJsonObject> CutObject = CutValue->AsObject();
+                                FMutationAction Action;
+                                Action.Op = TEXT("add_camera_cut");
+
+                                if (CutObject->HasTypedField<EJson::Number>(TEXT("frameStart")))
+                                {
+                                        Action.Args.Add(TEXT("from"), FString::FromInt(static_cast<int32>(CutObject->GetNumberField(TEXT("frameStart")))));
+                                }
+                                else if (CutObject->HasTypedField<EJson::String>(TEXT("frameStart")))
+                                {
+                                        Action.Args.Add(TEXT("from"), CutObject->GetStringField(TEXT("frameStart")));
+                                }
+                                if (CutObject->HasTypedField<EJson::Number>(TEXT("frameEnd")))
+                                {
+                                        Action.Args.Add(TEXT("to"), FString::FromInt(static_cast<int32>(CutObject->GetNumberField(TEXT("frameEnd")))));
+                                }
+                                else if (CutObject->HasTypedField<EJson::String>(TEXT("frameEnd")))
+                                {
+                                        Action.Args.Add(TEXT("to"), CutObject->GetStringField(TEXT("frameEnd")));
+                                }
+                                if (CutObject->HasTypedField<EJson::String>(TEXT("cameraBindingId")))
+                                {
+                                        Action.Args.Add(TEXT("camera"), CutObject->GetStringField(TEXT("cameraBindingId")));
+                                }
+
+                                Plan.Actions.Add(Action);
                         }
                 }
 

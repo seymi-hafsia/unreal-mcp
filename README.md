@@ -81,6 +81,7 @@
 | `sequence.bind_actors`   | Lier un ou plusieurs acteurs à un Sequence       | Options `skipIfAlreadyBound`, `overwriteIfExists`, `labelPrefix`, `save` |
 | `sequence.unbind`        | Retirer des bindings par GUID ou acteur          | Mutant ; support `save`, audit détaillé                |
 | `sequence.list_bindings` | Lister les bindings existants d'un Sequence      | Read-only ; renvoie GUID, label, acteur courant        |
+| `sequence.add_tracks`    | Ajouter des pistes (Transform/Visibility/Property) + cuts caméra | Mutant ; overwrite/dryRun/save, SCM + audit |
 
 ```jsonc
 // Exemple : sequence.create minimal
@@ -103,6 +104,32 @@
   "skipIfAlreadyBound": true,
   "labelPrefix": "Dummy_",
   "overwriteIfExists": false,
+  "save": true
+}
+```
+
+```jsonc
+// Exemple : sequence.add_tracks (transform + cuts)
+{
+  "sequencePath": "/Game/Cinematics/Seq/SEQ_Intro.SEQ_Intro",
+  "bindings": [
+    {
+      "actorPath": "/Game/Maps/Map:PersistentLevel.BP_TrainingDummy_C_2",
+      "tracks": [
+        {
+          "type": "Transform",
+          "keys": [
+            { "frame": 0, "location": [0, 0, 0] },
+            { "frame": 120, "location": [0, 300, 0], "rotation": [0, 90, 0] }
+          ]
+        }
+      ]
+    }
+  ],
+  "cameraCuts": [
+    { "frameStart": 0, "frameEnd": 60, "cameraBindingId": "3C7C8B2E-1234-5678-ABCD-000000000001" }
+  ],
+  "overwrite": false,
   "save": true
 }
 ```
