@@ -119,6 +119,78 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
 
 `dryRun=true` renvoie uniquement la commande et les dossiers touchés, sans lancer RunUAT.
 
+## CLI locale (`mcp`)
+
+Une CLI Typer accompagne le serveur pour exécuter des tools ou des pipelines sans agent externe.
+
+### Installation
+
+```bash
+cd Python/cli
+pip install -e .
+
+# Vérifier l'installation
+mcp --help
+```
+
+L’adresse du serveur peut être fournie via `--server` (par défaut `127.0.0.1:8765`) ou la variable `MCP_SERVER`.
+
+### Exemples
+
+```bash
+# Exécuter un tool avec paramètres inline
+mcp run asset.fix_redirectors --params-json '{"paths":["/Game/Core"],"recursive":true}'
+
+# Lancer une recette YAML avec variables dynamiques
+mcp recipe run ./pipelines/content_cleanup.yaml --vars GAME_ROOT=/Game/Core --parallel 3
+
+# Valider et dry-run une recette (plan + audit consolidé)
+mcp recipe test ./pipelines/content_cleanup.yaml --dry-run --output yaml
+```
+
+Options communes :
+
+* `--dry-run` : ajoute `DryRun=true` aux params (si absent) et balise `meta.dryRun`.
+* `--retry N` : retries transport (command run) ou par step (`retry.max_attempts`).
+* `--parallel N` : exécute les steps indépendants en parallèle.
+* `--vars key=val` & `--vars-file vars.yaml` : variables injectées dans `${VAR}` / `${{ steps.* }}`.
+* `--select expr` : filtre la réponse via JMESPath (`result.savedCount`, `steps.export.audit`…).
+* `--output json|yaml`, `--timeout`, `--log-level`, `--env KEY=VALUE`.
+
+### Format des recettes
+
+```yaml
+version: 1
+vars:
+  GAME_ROOT: "/Game/Core"
+steps:
+  - name: save-open
+    tool: level.save_open
+    params:
+      modifiedOnly: true
+
+  - name: import-assets
+    tool: asset.batch_import
+    params:
+      destPath: "${GAME_ROOT}/Props"
+      files:
+        - "D:/Imports/Chair.fbx"
+      preset: "fbx_static"
+    retry:
+      max_attempts: 3
+      backoff_sec: 2
+
+  - name: export-seq
+    tool: sequence.export
+    needs: [import-assets]
+    params:
+      sequencePath: "${{ steps.import-assets.result.sequencePath }}"
+      format: json
+    save_as: out/seq.json
+```
+
+Le loader effectue une validation basique (version, steps, dépendances, fichiers). Chaque step supporte `when`, `needs`, `retry`, `timeout_sec`, `save_as`, `parallel_group`. Les sorties `audit.actions`/`diffs` sont fusionnées dans le résumé final.
+
 ### Structure de la réponse
 
 * `ok`, `exitCode`, `durationSec`, `commandLine` : statut d’exécution et temps passé par plateforme.

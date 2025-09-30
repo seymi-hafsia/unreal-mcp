@@ -52,6 +52,28 @@
 - **Outils de santé** : tool read-only `mcp.health` retourne versions, uptime, flags d’enforcement, RTT et infos plugin.
 - **Réglages** : nouveau `LogLevel`, `EnableJsonLogs` et boutons Diagnostics (ouvrir events/metrics log, tail live).
 
+## 🖥️ CLI locale (`mcp`)
+Un binaire `mcp` (Typer) est fourni pour piloter le serveur MCP sans passer par un agent externe.
+
+```bash
+# Lancer un tool directement
+mcp run level.save_open --params-json '{"modifiedOnly": true}'
+
+# Exécuter une recette YAML (pipeline DAG)
+mcp recipe run ./.mcp/pipelines/content_cleanup.yaml --vars GAME_ROOT=/Game/Core
+
+# Valider / dry-run une recette
+mcp recipe test ./.mcp/pipelines/content_cleanup.yaml --dry-run
+```
+
+| Commande          | Description                                      |
+|-------------------|--------------------------------------------------|
+| `mcp run`         | Exécute un tool MCP unique avec paramètres JSON  |
+| `mcp recipe run`  | Exécute un pipeline YAML (steps dépendants, DAG) |
+| `mcp recipe test` | Valide la recette, affiche le plan, option dry-run |
+
+Fonctionnalités transverses : `--dry-run`, `--retry`, `--parallel`, `--vars`/`--vars-file`, `--select` (JMESPath), `--output json|yaml`, `--timeout`, `--log-level`, `--server`.
+
 ## 🧰 Outils exposés (MCP Tools)
 
 ### Lecture (toujours autorisées)
