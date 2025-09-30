@@ -72,6 +72,8 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
 * Assets Batch Import : `asset.batch_import` (FBX/Textures/Audio, presets/options, SCM)
 * Actors (Editor) : `actor.spawn`, `actor.destroy`, `actor.attach`, `actor.transform`, `actor.tag`
   *(toutes les mutations respectent `allow_write`, `dry_run`, `allowed_paths` et nécessitent checkout/mark-for-add selon réglages)*
+* Content Hygiene : `content.scan`, `content.validate`, `content.fix_missing`, `content.generate_thumbnails`
+  *(scan/validate fonctionnent même en read-only ; `content.fix_missing` & `content.generate_thumbnails` respectent gates, transactions et SCM)*
 * Sequencer : `sequence.create`, `sequence.bind_actors`, `sequence.unbind`, `sequence.list_bindings`, `sequence.add_tracks`, `sequence.export`
   *(création + mutations : bind/unbind/list, ajout de pistes transform/visibility/property/camera-cut ; export JSON/CSV read-only)*
 * Materials : `mi.create`, `mi.set_params`, `mi.batch_apply`, `mesh.remap_material_slots`

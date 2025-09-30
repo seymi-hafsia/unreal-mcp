@@ -85,6 +85,7 @@ UUnrealMCPBridge::UUnrealMCPBridge()
     ProjectCommands = MakeShared<FUnrealMCPProjectCommands>();
     UMGCommands = MakeShared<FUnrealMCPUMGCommands>();
     SourceControlCommands = MakeShared<FUnrealMCPSourceControlCommands>();
+    ContentTools = MakeShared<FContentTools>();
 
     FWriteGate::UpdateRemoteEnforcement(false, true, TArray<FString>(), TArray<FString>(), TArray<FString>());
 }
@@ -97,6 +98,7 @@ UUnrealMCPBridge::~UUnrealMCPBridge()
     ProjectCommands.Reset();
     UMGCommands.Reset();
     SourceControlCommands.Reset();
+    ContentTools.Reset();
 }
 
 // Initialize subsystem
@@ -787,6 +789,13 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 else if (CommandType == TEXT("asset.batch_import"))
                 {
                     ResultJson = FAssetImport::BatchImport(Params);
+                }
+                else if (CommandType == TEXT("content.scan") ||
+                         CommandType == TEXT("content.validate") ||
+                         CommandType == TEXT("content.fix_missing") ||
+                         CommandType == TEXT("content.generate_thumbnails"))
+                {
+                    ResultJson = ContentTools->HandleCommand(CommandType, Params);
                 }
                 else if (CommandType == TEXT("mi.create"))
                 {
