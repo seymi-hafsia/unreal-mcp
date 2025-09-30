@@ -10,7 +10,9 @@ dependencies = [
   "uvicorn",
   "fastapi",
   "pydantic>=2.6.1",
-  "requests"
+  "requests",
+  "pyyaml",
+  "jsonschema"
 ]
 
 [build-system]

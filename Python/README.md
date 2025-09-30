@@ -51,9 +51,17 @@ Variables d’environnement supportées :
 
 ## Sécurité & Enforcement
 
-* Le serveur annonce ses **capabilities/enforcement** (allowWrite/dryRun/allowedPaths).
-* Si une requête indique `meta.mutation=true` et `allowWrite=0` → réponse immédiate `WRITE_NOT_ALLOWED` (le plugin ne tente rien).
-* Un **audit** JSONL est écrit dans `logs/audit.jsonl` (timestamp, tool, mutation, dryRun, digest params, result.ok).
+Le serveur Python applique les règles du policy loader (`MCP_POLICY_PATH`).
+
+* **RBAC** : résout le `role` transmis par le plugin (`admin|dev|artist|read_only`). Les tools sont filtrés via patterns allow/deny (deny prioritaire) → `TOOL_DENIED` en cas d’accès refusé.
+* **Rate limiting** : fenêtre 60 s (global + par tool). Dépassement → `RATE_LIMITED` + `retryAfterSec`.
+* **Input limits** : taille du payload JSON (`request_size_kb`) et cardinalité max des listes (`array_items_max`). Dépassement → `REQUEST_TOO_LARGE` / `ARRAY_TOO_LARGE`.
+* **Validation** : si un schéma `jsonschema` est enregistré (`security/schema_registry.py`), les params sont validés avant dispatch (`INVALID_PARAMS`).
+* **Sandbox chemins** : toute valeur `path|dir|root` est normalisée (résolution `..`, symlinks, casse Windows) puis validée contre `paths.allowed/forbidden`. Hors périmètre → `PATH_NOT_ALLOWED`.
+* **Audit HMAC** : les réponses mutantes incluent `security.auditSig` + `serverTs` + `nonce`. Le secret provient de `audit.hmac_secret_env` (`MCP_AUDIT_SECRET`).
+* **Redaction** : toute clé/valeur contenant `token`, `password`, `secret`, `key` est redacted (`[REDACTED]`) avant signature et logging.
+
+> Les audits signés se trouvent dans la réponse JSON (`security`). Conservez la même clé HMAC côté observabilité pour recalcule/verify.
 
 ## Observabilité
 
