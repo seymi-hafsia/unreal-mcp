@@ -74,8 +74,8 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
   *(toutes les mutations respectent `allow_write`, `dry_run`, `allowed_paths` et nécessitent checkout/mark-for-add selon réglages)*
 * Sequencer : `sequence.create`, `sequence.bind_actors`, `sequence.unbind`, `sequence.list_bindings`, `sequence.add_tracks`, `sequence.export`
   *(création + mutations : bind/unbind/list, ajout de pistes transform/visibility/property/camera-cut ; export JSON/CSV read-only)*
-* Materials : `mi.create`, `mi.set_params`
-  *(création et overrides de Material Instances — pas de modifications du graph de matériau)*
+* Materials : `mi.create`, `mi.set_params`, `mi.batch_apply`, `mesh.remap_material_slots`
+  *(création/overrides de MI, assignation scène en masse, remap de slots StaticMesh ; `mi.batch_apply` modifie les maps ouvertes, `mesh.remap_material_slots` agit sur un asset)*
 * Niagara (Editor) : `niagara.spawn_component`, `niagara.set_user_params`, `niagara.activate`, `niagara.deactivate`
   *(mutations scène côté Éditeur/PIE — pas d’édition structurelle des systèmes Niagara)*
 * Navigation éditeur : `level.select`, `viewport.focus`, `camera.bookmark` (`persist=true` pour `set` ⇒ mutation, sinon lecture)

@@ -56,6 +56,8 @@ public class UnrealMCP : ModuleRules
                                 "Projects",
                                 "AssetRegistry",
                                 "AssetTools",
+                                "RenderingCommon",
+                                "SkeletalMeshUtilitiesCommon",
                                 "SourceControl",
                                 "Settings",
                                 "LevelEditor",
