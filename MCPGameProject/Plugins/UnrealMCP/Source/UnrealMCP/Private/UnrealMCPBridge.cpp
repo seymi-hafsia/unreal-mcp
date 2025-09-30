@@ -62,6 +62,7 @@
 #include "Assets/AssetImport.h"
 #include "Assets/AssetQuery.h"
 #include "Niagara/NiagaraTools.h"
+#include "MetaSounds/MetaSoundTools.h"
 #include "Actors/ActorTools.h"
 #include "EditorNav/EditorNavTools.h"
 #include "Levels/LevelTools.h"
@@ -794,6 +795,30 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 else if (CommandType == TEXT("niagara.deactivate"))
                 {
                     ResultJson = FNiagaraTools::Deactivate(Params);
+                }
+                else if (CommandType == TEXT("metasound.spawn_component"))
+                {
+                    ResultJson = FMetaSoundTools::SpawnComponent(Params);
+                }
+                else if (CommandType == TEXT("metasound.set_params"))
+                {
+                    ResultJson = FMetaSoundTools::SetParameters(Params);
+                }
+                else if (CommandType == TEXT("metasound.play"))
+                {
+                    ResultJson = FMetaSoundTools::Play(Params);
+                }
+                else if (CommandType == TEXT("metasound.stop"))
+                {
+                    ResultJson = FMetaSoundTools::Stop(Params);
+                }
+                else if (CommandType == TEXT("metasound.export_info"))
+                {
+                    ResultJson = FMetaSoundTools::ExportInfo(Params);
+                }
+                else if (CommandType == TEXT("metasound.patch_preset"))
+                {
+                    ResultJson = FMetaSoundTools::PatchPreset(Params);
                 }
                 else if (CommandType == TEXT("asset.fix_redirectors"))
                 {

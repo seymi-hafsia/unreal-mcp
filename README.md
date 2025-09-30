@@ -14,6 +14,7 @@
 - **Sequencer v1** : `sequence.create` pour générer un Level Sequence (fps, durée, évaluation, caméra/camera-cut/bind optionnels).
 - **Materials v1 (Material Instances)** : `mi.create` et `mi.set_params` pour créer des MI et régler leurs overrides.
 - **Niagara v1 (Editor)** : `niagara.spawn_component / niagara.set_user_params / niagara.activate / niagara.deactivate`.
+- **MetaSounds (preview)** : routes `metasound.*` et `metasound.render_offline` déclarées (retournent actuellement `NOT_IMPLEMENTED`).
 - **Actors v1 (Editor)** : `actor.spawn / actor.destroy / actor.attach / actor.transform / actor.tag` (transactions, sélection, audit).
 - **Camera helpers (Editor)** : `level.select / viewport.focus / camera.bookmark` (navigation + bookmarks, session & persistance).
 - **Build & Test v2** : wrappers RunUAT `BuildCookRun`, `automation.run_specs` (Editor-Cmd) et `gauntlet.run` (cooked) avec logs persistants & parsing basique.
@@ -206,6 +207,21 @@ Fonctionnalités transverses : `--dry-run`, `--retry`, `--parallel`, `--vars`/`-
   "save": true
 }
 ```
+
+### MetaSounds (préversion)
+
+> ⚠️ Les routes sont exposées mais renvoient pour l’instant `NOT_IMPLEMENTED`. Elles servent de squelette en attendant l’intégration complète côté éditeur et serveur.
+
+| Tool                        | Type      | Description                                                |
+|-----------------------------|-----------|------------------------------------------------------------|
+| `metasound.spawn_component` | mutation  | Devrait instancier un `UAudioComponent` MetaSound (stub)   |
+| `metasound.set_params`      | mutation  | Devrait appliquer des paramètres exposés (stub)            |
+| `metasound.play` / `stop`   | mutation  | Devrait lancer/arrêter la lecture avec fondu (stub)        |
+| `metasound.export_info`     | read-only | Devrait retourner la liste des paramètres exposés (stub)   |
+| `metasound.patch_preset`    | mutation  | Devrait créer/mettre à jour un preset MetaSound (stub)     |
+| `metasound.render_offline`  | external  | Devrait lancer UnrealEditor-Cmd pour générer un WAV (stub) |
+
+Des exemples de payloads et le cahier des charges complet sont consignés dans la demande de fonctionnalités correspondante (voir historique du projet).
 
 #### Materials
 

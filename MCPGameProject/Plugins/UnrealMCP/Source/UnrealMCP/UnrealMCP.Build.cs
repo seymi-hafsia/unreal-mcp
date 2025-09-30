@@ -56,6 +56,8 @@ public class UnrealMCP : ModuleRules
                                 "Projects",
                                 "AssetRegistry",
                                 "AssetTools",
+                                "AudioMixer",
+                                "SignalProcessing",
                                 "RenderingCommon",
                                 "SkeletalMeshUtilitiesCommon",
                                 "SourceControl",

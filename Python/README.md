@@ -90,6 +90,8 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
   *(création/overrides de MI, assignation scène en masse, remap de slots StaticMesh ; `mi.batch_apply` modifie les maps ouvertes, `mesh.remap_material_slots` agit sur un asset)*
 * Niagara (Editor) : `niagara.spawn_component`, `niagara.set_user_params`, `niagara.activate`, `niagara.deactivate`
   *(mutations scène côté Éditeur/PIE — pas d’édition structurelle des systèmes Niagara)*
+* MetaSounds (préversion) : `metasound.spawn_component`, `metasound.set_params`, `metasound.play`, `metasound.stop`, `metasound.export_info`, `metasound.patch_preset`, `metasound.render_offline`
+  *(routes déclarées côté serveur/éditeur mais actuellement stubs renvoyant `NOT_IMPLEMENTED`)*
 * Navigation éditeur : `level.select`, `viewport.focus`, `camera.bookmark` (`persist=true` pour `set` ⇒ mutation, sinon lecture)
 
 > `asset.batch_import` peut prendre plusieurs secondes (import FBX + textures). La réponse contient le détail par fichier (`created/skipped/overwritten`, warnings, audit).
@@ -126,6 +128,10 @@ Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :
 ```
 
 `dryRun=true` renvoie uniquement la commande et les dossiers touchés, sans lancer RunUAT.
+
+## MetaSounds (préversion)
+
+Les routes MetaSound sont déjà enregistrées côté serveur (`metasound.*`, `metasound.render_offline`) mais renvoient pour l’instant `NOT_IMPLEMENTED`. Elles servent de point d’extension pour une future intégration (UnrealEditor-Cmd + Submix Recorder). La structure de payload suivra le cahier des charges défini dans la roadmap (sourcePath, params, durée, sampleRate, etc.).
 
 ## CLI locale (`mcp`)
 
