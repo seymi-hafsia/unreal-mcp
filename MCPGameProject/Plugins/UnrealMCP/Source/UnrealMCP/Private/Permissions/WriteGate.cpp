@@ -205,6 +205,8 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType, const TSharedPtr<
                 TEXT("asset.batch_import"),
                 TEXT("mi.create"),
                 TEXT("mi.set_params"),
+                TEXT("mi.batch_apply"),
+                TEXT("mesh.remap_material_slots"),
                 TEXT("sequence.create"),
                 TEXT("sequence.bind_actors"),
                 TEXT("sequence.unbind"),
@@ -1017,6 +1019,123 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
 
                 return Plan;
         }
+        else if (CommandType == TEXT("mi.batch_apply") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* Targets = nullptr;
+                if (Params->TryGetArrayField(TEXT("targets"), Targets) && Targets)
+                {
+                        for (const TSharedPtr<FJsonValue>& TargetValue : *Targets)
+                        {
+                                if (!TargetValue.IsValid() || TargetValue->Type != EJson::Object)
+                                {
+                                        continue;
+                                }
+
+                                const TSharedPtr<FJsonObject> TargetObject = TargetValue->AsObject();
+                                if (!TargetObject.IsValid())
+                                {
+                                        continue;
+                                }
+
+                                FString ActorPath;
+                                TargetObject->TryGetStringField(TEXT("actorPath"), ActorPath);
+
+                                FString ComponentName;
+                                TargetObject->TryGetStringField(TEXT("component"), ComponentName);
+
+                                const TArray<TSharedPtr<FJsonValue>>* AssignArray = nullptr;
+                                if (!TargetObject->TryGetArrayField(TEXT("assign"), AssignArray) || !AssignArray)
+                                {
+                                        continue;
+                                }
+
+                                for (const TSharedPtr<FJsonValue>& AssignValue : *AssignArray)
+                                {
+                                        if (!AssignValue.IsValid() || AssignValue->Type != EJson::Object)
+                                        {
+                                                continue;
+                                        }
+
+                                        const TSharedPtr<FJsonObject> AssignObject = AssignValue->AsObject();
+                                        if (!AssignObject.IsValid())
+                                        {
+                                                continue;
+                                        }
+
+                                        FMutationAction Action;
+                                        Action.Op = TEXT("apply_mi");
+                                        if (!ActorPath.IsEmpty())
+                                        {
+                                                Action.Args.Add(TEXT("actor"), ActorPath);
+                                        }
+
+                                        if (!ComponentName.IsEmpty())
+                                        {
+                                                Action.Args.Add(TEXT("component"), ComponentName);
+                                        }
+
+                                        TSharedPtr<FJsonValue> SlotValue = AssignObject->TryGetField(TEXT("slot"));
+                                        if (SlotValue.IsValid())
+                                        {
+                                                Action.Args.Add(TEXT("slot"), SerializeJsonValue(SlotValue));
+                                        }
+
+                                        FString MiPath;
+                                        if (AssignObject->TryGetStringField(TEXT("mi"), MiPath))
+                                        {
+                                                Action.Args.Add(TEXT("mi"), MiPath);
+                                        }
+
+                                        Plan.Actions.Add(Action);
+                                }
+                        }
+                }
+
+                if (Plan.Actions.Num() > 0)
+                {
+                        return Plan;
+                }
+        }
+        else if (CommandType == TEXT("mesh.remap_material_slots") && Params.IsValid())
+        {
+                FString MeshObjectPath;
+                Params->TryGetStringField(TEXT("meshObjectPath"), MeshObjectPath);
+
+                bool bHasAction = false;
+
+                const TSharedPtr<FJsonObject>* RenameObject = nullptr;
+                if (Params->TryGetObjectField(TEXT("rename"), RenameObject) && RenameObject && (*RenameObject)->Values.Num() > 0)
+                {
+                        FMutationAction Action;
+                        Action.Op = TEXT("rename_slots");
+                        if (!MeshObjectPath.IsEmpty())
+                        {
+                                Action.Args.Add(TEXT("mesh"), MeshObjectPath);
+                        }
+                        Action.Args.Add(TEXT("pairs"), SerializeObjectField(Params, TEXT("rename")));
+                        Plan.Actions.Add(Action);
+                        bHasAction = true;
+                }
+
+                const TArray<TSharedPtr<FJsonValue>>* ReorderArray = nullptr;
+                if (Params->TryGetArrayField(TEXT("reorder"), ReorderArray) && ReorderArray && ReorderArray->Num() > 0)
+                {
+                        FMutationAction Action;
+                        Action.Op = TEXT("reorder_slots");
+                        if (!MeshObjectPath.IsEmpty())
+                        {
+                                Action.Args.Add(TEXT("mesh"), MeshObjectPath);
+                        }
+                        Action.Args.Add(TEXT("order"), SerializeArrayField(Params, TEXT("reorder")));
+                        Plan.Actions.Add(Action);
+                        bHasAction = true;
+                }
+
+                if (bHasAction)
+                {
+                        return Plan;
+                }
+        }
         else if (CommandType == TEXT("sequence.create") && Params.IsValid())
         {
                 FString SequencePath;
@@ -1511,6 +1630,46 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
                                 }
 #endif
                         }
+                }
+        }
+
+        if (CommandType == TEXT("mi.batch_apply") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* Targets = nullptr;
+                if (Params->TryGetArrayField(TEXT("targets"), Targets) && Targets)
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *Targets)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::Object)
+                                {
+                                        const TSharedPtr<FJsonObject> TargetObject = Value->AsObject();
+                                        if (TargetObject.IsValid())
+                                        {
+                                                FString ActorPath;
+                                                if (TargetObject->TryGetStringField(TEXT("actorPath"), ActorPath))
+                                                {
+                                                        ActorPath.TrimStartAndEndInline();
+                                                        if (!ActorPath.IsEmpty())
+                                                        {
+                                                                const FString PackagePath = FPackageName::ObjectPathToPackageName(ActorPath);
+                                                                if (!PackagePath.IsEmpty())
+                                                                {
+                                                                        return NormalizeContentPath(PackagePath);
+                                                                }
+                                                        }
+                                                }
+                                        }
+                                }
+                        }
+                }
+        }
+
+        if (CommandType == TEXT("mesh.remap_material_slots") && Params.IsValid())
+        {
+                FString MeshObjectPath;
+                if (Params->TryGetStringField(TEXT("meshObjectPath"), MeshObjectPath))
+                {
+                        return NormalizeContentPath(MeshObjectPath);
                 }
         }
 

@@ -68,6 +68,7 @@
 #include "Sequencer/SequenceExport.h"
 #include "Sequencer/SequenceTools.h"
 #include "Sequencer/SequenceTracks.h"
+#include "Materials/MaterialApplyTools.h"
 #include "Materials/MaterialInstanceTools.h"
 #include "Permissions/WriteGate.h"
 #include "Transactions/TransactionManager.h"
@@ -794,6 +795,14 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 else if (CommandType == TEXT("mi.set_params"))
                 {
                     ResultJson = FMaterialInstanceTools::SetParameters(Params);
+                }
+                else if (CommandType == TEXT("mi.batch_apply"))
+                {
+                    ResultJson = FMaterialApplyTools::BatchApply(Params);
+                }
+                else if (CommandType == TEXT("mesh.remap_material_slots"))
+                {
+                    ResultJson = FMaterialApplyTools::RemapMaterialSlots(Params);
                 }
                 else if (CommandType == TEXT("sequence.create"))
                 {

@@ -81,10 +81,12 @@
 
 #### Materials
 
-| Tool            | Description                                                   | Notes                                                   |
-|-----------------|----------------------------------------------------------------|---------------------------------------------------------|
-| `mi.create`     | Crée une Material Instance enfant d'un Material ou d'une MI    | Respecte `AllowedContentRoots`, overwrite option, SCM   |
-| `mi.set_params` | Applique des overrides Scalar/Vector/Texture/StaticSwitch sur une MI existante | Support `clearUnset`, sauvegarde, audit détaillé |
+| Tool                        | Description                                                   | Notes |
+|-----------------------------|----------------------------------------------------------------|-------|
+| `mi.create`                 | Crée une Material Instance enfant d'un Material ou d'une MI    | Respecte `AllowedContentRoots`, overwrite option, SCM |
+| `mi.set_params`             | Applique des overrides Scalar/Vector/Texture/StaticSwitch sur une MI existante | Support `clearUnset`, sauvegarde, audit détaillé |
+| `mi.batch_apply`            | Assigne des Material Instances à des acteurs/composants par slot (index ou nom) | Scène uniquement (maps), Undo/Redo, pas de sauvegarde auto |
+| `mesh.remap_material_slots` | Renomme/réordonne les slots d'un StaticMesh (duplication optionnelle) | Option de rebind des acteurs, SCM + sauvegarde optionnelle |
 
 ```jsonc
 // Exemple : mi.set_params
@@ -96,6 +98,28 @@
   "switches": { "UseDetail": true },
   "clearUnset": false,
   "save": true
+}
+```
+
+```jsonc
+// Exemple : mi.batch_apply (deux acteurs)
+{
+  "targets": [
+    {
+      "actorPath": "/Game/Maps/Demo.Demo:PersistentLevel.SM_Statue_1",
+      "assign": [
+        { "slot": 0, "mi": "/Game/Materials/Instances/MI_Stone.MI_Stone" },
+        { "slot": "Eyes", "mi": "/Game/Materials/Instances/MI_Gold.MI_Gold" }
+      ]
+    },
+    {
+      "actorPath": "/Game/Maps/Demo.Demo:PersistentLevel.SK_Orc_1",
+      "component": "Mesh",
+      "assign": [
+        { "slot": "Body", "mi": "/Game/Characters/Materials/MI_OrcSkin.MI_OrcSkin" }
+      ]
+    }
+  ]
 }
 ```
 
