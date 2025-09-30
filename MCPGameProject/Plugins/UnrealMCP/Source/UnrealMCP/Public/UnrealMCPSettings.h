@@ -5,6 +5,18 @@
 #include "Engine/EngineTypes.h"
 #include "UnrealMCPSettings.generated.h"
 
+UENUM()
+enum class EUnrealMCPLogLevel : uint8
+{
+        Error,
+        Warning,
+        Display,
+        Verbose,
+        VeryVerbose,
+        Debug,
+        Trace
+};
+
 /**
  * Project-wide settings for the Unreal MCP plugin.
  */
@@ -73,6 +85,14 @@ public:
         // === Logging ===
         UPROPERTY(EditAnywhere, config, Category="Logging")
         bool bEnableProtocolVerboseLogs = false;
+
+        /** Minimum verbosity for LogUnrealMCP category. */
+        UPROPERTY(EditAnywhere, config, Category="Logging", meta=(DisplayName="Log Level"))
+        EUnrealMCPLogLevel LogLevel = EUnrealMCPLogLevel::Display;
+
+        /** Enable additional structured JSON logging (events + metrics). */
+        UPROPERTY(EditAnywhere, config, Category="Logging", meta=(DisplayName="Enable JSON Logs"))
+        bool bEnableJsonLogs = true;
 
         UPROPERTY(EditAnywhere, config, Category="Logging")
         FDirectoryPath LogsDirectory;

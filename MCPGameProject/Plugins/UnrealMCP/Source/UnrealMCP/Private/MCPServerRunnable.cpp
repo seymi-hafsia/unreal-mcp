@@ -4,6 +4,7 @@
 #include "Protocol/Protocol.h"
 #include "Permissions/WriteGate.h"
 #include "UnrealMCPLog.h"
+#include "Observability/JsonLogger.h"
 
 #include "Sockets.h"
 #include "SocketSubsystem.h"
@@ -12,6 +13,7 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Misc/Guid.h"
+#include "Misc/DateTime.h"
 #include "Misc/EngineVersion.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/PlatformTime.h"
@@ -266,13 +268,35 @@ bool FMCPServerRunnable::HandleProtocolMessage(UnrealMCP::Protocol::FProtocolCli
                 return true;
         }
 
+        FString RequestId;
+        if (!Message->TryGetStringField(TEXT("requestId"), RequestId))
+        {
+                if (Message->HasTypedField<EJson::Object>(TEXT("meta")))
+                {
+                        const TSharedPtr<FJsonObject> MetaObject = Message->GetObjectField(TEXT("meta"));
+                        if (MetaObject.IsValid())
+                        {
+                                MetaObject->TryGetStringField(TEXT("requestId"), RequestId);
+                        }
+                }
+        }
+
+        if (RequestId.IsEmpty())
+        {
+                RequestId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+        }
+
+        const FDateTime StartUtc = FDateTime::UtcNow();
+        const double StartSeconds = FPlatformTime::Seconds();
+        const double StartTsMs = static_cast<double>(StartUtc.ToUnixTimestamp()) * 1000.0 + StartUtc.GetMillisecond();
+
         TSharedPtr<FJsonObject> Params = MakeShared<FJsonObject>();
         if (Message->HasField(TEXT("params")) && Message->HasTypedField<EJson::Object>(TEXT("params")))
         {
                 Params = Message->GetObjectField(TEXT("params"));
         }
 
-        const FString ResponseString = Bridge->ExecuteCommand(MessageType, Params);
+        const FString ResponseString = Bridge->ExecuteCommand(MessageType, Params, RequestId);
         TSharedPtr<FJsonObject> ResponseObject;
         {
                 TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseString);
@@ -287,6 +311,64 @@ bool FMCPServerRunnable::HandleProtocolMessage(UnrealMCP::Protocol::FProtocolCli
                         return true;
                 }
         }
+
+        const double DurationMs = (FPlatformTime::Seconds() - StartSeconds) * 1000.0;
+        TSharedPtr<FJsonObject> Meta = ResponseObject->HasTypedField<EJson::Object>(TEXT("meta"))
+                ? ResponseObject->GetObjectField(TEXT("meta"))
+                : MakeShared<FJsonObject>();
+        if (Meta.IsValid())
+        {
+                Meta->SetStringField(TEXT("requestId"), RequestId);
+                Meta->SetNumberField(TEXT("ts"), StartTsMs);
+                Meta->SetNumberField(TEXT("durMs"), DurationMs);
+                ResponseObject->SetObjectField(TEXT("meta"), Meta);
+        }
+
+        const bool bOk = ResponseObject->HasField(TEXT("ok")) ? ResponseObject->GetBoolField(TEXT("ok")) : false;
+        FString ErrorCode;
+        if (ResponseObject->HasField(TEXT("error")))
+        {
+                const TSharedPtr<FJsonObject> Error = ResponseObject->GetObjectField(TEXT("error"));
+                if (Error.IsValid())
+                {
+                        Error->TryGetStringField(TEXT("code"), ErrorCode);
+                }
+        }
+
+        TSharedPtr<FJsonObject> MetricFields = MakeShared<FJsonObject>();
+        MetricFields->SetStringField(TEXT("tool"), MessageType);
+        MetricFields->SetBoolField(TEXT("ok"), bOk);
+        MetricFields->SetNumberField(TEXT("durMs"), DurationMs);
+        if (!ErrorCode.IsEmpty())
+        {
+                MetricFields->SetStringField(TEXT("errorCode"), ErrorCode);
+        }
+        FJsonLogger::Metric(TEXT("tool_duration_ms"), MetricFields);
+
+        TSharedPtr<FJsonObject> CounterFields = MakeShared<FJsonObject>();
+        CounterFields->SetStringField(TEXT("tool"), MessageType);
+        CounterFields->SetBoolField(TEXT("ok"), bOk);
+        if (!ErrorCode.IsEmpty())
+        {
+                CounterFields->SetStringField(TEXT("errorCode"), ErrorCode);
+        }
+        FJsonLogger::Metric(TEXT("tool_calls_total"), CounterFields);
+
+        TSharedPtr<FJsonObject> EventFields = MakeShared<FJsonObject>();
+        EventFields->SetBoolField(TEXT("ok"), bOk);
+        EventFields->SetNumberField(TEXT("durMs"), DurationMs);
+        if (!ErrorCode.IsEmpty())
+        {
+                EventFields->SetStringField(TEXT("code"), ErrorCode);
+        }
+        FLogEvent Event;
+        Event.Level = bOk ? TEXT("info") : TEXT("error");
+        Event.Category = FString::Printf(TEXT("tool.%s"), *MessageType);
+        Event.RequestId = RequestId;
+        Event.Message = FString::Printf(TEXT("Command %s completed"), *MessageType);
+        Event.Fields = EventFields;
+        Event.TsUnixMs = StartTsMs;
+        FJsonLogger::Log(Event);
 
         FString SendError;
         if (!ProtocolClient.SendMessage(ResponseObject.ToSharedRef(), SendError))

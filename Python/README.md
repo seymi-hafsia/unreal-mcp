@@ -48,6 +48,13 @@ Variables d’environnement supportées :
 * Si une requête indique `meta.mutation=true` et `allowWrite=0` → réponse immédiate `WRITE_NOT_ALLOWED` (le plugin ne tente rien).
 * Un **audit** JSONL est écrit dans `logs/audit.jsonl` (timestamp, tool, mutation, dryRun, digest params, result.ok).
 
+## Observabilité
+
+* **Logs JSONL** : `Python/logs/events.jsonl` (événements) & `metrics.jsonl` (métriques). Rotation automatique (20 MB, 3 fichiers).
+* **Corrélation** : chaque requête inclut `requestId` et `meta.ts`/`meta.durMs` (client ↔ plugin ↔ serveur).
+* **Métriques** : `tool_calls_total` (succès/erreur) et `tool_duration_ms` (durée). Exploitables en post-traitement (jq, etc.).
+* **Tool `mcp.health`** : expose versions (serveur/protocole/python), uptime, clients actifs, flags `allowWrite`/`dryRun`, chemins autorisés, RTT best-effort et infos handshake plugin.
+
 ## Outils routés
 
 Le serveur relaie les **tools** vers le plugin UE. Quelques exemples actuels :

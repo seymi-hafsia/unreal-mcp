@@ -47,6 +47,27 @@ void FUnrealMCPSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& Det
                         .Text(LOCTEXT("OpenLogsButton", "Open Logs Folder"))
                         .OnClicked(this, &FUnrealMCPSettingsCustomization::OnOpenLogsFolder)
                 ]
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                [
+                        SNew(SButton)
+                        .Text(LOCTEXT("OpenEventsLogButton", "Open Events Log"))
+                        .OnClicked(this, &FUnrealMCPSettingsCustomization::OnOpenEventsLog)
+                ]
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                [
+                        SNew(SButton)
+                        .Text(LOCTEXT("OpenMetricsLogButton", "Open Metrics Log"))
+                        .OnClicked(this, &FUnrealMCPSettingsCustomization::OnOpenMetricsLog)
+                ]
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                [
+                        SNew(SButton)
+                        .Text(LOCTEXT("TailLogsButton", "Tail Logs"))
+                        .OnClicked(this, &FUnrealMCPSettingsCustomization::OnTailLogs)
+                ]
         ];
 }
 
@@ -70,6 +91,30 @@ FReply FUnrealMCPSettingsCustomization::OnOpenLogsFolder()
 {
         FText Message;
         const bool bSuccess = FUnrealMCPDiagnostics::OpenLogsFolder(Message);
+        ShowResultDialog(Message, bSuccess);
+        return FReply::Handled();
+}
+
+FReply FUnrealMCPSettingsCustomization::OnOpenEventsLog()
+{
+        FText Message;
+        const bool bSuccess = FUnrealMCPDiagnostics::OpenEventsLog(Message);
+        ShowResultDialog(Message, bSuccess);
+        return FReply::Handled();
+}
+
+FReply FUnrealMCPSettingsCustomization::OnOpenMetricsLog()
+{
+        FText Message;
+        const bool bSuccess = FUnrealMCPDiagnostics::OpenMetricsLog(Message);
+        ShowResultDialog(Message, bSuccess);
+        return FReply::Handled();
+}
+
+FReply FUnrealMCPSettingsCustomization::OnTailLogs()
+{
+        FText Message;
+        const bool bSuccess = FUnrealMCPDiagnostics::TailLogs(Message);
         ShowResultDialog(Message, bSuccess);
         return FReply::Handled();
 }

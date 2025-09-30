@@ -39,6 +39,13 @@
 
 > Par défaut, **AllowWrite=false** et **DryRun=true** → aucune écriture n’est effectuée tant que vous n’avez pas explicitement autorisé.
 
+## 📈 Observability & DX
+- **Logs structurés JSONL** : côté plugin `Saved/Logs/UnrealMCP_events.jsonl` & `UnrealMCP_metrics.jsonl`; côté serveur Python `Python/logs/events.jsonl` & `metrics.jsonl` avec rotation.
+- **Corrélation par `requestId`** : chaque tool embarque `meta.requestId`, timestamps (`ts`) et durée (`durMs`) dans les réponses et dans les logs.
+- **Métriques légères** : incréments `tool_calls_total` et durées `tool_duration_ms` (par tool, succès/erreur).
+- **Outils de santé** : tool read-only `mcp.health` retourne versions, uptime, flags d’enforcement, RTT et infos plugin.
+- **Réglages** : nouveau `LogLevel`, `EnableJsonLogs` et boutons Diagnostics (ouvrir events/metrics log, tail live).
+
 ## 🧰 Outils exposés (MCP Tools)
 
 ### Lecture (toujours autorisées)

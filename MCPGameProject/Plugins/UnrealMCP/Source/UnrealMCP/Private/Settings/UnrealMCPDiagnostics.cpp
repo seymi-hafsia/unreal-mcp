@@ -5,6 +5,7 @@
 #include "HAL/PlatformFilemanager.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/PlatformTime.h"
+#include "Misc/FileHelper.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/Paths.h"
 #include "Protocol/Protocol.h"
@@ -14,6 +15,9 @@
 
 namespace
 {
+        constexpr const TCHAR* EventsLogName = TEXT("UnrealMCP_events.jsonl");
+        constexpr const TCHAR* MetricsLogName = TEXT("UnrealMCP_metrics.jsonl");
+
         FString FormatEndpointMessage(const UUnrealMCPSettings& Settings)
         {
                 FString Host = Settings.ServerHost;
@@ -148,6 +152,113 @@ bool FUnrealMCPDiagnostics::OpenLogsFolder(FText& OutMessage)
         return true;
 }
 
+bool FUnrealMCPDiagnostics::OpenEventsLog(FText& OutMessage)
+{
+        const UUnrealMCPSettings* Settings = GetDefault<UUnrealMCPSettings>();
+        if (!Settings)
+        {
+                OutMessage = FText::FromString(TEXT("Unable to load Unreal MCP settings."));
+                return false;
+        }
+
+        const FString FilePath = GetEventsLogPath(*Settings);
+        if (FilePath.IsEmpty())
+        {
+                OutMessage = FText::FromString(TEXT("Events log path is not available."));
+                return false;
+        }
+
+        if (!FPaths::FileExists(FilePath))
+        {
+                FFileHelper::SaveStringToFile(TEXT(""), *FilePath);
+        }
+
+        if (!FPlatformProcess::LaunchFileInDefaultExternalApplication(*FilePath))
+        {
+                OutMessage = FText::FromString(FString::Printf(TEXT("Failed to open events log: %s"), *FilePath));
+                return false;
+        }
+
+        OutMessage = FText::FromString(FString::Printf(TEXT("Opened events log: %s"), *FilePath));
+        return true;
+}
+
+bool FUnrealMCPDiagnostics::OpenMetricsLog(FText& OutMessage)
+{
+        const UUnrealMCPSettings* Settings = GetDefault<UUnrealMCPSettings>();
+        if (!Settings)
+        {
+                OutMessage = FText::FromString(TEXT("Unable to load Unreal MCP settings."));
+                return false;
+        }
+
+        const FString FilePath = GetMetricsLogPath(*Settings);
+        if (FilePath.IsEmpty())
+        {
+                OutMessage = FText::FromString(TEXT("Metrics log path is not available."));
+                return false;
+        }
+
+        if (!FPaths::FileExists(FilePath))
+        {
+                FFileHelper::SaveStringToFile(TEXT(""), *FilePath);
+        }
+
+        if (!FPlatformProcess::LaunchFileInDefaultExternalApplication(*FilePath))
+        {
+                OutMessage = FText::FromString(FString::Printf(TEXT("Failed to open metrics log: %s"), *FilePath));
+                return false;
+        }
+
+        OutMessage = FText::FromString(FString::Printf(TEXT("Opened metrics log: %s"), *FilePath));
+        return true;
+}
+
+bool FUnrealMCPDiagnostics::TailLogs(FText& OutMessage)
+{
+        const UUnrealMCPSettings* Settings = GetDefault<UUnrealMCPSettings>();
+        if (!Settings)
+        {
+                OutMessage = FText::FromString(TEXT("Unable to load Unreal MCP settings."));
+                return false;
+        }
+
+        const FString FilePath = GetEventsLogPath(*Settings);
+        if (FilePath.IsEmpty())
+        {
+                OutMessage = FText::FromString(TEXT("Events log path is not available."));
+                return false;
+        }
+
+        if (!FPaths::FileExists(FilePath))
+        {
+                FFileHelper::SaveStringToFile(TEXT(""), *FilePath);
+        }
+
+#if PLATFORM_WINDOWS
+        const FString Command = TEXT("powershell.exe");
+        const FString Escaped = FilePath.Replace(TEXT("\""), TEXT("\\\""));
+        const FString Args = FString::Printf(TEXT("-NoExit -Command \"Get-Content -Path \"\"%s\"\" -Wait\""), *Escaped);
+#elif PLATFORM_LINUX || PLATFORM_MAC
+        const FString Command = TEXT("/usr/bin/env");
+        const FString Escaped = FilePath.Replace(TEXT("\""), TEXT("\\\""));
+        const FString Args = FString::Printf(TEXT("tail -f \"%s\""), *Escaped);
+#else
+        OutMessage = FText::FromString(TEXT("Tailing logs is not supported on this platform."));
+        return false;
+#endif
+
+        FProcHandle Handle = FPlatformProcess::CreateProc(*Command, *Args, true, false, false, nullptr, 0, nullptr, nullptr);
+        if (!Handle.IsValid())
+        {
+                OutMessage = FText::FromString(TEXT("Unable to start tail process. Ensure tail/powershell is available."));
+                return false;
+        }
+
+        OutMessage = FText::FromString(TEXT("Started tail process. Close the spawned console to stop."));
+        return true;
+}
+
 bool FUnrealMCPDiagnostics::ConnectToServer(const UUnrealMCPSettings& Settings, TSharedPtr<FSocket>& OutSocket, FString& OutError)
 {
         ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
@@ -224,6 +335,26 @@ bool FUnrealMCPDiagnostics::ConnectToServer(const UUnrealMCPSettings& Settings, 
         Socket->SetNonBlocking(false);
         OutSocket = Socket;
         return true;
+}
+
+FString FUnrealMCPDiagnostics::GetEventsLogPath(const UUnrealMCPSettings& Settings)
+{
+        const FString Directory = Settings.GetEffectiveLogsDirectory();
+        if (Directory.IsEmpty())
+        {
+                return FString();
+        }
+        return FPaths::Combine(Directory, EventsLogName);
+}
+
+FString FUnrealMCPDiagnostics::GetMetricsLogPath(const UUnrealMCPSettings& Settings)
+{
+        const FString Directory = Settings.GetEffectiveLogsDirectory();
+        if (Directory.IsEmpty())
+        {
+                return FString();
+        }
+        return FPaths::Combine(Directory, MetricsLogName);
 }
 
 bool FUnrealMCPDiagnostics::PerformHandshake(FSocket& Socket, const UUnrealMCPSettings& Settings, FString& OutError)
