@@ -13,6 +13,7 @@ from mcp.server.fastmcp import Context, FastMCP
 
 from automation_specs import run_specs
 from gauntlet import run_gauntlet
+from metasound_render import run as run_metasound_render
 from uat import run_buildcookrun
 from security.audit_sign import AuditRecord, AuditSigner, load_secret_from_env
 from security.policy import PolicyLoader
@@ -250,6 +251,35 @@ def register_server_tools(mcp: FastMCP) -> None:
             return violation
 
         return _finalize_response("automation.run_specs", ctx, payload, run_specs(payload))
+
+    @mcp.tool(name="metasound.render_offline")
+    def _metasound_render_offline(ctx: Context, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Offline render a MetaSound via UnrealEditor-Cmd."""
+
+        if params is None:
+            payload = {}
+        elif isinstance(params, dict):
+            payload = params
+        else:
+            return {
+                "ok": False,
+                "error": {
+                    "code": "INVALID_PARAMS",
+                    "message": "Expected params to be an object for metasound.render_offline.",
+                    "details": {"receivedType": type(params).__name__},
+                },
+            }
+
+        violation = _apply_security(ctx, "metasound.render_offline", payload)
+        if violation:
+            return violation
+
+        return _finalize_response(
+            "metasound.render_offline",
+            ctx,
+            payload,
+            run_metasound_render(payload),
+        )
 
     @mcp.tool(name="gauntlet.run")
     def _gauntlet_run(ctx: Context, params: Dict[str, Any]) -> Dict[str, Any]:
