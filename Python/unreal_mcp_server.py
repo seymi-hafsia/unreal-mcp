@@ -20,6 +20,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import AsyncIterator, Dict, Any, Optional, List
 
+from copy import deepcopy
+
 from mcp.server.fastmcp import FastMCP
 
 from protocol import (
@@ -29,6 +31,7 @@ from protocol import (
     write_frame,
 )
 from observability import init as init_observability, log_event, log_metric
+from dedup import DedupStore
 
 # Configure logging with more detailed format
 logging.basicConfig(
@@ -49,6 +52,7 @@ SERVER_IDENTITY = "mcp-python/0.2.0"
 LOG_DIRECTORY = Path(__file__).resolve().parent / "logs"
 init_observability(LOG_DIRECTORY, enable=True)
 SERVER_START_TIME = time.time()
+DEDUP_STORE = DedupStore()
 
 
 @dataclass
@@ -183,9 +187,9 @@ def configure_server_from_args(argv: List[str]) -> None:
     )
 
 class UnrealConnection:
-    """Connection to an Unreal Engine instance using Protocol v1."""
+    """Connection to an Unreal Engine instance using Protocol v1.1."""
 
-    PROTOCOL_VERSION = 1
+    PROTOCOL_VERSION = 1.1
     HANDSHAKE_TIMEOUT = 10.0
     WRITE_TIMEOUT = 5.0
     IDLE_TIMEOUT = 60.0
@@ -203,6 +207,8 @@ class UnrealConnection:
         self.last_handshake: Optional[datetime] = None
         self.remote_engine_version: Optional[str] = None
         self.remote_plugin_version: Optional[str] = None
+        self.window_max: int = 16
+        self.resume_token: Optional[str] = None
 
     def connect(self) -> bool:
         """Connect to the Unreal Engine instance and perform handshake."""
@@ -255,6 +261,7 @@ class UnrealConnection:
             "engineVersion": self.ENGINE_VERSION,
             "pluginVersion": self.CLIENT_VERSION,
             "sessionId": self.session_id,
+            "resumeToken": self.resume_token,
         }
 
         write_frame(self.socket, handshake, timeout=self.WRITE_TIMEOUT)
@@ -269,6 +276,24 @@ class UnrealConnection:
         self._last_receive = now
         self.remote_plugin_version = ack.get("serverVersion")
         self.last_handshake = datetime.now(timezone.utc)
+
+        if ack.get("resume"):
+            log_event(
+                "info",
+                "connection.resume",
+                "Resumed Unreal MCP session",
+                {"sessionId": self.session_id},
+            )
+
+        window_val = ack.get("windowMax")
+        if isinstance(window_val, int) and window_val > 0:
+            self.window_max = window_val
+
+        resume_token = ack.get("resumeToken")
+        if isinstance(resume_token, str) and resume_token:
+            self.resume_token = resume_token
+        else:
+            self.resume_token = None
 
         self._send_enforcement_capabilities()
 
@@ -332,12 +357,31 @@ class UnrealConnection:
                 continue
             return message
 
-    def send_command(self, command: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    def send_command(
+        self,
+        command: str,
+        params: Optional[Dict[str, Any]] = None,
+        *,
+        request_id: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         """Send a command to Unreal Engine and wait for a framed response."""
 
         params = params or {}
         is_mutation = command in MUTATING_COMMANDS
-        request_id = str(uuid.uuid4())
+        request_id = request_id or str(uuid.uuid4())
+        idempotency_key = request_id
+        cached_response = DEDUP_STORE.get(idempotency_key)
+        if cached_response is not None:
+            log_event(
+                "info",
+                "dedup.hit",
+                "Returning cached Unreal MCP response",
+                request_id=request_id,
+                session_id=self.session_id,
+                fields={"tool": command},
+                ts_ms=current_timestamp_ms(),
+            )
+            return deepcopy(cached_response)
         start_time = time.time()
         start_ts_ms = start_time * 1000.0
 
@@ -358,6 +402,7 @@ class UnrealConnection:
                         "actions": [],
                     },
                 }
+                DEDUP_STORE.put(idempotency_key, deepcopy(error_payload))
                 self._emit_audit(command, params, error_payload)
                 return error_payload
 
@@ -370,6 +415,7 @@ class UnrealConnection:
             "type": command,
             "params": params,
             "requestId": request_id,
+            "idempotencyKey": idempotency_key,
             "meta": {"requestId": request_id, "ts": start_ts_ms},
         }
 
@@ -404,6 +450,7 @@ class UnrealConnection:
                     fields=fields,
                     ts_ms=start_ts_ms,
                 )
+                DEDUP_STORE.put(idempotency_key, deepcopy(response))
             if is_mutation and response is not None:
                 self._emit_audit(command, params, response)
             return response
@@ -423,6 +470,7 @@ class UnrealConnection:
                 fields={"errorCode": exc.code, "durMs": (time.time() - start_time) * 1000.0},
                 ts_ms=start_ts_ms,
             )
+            DEDUP_STORE.put(idempotency_key, deepcopy(error_payload))
             return error_payload
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error("Unexpected error while sending command: %s", exc)
@@ -446,6 +494,7 @@ class UnrealConnection:
                 fields={"error": str(exc), "durMs": (time.time() - start_time) * 1000.0},
                 ts_ms=start_ts_ms,
             )
+            DEDUP_STORE.put(idempotency_key, deepcopy(error_payload))
             return error_payload
 
     def _emit_audit(self, command: str, params: Dict[str, Any], response: Dict[str, Any]) -> None:

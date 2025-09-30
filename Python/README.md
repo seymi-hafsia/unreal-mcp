@@ -1,6 +1,6 @@
 # MCP Python Server
 
-Serveur MCP en Python pour piloter l’Éditeur Unreal via **Protocol v1** (framed JSON).
+Serveur MCP en Python pour piloter l’Éditeur Unreal via **Protocol v1.1** (framed JSON).
 
 ## Installation
 
@@ -34,13 +34,20 @@ Variables d’environnement supportées :
 * `MCP_DRY_RUN=0|1`
 * `MCP_ALLOWED_PATHS=/Game/Core;/Game/Art`
 
-## Protocol v1 (résumé)
+## Protocol v1.1 (résumé)
 
 * **Framing** : `uint32 length` + payload JSON UTF-8.
-* **Handshake** : client → `{type:"handshake", protocolVersion:1, engineVersion, pluginVersion, sessionId}` ; serveur → `handshake/ack`.
+* **Handshake** : client → `{type:"handshake", protocolVersion:1.1, engineVersion, pluginVersion, sessionId, resumeToken}` ; serveur → `handshake/ack` (`resume`, `windowMax`, `resumeToken`).
 * **Heartbeats** : `ping` / `pong` (idle 15 s ; timeout 60 s).
 * **Erreurs** : `{ ok:false, error:{ code, message, details } }`.
 * **Compat** : un client legacy reçoit `PROTOCOL_VERSION_MISMATCH` puis fermeture.
+
+## Fiabilisation réseau
+
+* **Idempotence** : chaque requête propage `requestId` = `idempotencyKey`; le serveur met en cache les réponses (TTL 10 min) dans `logs/dedup.jsonl`.
+* **Reprise** : en cas de reconnexion, le handshake v1.1 relaie `resumeToken` et signale les reprises via l’événement `connection.resume`.
+* **Backpressure** : la fenêtre maximale (`windowMax`) annoncée par l’éditeur est conservée pour limiter les commandes simultanées.
+* **Logs DX** : événements `dedup.hit` (réponse rejouée) + métriques `tool_*` enrichies avec la cause (ok/erreur, latence).
 
 ## Sécurité & Enforcement
 

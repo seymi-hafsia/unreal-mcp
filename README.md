@@ -19,6 +19,12 @@
 - **Build & Test v2** : wrappers RunUAT `BuildCookRun`, `automation.run_specs` (Editor-Cmd) et `gauntlet.run` (cooked) avec logs persistants & parsing basique.
 - **Settings Plugin** : Project Settings → **Plugins → Unreal MCP** (Network, Security, SCM, Logging, Diagnostics).
 
+## 🛡️ Networking Reliability (Protocol v1.1)
+- **Handshake v1.1** : reprise de session (`resumeToken`) et exposition de la fenêtre de backpressure (`windowMax`).
+- **Idempotence** : chaque requête transporte désormais un `idempotencyKey` (dérivé du `requestId`).
+- **Dedup JSONL** : le serveur Python conserve les réponses pendant 10 min (`logs/dedup.jsonl`) pour rejouer exactement une fois.
+- **Logs DX** : événements structurés `connection.resume` et `dedup.hit` pour suivre les reconnections et déduplications.
+
 ## 🔧 Installation rapide
 
 1. **Cloner** ce repo (ou votre fork) et ouvrir le projet UE.
