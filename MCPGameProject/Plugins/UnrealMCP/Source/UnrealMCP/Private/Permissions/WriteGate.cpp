@@ -216,7 +216,11 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType, const TSharedPtr<
                 TEXT("niagara.activate"),
                 TEXT("niagara.deactivate"),
                 TEXT("content.fix_missing"),
-                TEXT("content.generate_thumbnails")
+                TEXT("content.generate_thumbnails"),
+                TEXT("level.save_open"),
+                TEXT("level.load"),
+                TEXT("level.unload"),
+                TEXT("level.stream_sublevel")
         };
 
         if (MutatingCommands.Contains(CommandType))
@@ -536,6 +540,138 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
                                 return Plan;
                         }
                 }
+        }
+        else if (CommandType == TEXT("level.save_open") && Params.IsValid())
+        {
+                bool bModifiedOnly = true;
+                Params->TryGetBoolField(TEXT("modifiedOnly"), bModifiedOnly);
+
+                const TArray<TSharedPtr<FJsonValue>>* Maps = nullptr;
+                bool bAddedExplicit = false;
+                if (Params->TryGetArrayField(TEXT("maps"), Maps) && Maps)
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *Maps)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::String)
+                                {
+                                        FString MapPath = NormalizeContentPath(Value->AsString());
+                                        if (MapPath.Contains(TEXT(".")))
+                                        {
+                                                MapPath = FPackageName::ObjectPathToPackageName(MapPath);
+                                        }
+
+                                        if (!MapPath.IsEmpty())
+                                        {
+                                                FMutationAction Action;
+                                                Action.Op = TEXT("save_map");
+                                                Action.Args.Add(TEXT("map"), MapPath);
+                                                Action.Args.Add(TEXT("modifiedOnly"), bModifiedOnly ? TEXT("true") : TEXT("false"));
+                                                Plan.Actions.Add(Action);
+                                                bAddedExplicit = true;
+                                        }
+                                }
+                        }
+                }
+
+                if (!bAddedExplicit)
+                {
+                        FMutationAction Action;
+                        Action.Op = TEXT("save_map");
+                        Action.Args.Add(TEXT("scope"), TEXT("open"));
+                        Action.Args.Add(TEXT("modifiedOnly"), bModifiedOnly ? TEXT("true") : TEXT("false"));
+                        Plan.Actions.Add(Action);
+                }
+
+                bool bSaveExternal = true;
+                if (Params->TryGetBoolField(TEXT("saveExternalActors"), bSaveExternal) && bSaveExternal)
+                {
+                        FMutationAction ExtAction;
+                        ExtAction.Op = TEXT("save_external_actors");
+                        Plan.Actions.Add(ExtAction);
+                }
+
+                return Plan;
+        }
+        else if (CommandType == TEXT("level.load") && Params.IsValid())
+        {
+                FMutationAction OpenAction;
+                OpenAction.Op = TEXT("open_map");
+
+                FString MapPath;
+                if (Params->TryGetStringField(TEXT("mapPath"), MapPath))
+                {
+                        FString Normalized = NormalizeContentPath(MapPath);
+                        if (Normalized.Contains(TEXT(".")))
+                        {
+                                Normalized = FPackageName::ObjectPathToPackageName(Normalized);
+                        }
+                        OpenAction.Args.Add(TEXT("path"), Normalized);
+                }
+
+                Plan.Actions.Add(OpenAction);
+
+                FString Mode(TEXT("none"));
+                if (Params->TryGetStringField(TEXT("loadSublevels"), Mode))
+                {
+                        Mode = Mode.ToLower();
+                }
+
+                if (!Mode.IsEmpty() && Mode != TEXT("none"))
+                {
+                        FMutationAction SublevelsAction;
+                        SublevelsAction.Op = TEXT("load_sublevels");
+                        SublevelsAction.Args.Add(TEXT("mode"), Mode);
+
+                        const TArray<TSharedPtr<FJsonValue>>* Sublevels = nullptr;
+                        if (Params->TryGetArrayField(TEXT("sublevels"), Sublevels) && Sublevels)
+                        {
+                                SublevelsAction.Args.Add(TEXT("count"), FString::FromInt(Sublevels->Num()));
+                        }
+
+                        Plan.Actions.Add(SublevelsAction);
+                }
+
+                return Plan;
+        }
+        else if (CommandType == TEXT("level.unload") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* Sublevels = nullptr;
+                if (Params->TryGetArrayField(TEXT("sublevels"), Sublevels) && Sublevels)
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *Sublevels)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::String)
+                                {
+                                        FMutationAction Action;
+                                        Action.Op = TEXT("unload");
+                                        Action.Args.Add(TEXT("name"), Value->AsString());
+                                        Plan.Actions.Add(Action);
+                                }
+                        }
+
+                        if (Plan.Actions.Num() > 0)
+                        {
+                                return Plan;
+                        }
+                }
+        }
+        else if (CommandType == TEXT("level.stream_sublevel") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("stream");
+
+                FString Target;
+                if (Params->TryGetStringField(TEXT("name"), Target))
+                {
+                        Action.Args.Add(TEXT("target"), Target);
+                }
+
+                bool bLoad = true;
+                Params->TryGetBoolField(TEXT("load"), bLoad);
+                Action.Args.Add(TEXT("load"), bLoad ? TEXT("true") : TEXT("false"));
+
+                Plan.Actions.Add(Action);
+                return Plan;
         }
         else if (CommandType == TEXT("actor.spawn") && Params.IsValid())
         {
@@ -1701,6 +1837,83 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
         if (!Params.IsValid())
         {
                 return FString();
+        }
+
+        if (CommandType == TEXT("level.save_open") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* Maps = nullptr;
+                if (Params->TryGetArrayField(TEXT("maps"), Maps) && Maps)
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *Maps)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::String)
+                                {
+                                        FString MapPath = NormalizeContentPath(Value->AsString());
+                                        if (MapPath.Contains(TEXT(".")))
+                                        {
+                                                MapPath = FPackageName::ObjectPathToPackageName(MapPath);
+                                        }
+
+                                        if (!MapPath.IsEmpty())
+                                        {
+                                                return MapPath;
+                                        }
+                                }
+                        }
+                }
+
+#if WITH_EDITOR
+                if (GEditor)
+                {
+                        if (UWorld* World = GEditor->GetEditorWorldContext().World())
+                        {
+                                if (ULevel* Level = World->PersistentLevel)
+                                {
+                                        if (UPackage* Package = Level->GetOutermost())
+                                        {
+                                                return NormalizeContentPath(Package->GetName());
+                                        }
+                                }
+                        }
+                }
+#endif
+        }
+
+        if (CommandType == TEXT("level.load") && Params.IsValid())
+        {
+                FString MapPath;
+                if (Params->TryGetStringField(TEXT("mapPath"), MapPath))
+                {
+                        FString Normalized = NormalizeContentPath(MapPath);
+                        if (Normalized.Contains(TEXT(".")))
+                        {
+                                Normalized = FPackageName::ObjectPathToPackageName(Normalized);
+                        }
+
+                        if (!Normalized.IsEmpty())
+                        {
+                                return Normalized;
+                        }
+                }
+        }
+
+        if ((CommandType == TEXT("level.unload") || CommandType == TEXT("level.stream_sublevel")))
+        {
+#if WITH_EDITOR
+                if (GEditor)
+                {
+                        if (UWorld* World = GEditor->GetEditorWorldContext().World())
+                        {
+                                if (ULevel* Level = World->PersistentLevel)
+                                {
+                                        if (UPackage* Package = Level->GetOutermost())
+                                        {
+                                                return NormalizeContentPath(Package->GetName());
+                                        }
+                                }
+                        }
+                }
+#endif
         }
 
         if (CommandType == TEXT("camera.bookmark") && Params.IsValid())
