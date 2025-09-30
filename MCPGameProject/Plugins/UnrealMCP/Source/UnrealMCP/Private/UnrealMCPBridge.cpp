@@ -286,9 +286,9 @@ void UUnrealMCPBridge::StopServer()
 }
 
 // Execute a command received from a client
-FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params)
+FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params, const FString& RequestId)
 {
-    UE_LOG(LogUnrealMCP, Display, TEXT("UnrealMCPBridge: Executing command: %s"), *CommandType);
+    UE_LOG(LogUnrealMCP, Display, TEXT("UnrealMCPBridge: Executing command: %s (requestId=%s)"), *CommandType, *RequestId);
 
     // Create a promise to wait for the result
     TPromise<FString> Promise;

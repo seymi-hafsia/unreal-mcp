@@ -43,7 +43,7 @@ public:
 	bool IsRunning() const { return bIsRunning; }
 
 	// Command execution
-	FString ExecuteCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params);
+        FString ExecuteCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params, const FString& RequestId);
 
 private:
 	// Server state

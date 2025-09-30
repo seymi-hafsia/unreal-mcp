@@ -9,6 +9,7 @@ import hashlib
 import json
 import logging
 import os
+import platform
 import socket
 import sys
 import time
@@ -18,6 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import AsyncIterator, Dict, Any, Optional, List
+
 from mcp.server.fastmcp import FastMCP
 
 from protocol import (
@@ -26,6 +28,7 @@ from protocol import (
     read_frame,
     write_frame,
 )
+from observability import init as init_observability, log_event, log_metric
 
 # Configure logging with more detailed format
 logging.basicConfig(
@@ -42,6 +45,10 @@ logger = logging.getLogger("UnrealMCP")
 UNREAL_HOST = "127.0.0.1"
 UNREAL_PORT = 55557
 SERVER_IDENTITY = "mcp-python/0.2.0"
+
+LOG_DIRECTORY = Path(__file__).resolve().parent / "logs"
+init_observability(LOG_DIRECTORY, enable=True)
+SERVER_START_TIME = time.time()
 
 
 @dataclass
@@ -193,6 +200,9 @@ class UnrealConnection:
         now = time.monotonic()
         self._last_receive = now
         self._last_send = now
+        self.last_handshake: Optional[datetime] = None
+        self.remote_engine_version: Optional[str] = None
+        self.remote_plugin_version: Optional[str] = None
 
     def connect(self) -> bool:
         """Connect to the Unreal Engine instance and perform handshake."""
@@ -257,6 +267,8 @@ class UnrealConnection:
         now = time.monotonic()
         self._last_send = now
         self._last_receive = now
+        self.remote_plugin_version = ack.get("serverVersion")
+        self.last_handshake = datetime.now(timezone.utc)
 
         self._send_enforcement_capabilities()
 
@@ -325,6 +337,9 @@ class UnrealConnection:
 
         params = params or {}
         is_mutation = command in MUTATING_COMMANDS
+        request_id = str(uuid.uuid4())
+        start_time = time.time()
+        start_ts_ms = start_time * 1000.0
 
         if is_mutation:
             config = get_server_config()
@@ -354,6 +369,8 @@ class UnrealConnection:
         payload = {
             "type": command,
             "params": params,
+            "requestId": request_id,
+            "meta": {"requestId": request_id, "ts": start_ts_ms},
         }
 
         try:
@@ -361,6 +378,32 @@ class UnrealConnection:
             self._last_send = time.monotonic()
             response = self._wait_for_message()
             logger.debug("Received response payload: %s", response)
+            duration_ms = (time.time() - start_time) * 1000.0
+            if isinstance(response, dict):
+                meta = response.setdefault("meta", {})
+                meta.setdefault("requestId", request_id)
+                meta["serverTs"] = start_ts_ms
+                meta["durMs"] = duration_ms
+                fields = {
+                    "tool": command,
+                    "ok": bool(response.get("ok", False)),
+                    "durMs": duration_ms,
+                }
+                if isinstance(response.get("error"), dict):
+                    code = response["error"].get("code")
+                    if code:
+                        fields["errorCode"] = code
+                log_metric("tool_duration_ms", fields)
+                log_metric("tool_calls_total", {k: fields[k] for k in ("tool", "ok") if k in fields} | ({"errorCode": fields["errorCode"]} if "errorCode" in fields else {}))
+                log_event(
+                    "info" if response.get("ok") else "error",
+                    f"tool.{command}",
+                    f"Tool {command} completed",
+                    request_id=request_id,
+                    session_id=self.session_id,
+                    fields=fields,
+                    ts_ms=start_ts_ms,
+                )
             if is_mutation and response is not None:
                 self._emit_audit(command, params, response)
             return response
@@ -371,6 +414,15 @@ class UnrealConnection:
             if is_mutation:
                 self._emit_audit(command, params, error_payload)
             self.disconnect()
+            log_event(
+                "error",
+                f"tool.{command}",
+                f"Protocol error for {command}: {exc.code}",
+                request_id=request_id,
+                session_id=self.session_id,
+                fields={"errorCode": exc.code, "durMs": (time.time() - start_time) * 1000.0},
+                ts_ms=start_ts_ms,
+            )
             return error_payload
         except Exception as exc:  # pragma: no cover - defensive logging
             logger.error("Unexpected error while sending command: %s", exc)
@@ -385,6 +437,15 @@ class UnrealConnection:
             }
             if is_mutation:
                 self._emit_audit(command, params, error_payload)
+            log_event(
+                "error",
+                f"tool.{command}",
+                f"Unexpected error for {command}",
+                request_id=request_id,
+                session_id=self.session_id,
+                fields={"error": str(exc), "durMs": (time.time() - start_time) * 1000.0},
+                ts_ms=start_ts_ms,
+            )
             return error_payload
 
     def _emit_audit(self, command: str, params: Dict[str, Any], response: Dict[str, Any]) -> None:

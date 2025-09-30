@@ -5,6 +5,7 @@
 #include "Editor.h"
 #include "UnrealMCPLog.h"
 #include "UnrealMCPSettings.h"
+#include "Observability/JsonLogger.h"
 #include "Settings/UnrealMCPSettingsCustomization.h"
 
 #include "ISettingsModule.h"
@@ -14,8 +15,40 @@
 
 DEFINE_LOG_CATEGORY(LogUnrealMCP);
 
+namespace
+{
+ELogVerbosity::Type ToVerbosity(EUnrealMCPLogLevel Level)
+{
+        switch (Level)
+        {
+        case EUnrealMCPLogLevel::Error:
+                return ELogVerbosity::Error;
+        case EUnrealMCPLogLevel::Warning:
+                return ELogVerbosity::Warning;
+        case EUnrealMCPLogLevel::Display:
+                return ELogVerbosity::Display;
+        case EUnrealMCPLogLevel::Verbose:
+                return ELogVerbosity::Verbose;
+        case EUnrealMCPLogLevel::VeryVerbose:
+                return ELogVerbosity::VeryVerbose;
+        case EUnrealMCPLogLevel::Debug:
+                return ELogVerbosity::Log;
+        case EUnrealMCPLogLevel::Trace:
+                return ELogVerbosity::VeryVerbose;
+        default:
+                return ELogVerbosity::Display;
+        }
+}
+}
+
 void FUnrealMCPModule::StartupModule()
 {
+        if (const UUnrealMCPSettings* Settings = GetDefault<UUnrealMCPSettings>())
+        {
+                LogUnrealMCP.SetVerbosity(ToVerbosity(Settings->LogLevel));
+                FJsonLogger::Init(Settings->GetEffectiveLogsDirectory(), Settings->bEnableJsonLogs);
+        }
+
         UE_LOG(LogUnrealMCP, Display, TEXT("Unreal MCP Module has started"));
 
         if (ISettingsModule* SettingsModule = FModuleManager::LoadModulePtr<ISettingsModule>("Settings"))

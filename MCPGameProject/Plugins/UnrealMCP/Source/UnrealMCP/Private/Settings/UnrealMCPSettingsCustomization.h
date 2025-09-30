@@ -14,6 +14,9 @@ private:
         FReply OnTestConnection();
         FReply OnSendPing();
         FReply OnOpenLogsFolder();
+        FReply OnOpenEventsLog();
+        FReply OnOpenMetricsLog();
+        FReply OnTailLogs();
 
         void ShowResultDialog(const FText& Message, bool bSuccess) const;
 };
