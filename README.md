@@ -79,6 +79,39 @@
 | `asset.save_all`        | Sauvegarder assets modifiés           | Scope global ou par `paths[]`, `modifiedOnly` optionnel |
 | `asset.batch_import`    | Importer un lot de fichiers           | Presets FBX/Textures/Audio, dry-run, SCM, conflits      |
 
+### Content Hygiene
+
+| Tool                          | Type      | Description                                               |
+|-------------------------------|-----------|-----------------------------------------------------------|
+| `content.scan`                | read-only | Scan des refs cassées, assets manquants, redirectors, etc |
+| `content.validate`            | read-only | Vérifie naming, tailles textures, LODs, collisions, MI    |
+| `content.fix_missing`         | mutant    | Fix redirectors + remap soft refs + purge redirectors     |
+| `content.generate_thumbnails` | mutant    | Régénère les miniatures d’un lot d’assets                 |
+
+```jsonc
+// Exemple : content.scan
+{
+  "paths": ["/Game/Core", "/Game/Art"],
+  "recursive": true,
+  "includeUnusedTextures": true,
+  "includeReferencers": true
+}
+```
+
+```jsonc
+// Exemple : content.fix_missing
+{
+  "paths": ["/Game/Core"],
+  "recursive": true,
+  "fix": {
+    "redirectors": true,
+    "remapReferences": true,
+    "deleteStaleRedirectors": true
+  },
+  "save": true
+}
+```
+
 #### Materials
 
 | Tool                        | Description                                                   | Notes |

@@ -14,6 +14,7 @@
 #include "Commands/UnrealMCPProjectCommands.h"
 #include "Commands/UnrealMCPUMGCommands.h"
 #include "Commands/UnrealMCPSourceControlCommands.h"
+#include "Content/ContentTools.h"
 #include "UnrealMCPBridge.generated.h"
 
 class FMCPServerRunnable;
@@ -63,4 +64,5 @@ private:
         TSharedPtr<FUnrealMCPProjectCommands> ProjectCommands;
         TSharedPtr<FUnrealMCPUMGCommands> UMGCommands;
         TSharedPtr<FUnrealMCPSourceControlCommands> SourceControlCommands;
+        TSharedPtr<FContentTools> ContentTools;
 };

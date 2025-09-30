@@ -214,7 +214,9 @@ bool FWriteGate::IsMutationCommand(const FString& CommandType, const TSharedPtr<
                 TEXT("niagara.spawn_component"),
                 TEXT("niagara.set_user_params"),
                 TEXT("niagara.activate"),
-                TEXT("niagara.deactivate")
+                TEXT("niagara.deactivate"),
+                TEXT("content.fix_missing"),
+                TEXT("content.generate_thumbnails")
         };
 
         if (MutatingCommands.Contains(CommandType))
@@ -770,6 +772,100 @@ FMutationPlan FWriteGate::BuildPlan(const FString& CommandType, const TSharedPtr
                 if (Params->HasTypedField<EJson::Boolean>(TEXT("modifiedOnly")))
                 {
                         Action.Args.Add(TEXT("modifiedOnly"), Params->GetBoolField(TEXT("modifiedOnly")) ? TEXT("true") : TEXT("false"));
+                }
+
+                Plan.Actions.Add(Action);
+                return Plan;
+        }
+        else if (CommandType == TEXT("content.fix_missing") && Params.IsValid())
+        {
+                bool bRecursive = true;
+                Params->TryGetBoolField(TEXT("recursive"), bRecursive);
+
+                bool bFixRedirectors = true;
+                bool bRemapReferences = true;
+                bool bDeleteRedirectors = true;
+
+                const TSharedPtr<FJsonObject>* FixObject = nullptr;
+                if (Params->TryGetObjectField(TEXT("fix"), FixObject) && FixObject->IsValid())
+                {
+                        (*FixObject)->TryGetBoolField(TEXT("redirectors"), bFixRedirectors);
+                        (*FixObject)->TryGetBoolField(TEXT("remapReferences"), bRemapReferences);
+                        (*FixObject)->TryGetBoolField(TEXT("deleteStaleRedirectors"), bDeleteRedirectors);
+                }
+
+                const FString PathsSerialized = SerializeArrayField(Params, TEXT("paths"));
+
+                if (bFixRedirectors)
+                {
+                        FMutationAction FixAction;
+                        FixAction.Op = TEXT("fix_redirectors");
+                        if (!PathsSerialized.IsEmpty())
+                        {
+                                FixAction.Args.Add(TEXT("paths"), PathsSerialized);
+                        }
+                        FixAction.Args.Add(TEXT("recursive"), bRecursive ? TEXT("true") : TEXT("false"));
+                        Plan.Actions.Add(FixAction);
+                }
+
+                if (bRemapReferences)
+                {
+                        FMutationAction RemapAction;
+                        RemapAction.Op = TEXT("remap_soft_refs");
+                        if (!PathsSerialized.IsEmpty())
+                        {
+                                RemapAction.Args.Add(TEXT("paths"), PathsSerialized);
+                        }
+                        Plan.Actions.Add(RemapAction);
+                }
+
+                if (bDeleteRedirectors)
+                {
+                        FMutationAction DeleteAction;
+                        DeleteAction.Op = TEXT("delete_redirectors");
+                        if (!PathsSerialized.IsEmpty())
+                        {
+                                DeleteAction.Args.Add(TEXT("paths"), PathsSerialized);
+                        }
+                        Plan.Actions.Add(DeleteAction);
+                }
+
+                if (Params->HasField(TEXT("save")))
+                {
+                        FMutationAction SaveAction;
+                        SaveAction.Op = TEXT("save_packages");
+                        SaveAction.Args.Add(TEXT("save"), Params->GetBoolField(TEXT("save")) ? TEXT("true") : TEXT("false"));
+                        Plan.Actions.Add(SaveAction);
+                }
+
+                if (Plan.Actions.Num() == 0)
+                {
+                        FMutationAction DefaultAction;
+                        DefaultAction.Op = CommandType;
+                        Plan.Actions.Add(DefaultAction);
+                }
+
+                return Plan;
+        }
+        else if (CommandType == TEXT("content.generate_thumbnails") && Params.IsValid())
+        {
+                FMutationAction Action;
+                Action.Op = TEXT("generate_thumbnails");
+
+                const FString AssetsSerialized = SerializeArrayField(Params, TEXT("assets"));
+                if (!AssetsSerialized.IsEmpty())
+                {
+                        Action.Args.Add(TEXT("assets"), AssetsSerialized);
+                }
+
+                if (Params->HasField(TEXT("hiRes")))
+                {
+                        Action.Args.Add(TEXT("hiRes"), Params->GetBoolField(TEXT("hiRes")) ? TEXT("true") : TEXT("false"));
+                }
+
+                if (Params->HasField(TEXT("save")))
+                {
+                        Action.Args.Add(TEXT("save"), Params->GetBoolField(TEXT("save")) ? TEXT("true") : TEXT("false"));
                 }
 
                 Plan.Actions.Add(Action);
@@ -1670,6 +1766,44 @@ FString FWriteGate::ResolvePathForCommand(const FString& CommandType, const TSha
                 if (Params->TryGetStringField(TEXT("meshObjectPath"), MeshObjectPath))
                 {
                         return NormalizeContentPath(MeshObjectPath);
+                }
+        }
+
+        if (CommandType == TEXT("content.fix_missing") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* Paths = nullptr;
+                if (Params->TryGetArrayField(TEXT("paths"), Paths) && Paths)
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *Paths)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::String)
+                                {
+                                        const FString Normalized = NormalizeContentPath(Value->AsString());
+                                        if (!Normalized.IsEmpty())
+                                        {
+                                                return Normalized;
+                                        }
+                                }
+                        }
+                }
+        }
+
+        if (CommandType == TEXT("content.generate_thumbnails") && Params.IsValid())
+        {
+                const TArray<TSharedPtr<FJsonValue>>* Assets = nullptr;
+                if (Params->TryGetArrayField(TEXT("assets"), Assets) && Assets)
+                {
+                        for (const TSharedPtr<FJsonValue>& Value : *Assets)
+                        {
+                                if (Value.IsValid() && Value->Type == EJson::String)
+                                {
+                                        const FString Normalized = NormalizeContentPath(Value->AsString());
+                                        if (!Normalized.IsEmpty())
+                                        {
+                                                return Normalized;
+                                        }
+                                }
+                        }
                 }
         }
 
