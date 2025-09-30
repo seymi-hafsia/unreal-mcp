@@ -45,6 +45,59 @@
 
 > Par défaut, **AllowWrite=false** et **DryRun=true** → aucune écriture n’est effectuée tant que vous n’avez pas explicitement autorisé.
 
+## 🔐 Security & Hardening
+
+La pile MCP implémente désormais une couche de défense en profondeur inspirée du protocole v1.1 :
+
+- **RBAC** : rôles `admin`, `dev`, `artist`, `read_only` résolus côté plugin et serveur. Chaque rôle mappe sur des patterns allow/deny (`asset.*`, `sequence.*`, `!uat.*`…). Les denies (`!pattern`) sont prioritaires.
+- **Allow/Deny patterns** : configuration unifiée (plugin + serveur YAML) pour les tools, avec support des glob `*`/`?`. Les racines de contenu autorisées/forbidden sont normalisées (`..`, symlinks, casse Windows) avant toute mutation.
+- **Rate limiting** : fenêtre glissante 60 s avec quota global & par tool (ex : 120/min global, 30/min/tool). Les dépassements retournent `RATE_LIMITED` + `retryAfterSec`.
+- **Input limits** : taille JSON (KB), profondeur/listes (hard cap `array_items_max`) + validation `jsonschema` pour les outils critiques (`asset.batch_import`, `sequence.create`, `mi.set_params`, …).
+- **Audit signé** : chaque mutation renvoie un bloc `security` (`auditSig`, `serverTs`, `nonce`) signé HMAC-SHA256 (`MCP_AUDIT_SECRET`). Le client peut vérifier ou refuser (`RequireAuditSignature`).
+- **Redaction** : les paramètres/résultats contenant `token`, `password`, `secret`, `key` sont remplacés par `[REDACTED]` dans les payloads de signature/logs.
+- **Sandbox chemins** : toutes les entrées `path/dir/root` passent par une canonicalisation stricte. Les racines interdites l’emportent, sinon `PATH_NOT_ALLOWED` est renvoyé.
+- **Nouveaux codes d’erreur** : `TOOL_DENIED`, `PATH_NOT_ALLOWED`, `RATE_LIMITED`, `REQUEST_TOO_LARGE`, `ARRAY_TOO_LARGE`, `INVALID_PARAMS` (schema), `CONFIRMATION_REQUIRED` (SCM soft guard côté UE).
+
+### Configuration
+
+**Plugin UE (`Project Settings → Plugins → Unreal MCP`)**
+
+- `AllowedTools` accepte désormais des patterns globs avec `!pattern` pour les denies prioritaires.
+- `ForbiddenContentRoots` complète `AllowedContentRoots` pour bloquer des sous-arbres (`/Game/Restricted`, `/Engine`, …).
+- `Role` (`admin|dev|artist|read_only`) sélectionne le profil RBAC appliqué lors des handshakes.
+- Limites client (`MaxRequestSizeKB`, `MaxArrayItems`) protègent la pipeline avant d’envoyer le frame JSON.
+- `RateLimitPerMin` (global + per-tool) évite de saturer le serveur avant transport.
+- `RequireAuditSignature` force la vérification des réponses mutantes (`UNVERIFIED_AUDIT` si la signature est manquante/incorrecte).
+
+**Serveur Python (`Python/security/policy.yaml`)**
+
+- Variable d’environnement `MCP_POLICY_PATH` → YAML décrivant `roles`, `limits`, `paths`, `audit`.
+- `audit.hmac_secret_env` indique la variable d’environnement contenant le secret (ex : `MCP_AUDIT_SECRET`).
+- Exemple :
+
+```yaml
+roles:
+  dev:
+    allow: ["asset.*", "sequence.*", "level.*", "content.*"]
+    deny: ["security.*"]
+  read_only:
+    allow: ["sequence.export", "content.scan", "mcp.health"]
+    deny: ["*.**"]
+limits:
+  rate_per_minute_global: 120
+  rate_per_minute_per_tool: 30
+  request_size_kb: 512
+  array_items_max: 10000
+paths:
+  allowed: ["/Game/Core", "/Game/Art"]
+  forbidden: ["/Game/Restricted", "/Engine"]
+audit:
+  require_signature: true
+  hmac_secret_env: MCP_AUDIT_SECRET
+```
+
+Placez le secret HMAC dans un fichier `.env` (permissions 600) ou dans l’environnement du service systemd (`Environment=MCP_AUDIT_SECRET=...`).
+
 ## 📈 Observability & DX
 - **Logs structurés JSONL** : côté plugin `Saved/Logs/UnrealMCP_events.jsonl` & `UnrealMCP_metrics.jsonl`; côté serveur Python `Python/logs/events.jsonl` & `metrics.jsonl` avec rotation.
 - **Corrélation par `requestId`** : chaque tool embarque `meta.requestId`, timestamps (`ts`) et durée (`durMs`) dans les réponses et dans les logs.
