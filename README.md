@@ -79,6 +79,26 @@
 | `asset.save_all`        | Sauvegarder assets modifiés           | Scope global ou par `paths[]`, `modifiedOnly` optionnel |
 | `asset.batch_import`    | Importer un lot de fichiers           | Presets FBX/Textures/Audio, dry-run, SCM, conflits      |
 
+#### Maps & Levels
+
+| Tool                    | Description                                       | Notes                                |
+|-------------------------|---------------------------------------------------|--------------------------------------|
+| `level.save_open`       | Sauvegarde les maps ouvertes (persistante + sublevels chargés) | `modifiedOnly`, SCM/checkout respecté |
+| `level.load`            | Ouvre une map persistante dans l’éditeur          | Option `loadSublevels` (`none/all/byNames`) |
+| `level.unload`          | Décharge des sous-niveaux/World Partition layers  | `allowMissing` pour ignorer les absents |
+| `level.stream_sublevel` | Charge/Décharge un streaming level ou DataLayer   | `blockUntilVisible`, support DataLayers |
+
+```jsonc
+// Exemple : level.load
+{
+  "mapPath": "/Game/Maps/Persistent.Persistent",
+  "loadSublevels": "byNames",
+  "sublevels": ["Gameplay", "Lighting"],
+  "makeCurrent": true,
+  "discardUnsaved": false
+}
+```
+
 ### Content Hygiene
 
 | Tool                          | Type      | Description                                               |

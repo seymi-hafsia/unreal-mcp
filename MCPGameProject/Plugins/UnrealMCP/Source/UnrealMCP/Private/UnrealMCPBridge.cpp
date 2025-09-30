@@ -64,6 +64,7 @@
 #include "Niagara/NiagaraTools.h"
 #include "Actors/ActorTools.h"
 #include "EditorNav/EditorNavTools.h"
+#include "Levels/LevelTools.h"
 #include "Sequencer/SequenceBindings.h"
 #include "Sequencer/SequenceExport.h"
 #include "Sequencer/SequenceTools.h"
@@ -737,6 +738,22 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 else if (CommandType == TEXT("actor.tag"))
                 {
                     ResultJson = FActorTools::Tag(Params);
+                }
+                else if (CommandType == TEXT("level.save_open"))
+                {
+                    ResultJson = FLevelTools::SaveOpen(Params);
+                }
+                else if (CommandType == TEXT("level.load"))
+                {
+                    ResultJson = FLevelTools::Load(Params);
+                }
+                else if (CommandType == TEXT("level.unload"))
+                {
+                    ResultJson = FLevelTools::Unload(Params);
+                }
+                else if (CommandType == TEXT("level.stream_sublevel"))
+                {
+                    ResultJson = FLevelTools::StreamSublevel(Params);
                 }
                 else if (CommandType == TEXT("level.select"))
                 {
