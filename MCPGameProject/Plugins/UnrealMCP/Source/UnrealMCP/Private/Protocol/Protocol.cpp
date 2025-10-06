@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Protocol/Protocol.h"
 
 #include "Dom/JsonObject.h"
@@ -8,6 +9,8 @@
 #include "Sockets.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
+#include "String/LexFromString.h"
+#include "String/LexToString.h"
 #include "UnrealMCPLog.h"
 #include "UnrealMCPSettings.h"
 
@@ -273,7 +276,7 @@ bool WriteFramedJson(FSocket& Socket, const TSharedRef<FJsonObject>& Message, FS
 {
     FString Serialized;
     TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Serialized);
-    if (!FJsonSerializer::Serialize(Message, Writer))
+    if (!FJsonSerializer::Serialize(Message, Writer, /*bCloseWriter=*/true))
     {
         OutError = TEXT("Failed to serialize JSON message");
         return false;
@@ -319,7 +322,7 @@ bool WriteLegacyJson(FSocket& Socket, const TSharedRef<FJsonObject>& Message, FS
 {
     FString Serialized;
     TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Serialized);
-    if (!FJsonSerializer::Serialize(Message, Writer))
+    if (!FJsonSerializer::Serialize(Message, Writer, /*bCloseWriter=*/true))
     {
         OutError = TEXT("Failed to serialize legacy JSON message");
         return false;

@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Levels/LevelTools.h"
 
 #include "Commands/UnrealMCPCommonUtils.h"

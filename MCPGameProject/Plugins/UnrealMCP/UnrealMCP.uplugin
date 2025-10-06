@@ -26,6 +26,14 @@
         {
             "Name": "EditorScriptingUtilities",
             "Enabled": true
+        },
+        {
+            "Name": "Niagara",
+            "Enabled": true
+        },
+        {
+            "Name": "SequencerScripting",
+            "Enabled": true
         }
     ],
     "EngineVersionRange": [

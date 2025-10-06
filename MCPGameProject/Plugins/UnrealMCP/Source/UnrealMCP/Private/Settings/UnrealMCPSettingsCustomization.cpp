@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Settings/UnrealMCPSettingsCustomization.h"
 
 #include "DetailCategoryBuilder.h"
@@ -5,7 +6,7 @@
 #include "IDetailGroup.h"
 #include "Settings/UnrealMCPDiagnostics.h"
 #include "Widgets/Input/SButton.h"
-#include "Widgets/Layout/SHorizontalBox.h"
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Misc/MessageDialog.h"
 

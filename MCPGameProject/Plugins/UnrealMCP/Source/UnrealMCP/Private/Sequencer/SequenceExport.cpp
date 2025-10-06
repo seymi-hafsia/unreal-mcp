@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Sequencer/SequenceExport.h"
 
 #include "Algo/Sort.h"
@@ -13,7 +14,8 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "LevelSequence.h"
-#include "Misc/LexicalConversion.h"
+#include "String/LexFromString.h"
+#include "String/LexToString.h"
 #include "Misc/PackageName.h"
 #include "MovieScene.h"
 #include "MovieSceneBinding.h"

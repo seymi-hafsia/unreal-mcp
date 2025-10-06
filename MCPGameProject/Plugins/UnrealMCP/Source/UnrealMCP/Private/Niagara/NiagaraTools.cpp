@@ -1,5 +1,7 @@
+#include "CoreMinimal.h"
 #include "Niagara/NiagaraTools.h"
 
+#include "Components/SceneComponent.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "Editor.h"
@@ -12,8 +14,9 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
-#include "Components/SceneComponent.h"
 #include "Misc/Char.h"
+#include "String/LexFromString.h"
+#include "String/LexToString.h"
 #include "NiagaraActor.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
@@ -69,6 +72,27 @@ namespace
                 return Action;
         }
 
+        bool SerializeJsonValueInternal(const TSharedPtr<FJsonValue>& Value, const TSharedRef<TJsonWriter<>>& Writer)
+        {
+                if (!Value.IsValid())
+                {
+                        return false;
+                }
+
+                switch (Value->Type)
+                {
+                case EJson::Object:
+                        return FJsonSerializer::Serialize(Value->AsObject().ToSharedRef(), Writer, /*bCloseWriter=*/false);
+                case EJson::Array:
+                        return FJsonSerializer::Serialize(Value->AsArray(), Writer, /*bCloseWriter=*/false);
+                case EJson::Null:
+                        Writer->WriteNull();
+                        return true;
+                default:
+                        return false;
+                }
+        }
+
         FString SerializeJsonValue(const TSharedPtr<FJsonValue>& Value)
         {
                 if (!Value.IsValid())
@@ -88,10 +112,18 @@ namespace
                 {
                         return Value->AsBool() ? TEXT("true") : TEXT("false");
                 }
+                if (Value->Type == EJson::Null)
+                {
+                        return TEXT("null");
+                }
 
                 FString Serialized;
                 TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Serialized);
-                FJsonSerializer::Serialize(Value.ToSharedRef(), Writer);
+                if (!SerializeJsonValueInternal(Value, Writer))
+                {
+                        return TEXT("null");
+                }
+                Writer->Close();
                 return Serialized;
         }
 
@@ -663,7 +695,7 @@ namespace
                         FString AssetPath = Value->AsString();
                         if (USkeletalMesh* SkeletalMesh = LoadAssetByPath<USkeletalMesh>(AssetPath))
                         {
-                                Component.SetVariableSkeletalMesh(ParameterName, SkeletalMesh);
+                                Component.SetVariableObject(ParameterName, SkeletalMesh);
                         }
                         else
                         {

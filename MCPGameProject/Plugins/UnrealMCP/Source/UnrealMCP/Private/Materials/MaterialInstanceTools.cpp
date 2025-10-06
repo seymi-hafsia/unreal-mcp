@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Materials/MaterialInstanceTools.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -9,6 +10,8 @@
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Misc/PackageName.h"
+#include "String/LexFromString.h"
+#include "String/LexToString.h"
 #include "Permissions/WriteGate.h"
 #include "SourceControlService.h"
 #include "UObject/Package.h"
@@ -463,7 +466,11 @@ TSharedPtr<FJsonObject> FMaterialInstanceTools::SetParameters(const TSharedPtr<F
 
     if (bClearUnset)
     {
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4)
+        MaterialInstance->ClearAllOverrideParameters();
+#else
         MaterialInstance->ClearParameterOverrides();
+#endif
         bModified = true;
 
         TMap<FString, FString> Args;
@@ -495,7 +502,7 @@ TSharedPtr<FJsonObject> FMaterialInstanceTools::SetParameters(const TSharedPtr<F
 
             TMap<FString, FString> Args;
             Args.Add(TEXT("name"), Pair.Key);
-            Args.Add(TEXT("value"), FString::SanitizeFloat(FloatValue));
+            Args.Add(TEXT("value"), LexToString(FloatValue));
             AuditActions.Add(MakeShared<FJsonValueObject>(MakeActionJson(TEXT("set_scalar"), Args)));
         }
     }
@@ -583,7 +590,11 @@ TSharedPtr<FJsonObject> FMaterialInstanceTools::SetParameters(const TSharedPtr<F
             }
 
             const bool bValue = Pair.Value->AsBool();
-            const bool bValueChanged = MaterialInstance->SetStaticSwitchParameterValueEditorOnly(FMaterialParameterInfo(ParamName), bValue);
+            bool bPreviousValue = false;
+            FGuid ExpressionGuid;
+            const bool bHadPreviousValue = MaterialInstance->GetStaticSwitchParameterValue(FMaterialParameterInfo(ParamName), bPreviousValue, ExpressionGuid);
+            MaterialInstance->SetStaticSwitchParameterValueEditorOnly(FMaterialParameterInfo(ParamName), bValue);
+            const bool bValueChanged = !bHadPreviousValue || bPreviousValue != bValue;
             ChangedSwitches.Add(Pair.Key);
             bModified = true;
             bStaticSwitchChanged = bStaticSwitchChanged || bValueChanged;

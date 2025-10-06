@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Actors/ActorTools.h"
 
 #include "Dom/JsonObject.h"
@@ -8,6 +9,8 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "Misc/Char.h"
+#include "String/LexFromString.h"
+#include "String/LexToString.h"
 #include "UObject/UObjectGlobals.h"
 #include "Components/SceneComponent.h"
 
