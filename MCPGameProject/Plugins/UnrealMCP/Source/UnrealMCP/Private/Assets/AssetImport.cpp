@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Assets/AssetImport.h"
 
 #include "AssetToolsModule.h"

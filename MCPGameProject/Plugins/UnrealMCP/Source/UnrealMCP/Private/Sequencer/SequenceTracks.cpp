@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Sequencer/SequenceTracks.h"
 
 #include "Channels/MovieSceneBoolChannel.h"
@@ -11,7 +12,8 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "LevelSequence.h"
-#include "Misc/LexicalConversion.h"
+#include "String/LexFromString.h"
+#include "String/LexToString.h"
 #include "Misc/PackageName.h"
 #include "MovieScene.h"
 #include "MovieSceneBinding.h"

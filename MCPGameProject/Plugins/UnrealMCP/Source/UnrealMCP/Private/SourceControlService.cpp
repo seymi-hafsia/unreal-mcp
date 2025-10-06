@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "SourceControlService.h"
 #include "UnrealMCPSettings.h"
 
@@ -10,6 +11,9 @@
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "SourceControlOperations.h"
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4)
+#include "SourceControlOperationBase.h"
+#endif
 
 namespace
 {
@@ -47,8 +51,13 @@ bool FSourceControlService::EnsureProviderReady(FString& OutError)
                         OutError = TEXT("Source control module is disabled");
                         return false;
                 }
-
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4)
+                // Cannot enable the module programmatically in newer engine versions.
+                OutError = TEXT("Source control module must be enabled manually");
+                return false;
+#else
                 Module.Enable();
+#endif
         }
 
         if (!Settings->PreferredProvider.IsEmpty())
@@ -104,13 +113,14 @@ bool FSourceControlService::UpdateStatus(const TArray<FString>& Files, TMap<FStr
 
         TSharedRef<FUpdateStatus, ESPMode::ThreadSafe> Operation = ISourceControlOperation::Create<FUpdateStatus>();
         Operation->SetUpdateHistory(true);
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4)
+        const ECommandResult::Type Result = Provider.Execute(Operation, ExistingFiles, EConcurrency::Synchronous, FSourceControlOperationComplete());
+#else
         const ECommandResult::Type Result = Provider.Execute(Operation, ExistingFiles, EConcurrency::Synchronous);
+#endif
         if (Result != ECommandResult::Succeeded)
         {
-                if (!Operation->GetErrorText().IsEmpty())
-                {
-                        OutError = Operation->GetErrorText().ToString();
-                }
+                OutError = TEXT("Failed to update source control status");
                 return false;
         }
 
@@ -215,19 +225,35 @@ bool FSourceControlService::Submit(const TArray<FString>& Files, const FString& 
 
         ISourceControlProvider& Provider = ISourceControlModule::Get().GetProvider();
 
-        TSharedRef<FSubmit, ESPMode::ThreadSafe> Operation = ISourceControlOperation::Create<FSubmit>();
-        Operation->SetDescription(Description);
+        TSharedRef<ISourceControlOperation, ESPMode::ThreadSafe> Operation =
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4)
+                [&Description]()
+                {
+                        TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
+                        CheckInOperation->SetDescription(Description);
+                        return StaticCastSharedRef<ISourceControlOperation>(CheckInOperation);
+                }();
+#else
+                [&Description]()
+                {
+                        TSharedRef<FSubmit, ESPMode::ThreadSafe> SubmitOperation = ISourceControlOperation::Create<FSubmit>();
+                        SubmitOperation->SetDescription(Description);
+                        return StaticCastSharedRef<ISourceControlOperation>(SubmitOperation);
+                }();
+#endif
 
         TArray<FString> ExistingFiles;
         CollectExistingFiles(Files, ExistingFiles);
 
-        const ECommandResult::Type Result = Provider.Execute(Operation, ExistingFiles, EConcurrency::Synchronous);
+        const ECommandResult::Type Result =
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4)
+                Provider.Execute(Operation, ExistingFiles, EConcurrency::Synchronous, FSourceControlOperationComplete());
+#else
+                Provider.Execute(Operation, ExistingFiles, EConcurrency::Synchronous);
+#endif
         if (Result != ECommandResult::Succeeded)
         {
-                if (!Operation->GetErrorText().IsEmpty())
-                {
-                        OutError = Operation->GetErrorText().ToString();
-                }
+                OutError = TEXT("Failed to submit to source control");
                 return false;
         }
 
@@ -315,6 +341,23 @@ bool FSourceControlService::ExecuteSimpleOperation(const TArray<FString>& Files,
         ISourceControlProvider& Provider = ISourceControlModule::Get().GetProvider();
 
         bool bAllSucceeded = true;
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4)
+        const TSharedRef<ISourceControlOperation, ESPMode::ThreadSafe> Operation = OperationFactory();
+        const ECommandResult::Type Result = Provider.Execute(Operation, ExistingFiles, EConcurrency::Synchronous, FSourceControlOperationComplete());
+        const bool bSucceeded = Result == ECommandResult::Succeeded;
+        for (const FString& File : ExistingFiles)
+        {
+                OutPerFileOk.Add(File, bSucceeded);
+        }
+        if (!bSucceeded)
+        {
+                bAllSucceeded = false;
+                if (OutError.IsEmpty())
+                {
+                        OutError = TEXT("Source control operation failed");
+                }
+        }
+#else
         for (const FString& File : ExistingFiles)
         {
                 const TSharedRef<ISourceControlOperation, ESPMode::ThreadSafe> Operation = OperationFactory();
@@ -331,6 +374,7 @@ bool FSourceControlService::ExecuteSimpleOperation(const TArray<FString>& Files,
                         }
                 }
         }
+#endif
 
         return bAllSucceeded;
 }
@@ -367,7 +411,11 @@ FString FSourceControlService::DescribeState(const ISourceControlState& State)
                 return TEXT("Untracked");
         }
 
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4)
+        if (State.CanCheckout() && !State.IsCheckedOutOther())
+#else
         if (State.CanCheckOut())
+#endif
         {
                 return TEXT("Available");
         }

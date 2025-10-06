@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Settings/UnrealMCPDiagnostics.h"
 
 #include "Dom/JsonObject.h"

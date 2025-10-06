@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Observability/JsonLogger.h"
 
 #include "Dom/JsonObject.h"

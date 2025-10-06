@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Permissions/WriteGate.h"
 #include "UnrealMCPSettings.h"
 #include "Editor.h"
@@ -82,12 +83,31 @@ namespace
 
                 FString Serialized;
                 TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Serialized);
-                if (FJsonSerializer::Serialize(Value.ToSharedRef(), Writer))
+                bool bSerialized = false;
+                switch (Value->Type)
                 {
-                        return Serialized;
+                case EJson::Object:
+                        bSerialized = FJsonSerializer::Serialize(Value->AsObject().ToSharedRef(), Writer, /*bCloseWriter=*/false);
+                        break;
+                case EJson::Array:
+                        bSerialized = FJsonSerializer::Serialize(Value->AsArray(), Writer, /*bCloseWriter=*/false);
+                        break;
+                case EJson::Null:
+                        Writer->WriteNull();
+                        bSerialized = true;
+                        break;
+                default:
+                        bSerialized = false;
+                        break;
                 }
 
-                return TEXT("<error>");
+                if (!bSerialized)
+                {
+                        return TEXT("<error>");
+                }
+
+                Writer->Close();
+                return Serialized;
         }
 
         FString SerializeArrayField(const TSharedPtr<FJsonObject>& Object, const FString& FieldName)
@@ -150,7 +170,7 @@ namespace
 
                 FString Serialized;
                 TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Serialized);
-                FJsonSerializer::Serialize(ChildObject->ToSharedRef(), Writer);
+                FJsonSerializer::Serialize(ChildObject->ToSharedRef(), Writer, /*bCloseWriter=*/true);
                 return Serialized;
         }
 }

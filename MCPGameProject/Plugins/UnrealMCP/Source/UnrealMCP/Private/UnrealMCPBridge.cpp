@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "UnrealMCPBridge.h"
 #include "MCPServerRunnable.h"
 #include "Sockets.h"
@@ -330,7 +331,7 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
 
                 FString ResultString;
                 TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
-                FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);
+                FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer, /*bCloseWriter=*/true);
                 Promise.SetValue(ResultString);
                 return;
             }
@@ -391,7 +392,7 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
 
                         FString ResultString;
                         TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
-                        FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);
+                        FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer, /*bCloseWriter=*/true);
                         Promise.SetValue(ResultString);
                         return;
                     }
@@ -900,7 +901,7 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
 
                     FString ResultString;
                     TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
-                    FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);
+                    FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer, /*bCloseWriter=*/true);
                     Promise.SetValue(ResultString);
                     return;
                 }
@@ -970,7 +971,7 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
 
                 FString AuditString;
                 TSharedRef<TJsonWriter<>> AuditWriter = TJsonWriterFactory<>::Create(&AuditString);
-                FJsonSerializer::Serialize(AuditJson.ToSharedRef(), AuditWriter);
+                FJsonSerializer::Serialize(AuditJson.ToSharedRef(), AuditWriter, /*bCloseWriter=*/true);
                 UE_LOG(LogUnrealMCP, Display, TEXT("[AUDIT] %s"), *AuditString);
             }
         }
@@ -986,7 +987,7 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
 
         FString ResultString;
         TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
-        FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);
+        FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer, /*bCloseWriter=*/true);
         Promise.SetValue(ResultString);
     });
     

@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Content/ContentTools.h"
 
 #include "AssetRegistry/AssetData.h"

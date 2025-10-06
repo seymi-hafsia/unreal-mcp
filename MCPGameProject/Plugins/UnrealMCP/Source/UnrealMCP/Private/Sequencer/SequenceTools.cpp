@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Sequencer/SequenceTools.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -19,6 +20,8 @@
 #include "MovieSceneObjectBindingID.h"
 #include "Permissions/WriteGate.h"
 #include "Sections/MovieSceneSection.h"
+#include "String/LexFromString.h"
+#include "String/LexToString.h"
 #include "GameFramework/Actor.h"
 #include "Sections/MovieSceneCameraCutSection.h"
 #include "SourceControlService.h"
