@@ -32,10 +32,26 @@
 2. **Activer le plugin** *Unreal MCP* dans l’éditeur si nécessaire.
 3. **Vérifier UE 5.6** : le `.uproject` utilise `"EngineAssociation": "5.6"`.
 4. **Configurer** le serveur Python (voir `Python/README.md`) et lancer le serveur MCP.
-5. Dans UE : **Project Settings → Plugins → Unreal MCP**  
-   - `ServerHost=127.0.0.1`, `ServerPort=12029` (par défaut)  
+5. Dans UE : **Project Settings → Plugins → Unreal MCP**
+   - `ServerHost=127.0.0.1`, `ServerPort=12029` (par défaut)
    - (optionnel) activer `bAutoConnectOnEditorStartup`
 6. **Diagnostics** : depuis la page de réglages, cliquez **Test Connection** puis **Send Ping**.
+
+### Local Build (Windows, UE 5.6)
+
+```powershell
+# Example (adjust EngineRoot if needed)
+pwsh -f scripts/Build-Plugin.ps1 `
+  -EngineRoot "D:\Mes jeux\Epic Games\UE_5.6" `
+  -PluginUplugin ".\MCPGameProject\Plugins\UnrealMCP\UnrealMCP.uplugin" `
+  -OutDir ".\_package\UnrealMCP_Win64" `
+  -TargetPlatforms "Win64" `
+  -Rocket `
+  -Clean `
+  -VerboseLog
+```
+
+Outputs go to `_package\UnrealMCP_Win64\UnrealMCP\`. Logs are in `logs\BuildPlugin-*.txt`.
 
 ## ⚙️ Réglages plugin (résumé)
 - **Network** : host/port, timeouts, heartbeats, auto-connect.
