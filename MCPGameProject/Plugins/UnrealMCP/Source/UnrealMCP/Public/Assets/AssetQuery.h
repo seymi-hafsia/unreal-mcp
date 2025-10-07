@@ -4,7 +4,6 @@
 #include "Templates/SharedPointer.h"
 #include "Containers/Map.h"
 #include "Containers/Array.h"
-#include "Templates/Optional.h"
 
 class FJsonObject;
 

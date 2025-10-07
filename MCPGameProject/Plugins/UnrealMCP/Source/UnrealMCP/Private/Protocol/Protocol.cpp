@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Protocol/Protocol.h"
 
 #include "Dom/JsonObject.h"
@@ -9,8 +8,8 @@
 #include "Sockets.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
-#include "String/LexFromString.h"
-#include "String/LexToString.h"
+#include "Misc/LexFromString.h"
+#include "Misc/LexToString.h"
 #include "UnrealMCPLog.h"
 #include "UnrealMCPSettings.h"
 
@@ -265,7 +264,7 @@ TSharedRef<FJsonObject> MakeErrorResponse(EProtocolErrorCode Code, const FString
 
     if (Details.IsValid())
     {
-        ErrorObject->SetObjectField(TEXT("details"), Details.ToSharedRef());
+        ErrorObject->SetObjectField(TEXT("details"), Details);
     }
 
     Root->SetObjectField(TEXT("error"), ErrorObject);
@@ -523,7 +522,7 @@ bool FProtocolClient::PerformHandshake(const FString& EngineVersion, const FStri
     return true;
 }
 
-bool FProtocolClient::SendMessage(const TSharedRef<FJsonObject>& Message, FString& OutError, double TimeoutSeconds)
+bool FProtocolClient::SendMessage(const TSharedPtr<FJsonObject>& Message, FString& OutError, double TimeoutSeconds)
 {
     if (!Socket.IsValid())
     {
@@ -531,7 +530,13 @@ bool FProtocolClient::SendMessage(const TSharedRef<FJsonObject>& Message, FStrin
         return false;
     }
 
-    if (!WriteFramedJson(*Socket, Message, OutError, TimeoutSeconds))
+    if (!Message.IsValid())
+    {
+        OutError = TEXT("Invalid message");
+        return false;
+    }
+
+    if (!WriteFramedJson(*Socket, Message.ToSharedRef(), OutError, TimeoutSeconds))
     {
         return false;
     }

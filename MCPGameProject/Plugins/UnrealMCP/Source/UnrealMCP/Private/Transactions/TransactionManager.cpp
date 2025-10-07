@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Transactions/TransactionManager.h"
 
 #include "Editor.h"

@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "MetaSounds/MetaSoundTools.h"
 
 #include "Dom/JsonObject.h"

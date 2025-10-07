@@ -34,6 +34,10 @@
         {
             "Name": "SequencerScripting",
             "Enabled": true
+        },
+        {
+            "Name": "LevelSequenceEditor",
+            "Enabled": true
         }
     ],
     "EngineVersionRange": [

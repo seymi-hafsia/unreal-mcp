@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "SourceControlService.h"
 #include "UnrealMCPSettings.h"
 
@@ -46,18 +45,10 @@ bool FSourceControlService::EnsureProviderReady(FString& OutError)
 
         if (!Module.IsEnabled())
         {
-                if (!Settings->AutoConnectSourceControl)
-                {
-                        OutError = TEXT("Source control module is disabled");
-                        return false;
-                }
-#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4)
-                // Cannot enable the module programmatically in newer engine versions.
-                OutError = TEXT("Source control module must be enabled manually");
+                OutError = Settings->AutoConnectSourceControl
+                        ? TEXT("Source control module must be enabled manually")
+                        : TEXT("Source control module is disabled");
                 return false;
-#else
-                Module.Enable();
-#endif
         }
 
         if (!Settings->PreferredProvider.IsEmpty())
@@ -230,7 +221,7 @@ bool FSourceControlService::Submit(const TArray<FString>& Files, const FString& 
                 [&Description]()
                 {
                         TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
-                        CheckInOperation->SetDescription(Description);
+                        CheckInOperation->SetDescription(FText::FromString(Description));
                         return StaticCastSharedRef<ISourceControlOperation>(CheckInOperation);
                 }();
 #else
@@ -368,9 +359,9 @@ bool FSourceControlService::ExecuteSimpleOperation(const TArray<FString>& Files,
                 if (!bSucceeded)
                 {
                         bAllSucceeded = false;
-                        if (OutError.IsEmpty() && !Operation->GetErrorText().IsEmpty())
+                        if (OutError.IsEmpty())
                         {
-                                OutError = Operation->GetErrorText().ToString();
+                                OutError = TEXT("Source control operation failed");
                         }
                 }
         }
@@ -411,11 +402,7 @@ FString FSourceControlService::DescribeState(const ISourceControlState& State)
                 return TEXT("Untracked");
         }
 
-#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4)
-        if (State.CanCheckout() && !State.IsCheckedOutOther())
-#else
-        if (State.CanCheckOut())
-#endif
+        if (State.IsSourceControlled() && !State.IsCheckedOut() && !State.IsCheckedOutOther())
         {
                 return TEXT("Available");
         }

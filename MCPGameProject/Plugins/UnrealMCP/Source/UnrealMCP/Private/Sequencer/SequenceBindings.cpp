@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Sequencer/SequenceBindings.h"
 
 #include "Dom/JsonObject.h"

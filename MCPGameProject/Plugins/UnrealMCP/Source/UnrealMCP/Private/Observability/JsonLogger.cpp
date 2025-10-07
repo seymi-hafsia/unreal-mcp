@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Observability/JsonLogger.h"
 
 #include "Dom/JsonObject.h"
@@ -85,7 +84,7 @@ void FJsonLogger::Log(const FLogEvent& Event)
         return;
     }
 
-    TSharedPtr<FJsonObject> Payload = MakeShared<FJsonObject>();
+    TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
     Payload->SetStringField(TEXT("level"), Event.Level.IsEmpty() ? TEXT("info") : Event.Level.ToLower());
     if (!Event.Category.IsEmpty())
     {
@@ -111,7 +110,7 @@ void FJsonLogger::Log(const FLogEvent& Event)
         Payload->SetObjectField(TEXT("fields"), CloneJson(Event.Fields));
     }
 
-    WriteLine(EventsPath, Payload.ToSharedRef());
+    WriteLine(EventsPath, Payload);
 }
 
 void FJsonLogger::Metric(const FString& Name, const TSharedPtr<FJsonObject>& Fields)
@@ -121,7 +120,7 @@ void FJsonLogger::Metric(const FString& Name, const TSharedPtr<FJsonObject>& Fie
         return;
     }
 
-    TSharedPtr<FJsonObject> Payload = MakeShared<FJsonObject>();
+    TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
     Payload->SetStringField(TEXT("metric"), Name);
     Payload->SetNumberField(TEXT("ts"), NowUnixMs());
     if (Fields.IsValid())
@@ -129,7 +128,7 @@ void FJsonLogger::Metric(const FString& Name, const TSharedPtr<FJsonObject>& Fie
         Payload->SetObjectField(TEXT("fields"), CloneJson(Fields));
     }
 
-    WriteLine(MetricsPath, Payload.ToSharedRef());
+    WriteLine(MetricsPath, Payload);
 }
 
 void FJsonLogger::EnsureDirectory(const FString& Directory)

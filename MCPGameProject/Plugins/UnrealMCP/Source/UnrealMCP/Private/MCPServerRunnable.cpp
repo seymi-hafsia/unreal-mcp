@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "MCPServerRunnable.h"
 
 #include "UnrealMCPBridge.h"
@@ -124,7 +123,7 @@ void FMCPServerRunnable::RunConnection(const TSharedPtr<FSocket>& InClientSocket
                 FProtocolReadResult ReadResult = ProtocolClient.ReceiveMessage(ReadTimeout, false);
                 if (ReadResult.bSuccess && ReadResult.Message.IsValid())
                 {
-                        if (!HandleProtocolMessage(ProtocolClient, ReadResult.Message.ToSharedRef()))
+                        if (!HandleProtocolMessage(ProtocolClient, ReadResult.Message))
                         {
                                 break;
                         }
@@ -163,9 +162,14 @@ void FMCPServerRunnable::RunConnection(const TSharedPtr<FSocket>& InClientSocket
         }
 }
 
-bool FMCPServerRunnable::HandleProtocolMessage(UnrealMCP::Protocol::FProtocolClient& ProtocolClient, const TSharedRef<FJsonObject>& Message)
+bool FMCPServerRunnable::HandleProtocolMessage(UnrealMCP::Protocol::FProtocolClient& ProtocolClient, const TSharedPtr<FJsonObject>& Message)
 {
         using namespace UnrealMCP::Protocol;
+
+        if (!Message.IsValid())
+        {
+                return false;
+        }
 
         FString MessageType;
         if (!Message->TryGetStringField(TEXT("type"), MessageType))
@@ -372,7 +376,7 @@ bool FMCPServerRunnable::HandleProtocolMessage(UnrealMCP::Protocol::FProtocolCli
         FJsonLogger::Log(Event);
 
         FString SendError;
-        if (!ProtocolClient.SendMessage(ResponseObject.ToSharedRef(), SendError))
+        if (!ProtocolClient.SendMessage(ResponseObject, SendError))
         {
                 UE_LOG(LogUnrealMCP, Warning, TEXT("[Protocol] Failed to send response: %s"), *SendError);
                 return false;

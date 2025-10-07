@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Permissions/WriteGate.h"
 #include "UnrealMCPSettings.h"
 #include "Editor.h"
@@ -87,11 +86,17 @@ namespace
                 switch (Value->Type)
                 {
                 case EJson::Object:
-                        bSerialized = FJsonSerializer::Serialize(Value->AsObject().ToSharedRef(), Writer, /*bCloseWriter=*/false);
+                {
+                        const TSharedPtr<FJsonObject> Object = Value->AsObject();
+                        bSerialized = Object.IsValid() && FJsonSerializer::Serialize(Object.ToSharedRef(), Writer, /*bCloseWriter=*/false);
                         break;
+                }
                 case EJson::Array:
-                        bSerialized = FJsonSerializer::Serialize(Value->AsArray(), Writer, /*bCloseWriter=*/false);
+                {
+                        const TArray<TSharedPtr<FJsonValue>> Array = Value->AsArray();
+                        bSerialized = FJsonSerializer::Serialize(Array, Writer, /*bCloseWriter=*/false);
                         break;
+                }
                 case EJson::Null:
                         Writer->WriteNull();
                         bSerialized = true;
@@ -163,7 +168,7 @@ namespace
                 }
 
                 const TSharedPtr<FJsonObject>* ChildObject = nullptr;
-                if (!Object->TryGetObjectField(FieldName, ChildObject))
+                if (!Object->TryGetObjectField(FieldName, ChildObject) || !ChildObject || !ChildObject->IsValid())
                 {
                         return FString();
                 }

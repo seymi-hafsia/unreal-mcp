@@ -2,11 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "HAL/Runnable.h"
-#include "Sockets.h"
-#include "Interfaces/IPv4/IPv4Address.h"
 
 class UUnrealMCPBridge;
 class FJsonObject;
+class FSocket;
 
 namespace UnrealMCP
 {
@@ -46,5 +45,5 @@ private:
         FMCPServerConfig Config;
 
         void RunConnection(const TSharedPtr<FSocket>& InClientSocket);
-        bool HandleProtocolMessage(class UnrealMCP::Protocol::FProtocolClient& ProtocolClient, const TSharedRef<class FJsonObject>& Message);
+        bool HandleProtocolMessage(class UnrealMCP::Protocol::FProtocolClient& ProtocolClient, const TSharedPtr<class FJsonObject>& Message);
 };

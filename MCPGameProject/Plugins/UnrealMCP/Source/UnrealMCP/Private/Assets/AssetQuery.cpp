@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Assets/AssetQuery.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -8,6 +7,7 @@
 #include "Dom/JsonValue.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformTime.h"
+#include "Templates/Optional.h"
 #include "Misc/PackageName.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/SoftObjectPath.h"

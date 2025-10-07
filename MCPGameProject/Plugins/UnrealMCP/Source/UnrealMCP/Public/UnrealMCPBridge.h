@@ -2,22 +2,18 @@
 
 #include "CoreMinimal.h"
 #include "EditorSubsystem.h"
-#include "Sockets.h"
-#include "SocketSubsystem.h"
-#include "Http.h"
-#include "Json.h"
-#include "Interfaces/IPv4/IPv4Address.h"
-#include "Interfaces/IPv4/IPv4Endpoint.h"
-#include "Commands/UnrealMCPEditorCommands.h"
-#include "Commands/UnrealMCPBlueprintCommands.h"
-#include "Commands/UnrealMCPBlueprintNodeCommands.h"
-#include "Commands/UnrealMCPProjectCommands.h"
-#include "Commands/UnrealMCPUMGCommands.h"
-#include "Commands/UnrealMCPSourceControlCommands.h"
-#include "Content/ContentTools.h"
 #include "UnrealMCPBridge.generated.h"
 
 class FMCPServerRunnable;
+class FInternetAddr;
+class FSocket;
+class FUnrealMCPEditorCommands;
+class FUnrealMCPBlueprintCommands;
+class FUnrealMCPBlueprintNodeCommands;
+class FUnrealMCPProjectCommands;
+class FUnrealMCPUMGCommands;
+class FUnrealMCPSourceControlCommands;
+class FContentTools;
 
 /**
  * Editor subsystem for MCP Bridge

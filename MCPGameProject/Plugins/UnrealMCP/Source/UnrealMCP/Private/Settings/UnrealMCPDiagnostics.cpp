@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Settings/UnrealMCPDiagnostics.h"
 
 #include "Dom/JsonObject.h"
@@ -13,6 +12,7 @@
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "UnrealMCPSettings.h"
+#include "Misc/LexToString.h"
 
 namespace
 {
@@ -45,10 +45,8 @@ namespace
 
         FString DescribeLastError(ISocketSubsystem& Subsystem)
         {
-                const int32 ErrorCode = Subsystem.GetLastErrorCode();
-                TCHAR Buffer[256];
-                Subsystem.GetErrorMessage(ErrorCode, Buffer, UE_ARRAY_COUNT(Buffer));
-                return FString::Printf(TEXT("%s (%d)"), Buffer, ErrorCode);
+                const ESocketErrors Error = Subsystem.GetLastErrorCode();
+                return FString::Printf(TEXT("%s (%d)"), *LexToString(Error), static_cast<int32>(Error));
         }
 }
 
@@ -143,11 +141,7 @@ bool FUnrealMCPDiagnostics::OpenLogsFolder(FText& OutMessage)
                 IFileManager::Get().MakeDirectory(*LogsPath, true);
         }
 
-        if (!FPlatformProcess::ExploreFolder(*LogsPath))
-        {
-                OutMessage = FText::FromString(FString::Printf(TEXT("Failed to open logs folder: %s"), *LogsPath));
-                return false;
-        }
+        FPlatformProcess::ExploreFolder(*LogsPath);
 
         OutMessage = FText::FromString(FString::Printf(TEXT("Opened logs folder: %s"), *LogsPath));
         return true;
@@ -409,7 +403,7 @@ bool FUnrealMCPDiagnostics::SendCommand(FSocket& Socket, const FString& CommandT
         Message->SetStringField(TEXT("type"), CommandType);
         if (Params.IsValid())
         {
-                Message->SetObjectField(TEXT("params"), Params.ToSharedRef());
+                Message->SetObjectField(TEXT("params"), Params);
         }
 
         FString SendError;

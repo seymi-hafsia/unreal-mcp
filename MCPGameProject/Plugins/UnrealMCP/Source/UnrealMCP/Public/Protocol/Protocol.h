@@ -47,7 +47,11 @@ namespace Protocol
 
         bool PerformHandshake(const FString& EngineVersion, const FString& PluginVersion, const FString& SessionId, FString& OutError, double TimeoutSeconds = 10.0);
 
-        bool SendMessage(const TSharedRef<FJsonObject>& Message, FString& OutError, double TimeoutSeconds = 10.0);
+        bool SendMessage(const TSharedPtr<FJsonObject>& Message, FString& OutError, double TimeoutSeconds = 10.0);
+        bool SendMessage(const TSharedRef<FJsonObject>& Message, FString& OutError, double TimeoutSeconds = 10.0)
+        {
+            return SendMessage(TSharedPtr<FJsonObject>(Message), OutError, TimeoutSeconds);
+        }
         FProtocolReadResult ReceiveMessage(double TimeoutSeconds, bool bAllowLegacyFallback = false);
 
         bool SendPing(FString& OutError);
