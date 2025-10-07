@@ -24,6 +24,7 @@
 #include "SourceControlService.h"
 #include "Tracks/MovieSceneCameraCutTrack.h"
 #include "UObject/Package.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace
@@ -384,7 +385,8 @@ TSharedPtr<FJsonObject> FSequenceTools::Create(const TSharedPtr<FJsonObject>& Pa
     Params->TryGetStringField(TEXT("cameraName"), CameraName);
 
     IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
-    const FAssetData ExistingAsset = AssetRegistry.GetAssetByObjectPath(FName(*ObjectPath));
+    const FSoftObjectPath SequenceSoftPath(ObjectPath);
+    const FAssetData ExistingAsset = AssetRegistry.GetAssetByObjectPath(SequenceSoftPath, /*bIncludeOnlyOnDiskAssets*/ false, /*bSkipARFilteredAssets*/ false);
     const bool bAssetExists = ExistingAsset.IsValid();
 
     if (bAssetExists && !bOverwriteIfExists)

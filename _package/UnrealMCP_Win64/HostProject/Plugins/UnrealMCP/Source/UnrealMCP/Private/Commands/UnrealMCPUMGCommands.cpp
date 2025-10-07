@@ -5,7 +5,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/TextBlock.h"
-#include "WidgetBlueprint.h"
+#include "Blueprint/WidgetBlueprint.h"
 // We'll create widgets using regular Factory classes
 #include "Factories/Factory.h"
 // Remove problematic includes that don't exist in UE 5.5

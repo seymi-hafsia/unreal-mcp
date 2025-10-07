@@ -257,7 +257,7 @@ TSharedPtr<FJsonObject> FAssetCrud::Rename(const TSharedPtr<FJsonObject>& Params
     }
 
     IAssetRegistry& AssetRegistry = GetAssetRegistry();
-    const FAssetData ExistingAsset = AssetRegistry.GetAssetByObjectPath(FromSoftPath.GetAssetPathName());
+    const FAssetData ExistingAsset = AssetRegistry.GetAssetByObjectPath(FromSoftPath, /*bIncludeOnlyOnDiskAssets*/ false, /*bSkipARFilteredAssets*/ false);
     if (!ExistingAsset.IsValid())
     {
         return MakeErrorResponse(ErrorCodeAssetNotFound, FString::Printf(TEXT("Asset not found: %s"), *FromObjectPath));
@@ -306,7 +306,7 @@ TSharedPtr<FJsonObject> FAssetCrud::Rename(const TSharedPtr<FJsonObject>& Params
     }
 
     bool bRedirectorCreated = false;
-    const FAssetData PostRenameData = AssetRegistry.GetAssetByObjectPath(FromSoftPath.GetAssetPathName());
+    const FAssetData PostRenameData = AssetRegistry.GetAssetByObjectPath(FromSoftPath, /*bIncludeOnlyOnDiskAssets*/ false, /*bSkipARFilteredAssets*/ false);
     if (PostRenameData.IsValid())
     {
         bRedirectorCreated = PostRenameData.AssetClassPath == UObjectRedirector::StaticClass()->GetClassPathName();
@@ -377,7 +377,7 @@ TSharedPtr<FJsonObject> FAssetCrud::Delete(const TSharedPtr<FJsonObject>& Params
             return MakeErrorResponse(ErrorCodePathNotAllowed, PathReason);
         }
 
-        const FAssetData AssetData = AssetRegistry.GetAssetByObjectPath(SoftPath.GetAssetPathName());
+        const FAssetData AssetData = AssetRegistry.GetAssetByObjectPath(SoftPath, /*bIncludeOnlyOnDiskAssets*/ false, /*bSkipARFilteredAssets*/ false);
         if (!AssetData.IsValid())
         {
             return MakeErrorResponse(ErrorCodeAssetNotFound, FString::Printf(TEXT("Asset not found: %s"), *ObjectPath));
@@ -385,11 +385,12 @@ TSharedPtr<FJsonObject> FAssetCrud::Delete(const TSharedPtr<FJsonObject>& Params
 
         if (!bForce)
         {
-            using namespace UE::AssetRegistry;
             TArray<FName> Referencers;
-            FDependencyQuery Query;
-            Query.Flags = EDependencyFlags::Hard;
-            AssetRegistry.GetReferencers(AssetData.PackageName, Referencers, EDependencyCategory::Package, Query);
+            AssetRegistry.GetReferencers(
+                AssetData.PackageName,
+                Referencers,
+                UE::AssetRegistry::EDependencyCategory::Package,
+                UE::AssetRegistry::EDependencyQuery::Hard);
 
             Referencers.RemoveAll([&](const FName& Ref)
             {
