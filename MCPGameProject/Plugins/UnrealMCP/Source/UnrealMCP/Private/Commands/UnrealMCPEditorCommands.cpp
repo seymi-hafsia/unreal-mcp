@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Commands/UnrealMCPEditorCommands.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Editor.h"

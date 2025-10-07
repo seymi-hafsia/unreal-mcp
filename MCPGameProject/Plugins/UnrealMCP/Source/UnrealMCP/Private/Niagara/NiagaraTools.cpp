@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Niagara/NiagaraTools.h"
 
 #include "Components/SceneComponent.h"
@@ -14,8 +15,8 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "Misc/Char.h"
-#include "String/LexFromString.h"
-#include "String/LexToString.h"
+#include "Misc/LexFromString.h"
+#include "Misc/LexToString.h"
 #include "NiagaraActor.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"

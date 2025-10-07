@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Assets/AssetQuery.h"
 
 #include "AssetRegistry/AssetData.h"

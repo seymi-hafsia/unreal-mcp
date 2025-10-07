@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Content/ContentTools.h"
 
 #include "AssetRegistry/AssetData.h"
@@ -7,7 +8,7 @@
 #include "AssetToolsModule.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "EditorAssetLibrary.h"
-#include "EditorLoadingAndSavingUtils.h"
+#include "FileHelpers.h"
 #include "Engine/Texture.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstance.h"
@@ -815,12 +816,7 @@ TSharedPtr<FJsonObject> FContentTools::HandleFixMissing(const TSharedPtr<FJsonOb
         if (bFixRedirectors && Redirectors.Num() > 0)
         {
                 FAssetToolsModule& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-                if (!AssetTools.Get().FixupReferencers(Redirectors))
-                {
-                        TSharedPtr<FJsonObject> Error = FUnrealMCPCommonUtils::CreateErrorResponse(TEXT("Failed to fix redirectors"));
-                        Error->SetStringField(TEXT("errorCode"), ErrorCodeFixRedirectorsFailed);
-                        return Error;
-                }
+                AssetTools.Get().FixupReferencers(Redirectors);
 
                 FixedRedirectorCount = Redirectors.Num();
         }

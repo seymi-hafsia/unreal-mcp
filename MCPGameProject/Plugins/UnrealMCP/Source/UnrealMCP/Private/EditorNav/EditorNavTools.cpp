@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "EditorNav/EditorNavTools.h"
 
 #include "Commands/UnrealMCPCommonUtils.h"
@@ -15,8 +16,8 @@
 #include "GameFramework/Actor.h"
 #include "Math/Box.h"
 #include "Templates/Optional.h"
-#include "String/LexFromString.h"
-#include "String/LexToString.h"
+#include "Misc/LexFromString.h"
+#include "Misc/LexToString.h"
 
 namespace
 {
