@@ -8,7 +8,7 @@
 #include "Dom/JsonValue.h"
 #include "Editor.h"
 #include "EditorAssetLibrary.h"
-#include "EditorLoadingAndSavingUtils.h"
+#include "FileHelpers.h"              // FEditorFileUtils, UEditorLoadingAndSavingUtils
 #include "Engine/Level.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/StaticMesh.h"

@@ -18,6 +18,9 @@ public class UnrealMCP : ModuleRules
                 "Engine",
                 "Json",
                 "JsonUtilities",
+                "AssetRegistry",          // AssetData/ARFilter
+                "Sockets",                // FIPv4Address, ISocketSubsystem, etc.
+                "Networking",
                 "RenderCore",
                 "RHI"
             }
@@ -26,7 +29,6 @@ public class UnrealMCP : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "AssetRegistry",
                 "AssetTools",
                 "AudioMixer",
                 "BlueprintGraph",
@@ -43,14 +45,12 @@ public class UnrealMCP : ModuleRules
                 "MovieSceneTracks",
                 "Niagara",
                 "NiagaraCore",
-                "Networking",
                 "PropertyEditor",
                 "SequencerScripting",
                 "Sequencer",
                 "Slate",
                 "SlateCore",
                 "SourceControl",
-                "Sockets",
                 "ToolMenus",
                 "UMG",
                 "UMGEditor",

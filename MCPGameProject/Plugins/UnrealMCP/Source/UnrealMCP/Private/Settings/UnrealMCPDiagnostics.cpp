@@ -12,7 +12,7 @@
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "UnrealMCPSettings.h"
-#include "Misc/LexToString.h"
+#include "String/LexToString.h"
 
 namespace
 {

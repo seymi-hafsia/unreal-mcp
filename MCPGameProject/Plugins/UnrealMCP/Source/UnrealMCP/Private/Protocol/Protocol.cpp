@@ -8,8 +8,8 @@
 #include "Sockets.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
-#include "Misc/LexFromString.h"
-#include "Misc/LexToString.h"
+#include "String/LexFromString.h"
+#include "String/LexToString.h"
 #include "UnrealMCPLog.h"
 #include "UnrealMCPSettings.h"
 

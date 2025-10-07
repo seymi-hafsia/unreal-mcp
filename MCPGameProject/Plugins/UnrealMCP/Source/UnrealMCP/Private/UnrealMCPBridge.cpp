@@ -58,6 +58,8 @@
 #include "Commands/UnrealMCPProjectCommands.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Commands/UnrealMCPUMGCommands.h"
+#include "Commands/UnrealMCPSourceControlCommands.h"
+#include "Content/ContentTools.h"
 #include "Assets/AssetCrud.h"
 #include "Assets/AssetImport.h"
 #include "Assets/AssetQuery.h"
