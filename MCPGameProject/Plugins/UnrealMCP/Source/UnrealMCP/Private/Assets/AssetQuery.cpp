@@ -1,8 +1,9 @@
 #include "Assets/AssetQuery.h"
 
+#include "AssetRegistry/AssetData.h"
+#include "AssetRegistry/ARFilter.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
-#include "AssetRegistry/AssetRegistryTypes.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "HAL/FileManager.h"

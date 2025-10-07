@@ -1,8 +1,8 @@
 #include "Assets/AssetCrud.h"
 
 #include "AssetRegistry/AssetData.h"
+#include "AssetRegistry/ARFilter.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "AssetRegistry/AssetRegistryTypes.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "AssetToolsModule.h"
 #include "Dom/JsonObject.h"

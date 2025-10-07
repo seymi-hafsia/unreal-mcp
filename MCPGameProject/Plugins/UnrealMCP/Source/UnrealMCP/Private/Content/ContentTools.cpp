@@ -1,9 +1,9 @@
 #include "Content/ContentTools.h"
 
 #include "AssetRegistry/AssetData.h"
+#include "AssetRegistry/ARFilter.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
-#include "AssetRegistry/AssetRegistryTypes.h"
 #include "AssetToolsModule.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "EditorAssetLibrary.h"

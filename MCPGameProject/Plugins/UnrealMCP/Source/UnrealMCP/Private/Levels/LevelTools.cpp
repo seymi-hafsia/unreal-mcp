@@ -3,7 +3,7 @@
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Editor.h"
 #include "Editor/EditorEngine.h"
-#include "EditorLoadingAndSavingUtils.h"
+#include "FileHelpers.h"              // FEditorFileUtils, UEditorLoadingAndSavingUtils
 #include "Engine/LevelStreaming.h"
 #include "Engine/World.h"
 #include "FileHelpers.h"

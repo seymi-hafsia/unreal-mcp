@@ -2,6 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "EditorSubsystem.h"
+#include "Sockets.h"
+#include "SocketSubsystem.h"
+#include "Interfaces/IPv4/IPv4Address.h"
+#include "IPAddress.h"
 #include "UnrealMCPBridge.generated.h"
 
 class FMCPServerRunnable;

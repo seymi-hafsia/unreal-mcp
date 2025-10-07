@@ -24,7 +24,7 @@
     ],
     "Plugins": [
         {
-            "Name": "Niagara",
+            "Name": "EditorScriptingUtilities",
             "Enabled": true
         },
         {
@@ -33,6 +33,10 @@
         },
         {
             "Name": "LevelSequenceEditor",
+            "Enabled": true
+        },
+        {
+            "Name": "Niagara",
             "Enabled": true
         }
     ],
