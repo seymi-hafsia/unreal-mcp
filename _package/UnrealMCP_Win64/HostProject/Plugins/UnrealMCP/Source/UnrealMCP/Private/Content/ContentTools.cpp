@@ -14,7 +14,7 @@
 #include "Misc/PackageName.h"
 #include "Permissions/WriteGate.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "Regex.h"
+#include "Internationalization/Regex.h"
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "UObject/Package.h"
 #include "UObject/SoftObjectPath.h"
@@ -363,7 +363,13 @@ TSharedPtr<FJsonObject> FContentTools::HandleScan(const TSharedPtr<FJsonObject>&
                                 if (bIncludeReferencers)
                                 {
                                         TArray<FName> Referencers;
-                                        AssetRegistry.GetReferencers(DependencyPackage, Referencers, EAssetRegistryDependencyType::All);
+                                        AssetRegistry.GetReferencers(
+                                                DependencyPackage,
+                                                Referencers,
+                                                UE::AssetRegistry::EDependencyCategory::Package,
+                                                UE::AssetRegistry::EDependencyQuery::Hard |
+                                                        UE::AssetRegistry::EDependencyQuery::Soft |
+                                                        UE::AssetRegistry::EDependencyQuery::SearchableName);
 
                                         TArray<TSharedPtr<FJsonValue>> ReferencerJson;
                                         for (const FName& Referencer : Referencers)
@@ -394,7 +400,7 @@ TSharedPtr<FJsonObject> FContentTools::HandleScan(const TSharedPtr<FJsonObject>&
                                 continue;
                         }
 
-                        const FAssetData TargetAsset = AssetRegistry.GetAssetByObjectPath(SoftPath);
+                        const FAssetData TargetAsset = AssetRegistry.GetAssetByObjectPath(SoftPath, /*bIncludeOnlyOnDiskAssets*/ false, /*bSkipARFilteredAssets*/ false);
                         if (!TargetAsset.IsValid())
                         {
                                 TSharedPtr<FJsonObject> BrokenEntry = MakeShared<FJsonObject>();
@@ -408,7 +414,11 @@ TSharedPtr<FJsonObject> FContentTools::HandleScan(const TSharedPtr<FJsonObject>&
 
                 // Referencers for orphan/unused detection
                 TArray<FName> Referencers;
-                AssetRegistry.GetReferencers(AssetData.PackageName, Referencers, EAssetRegistryDependencyType::Packages);
+                AssetRegistry.GetReferencers(
+                        AssetData.PackageName,
+                        Referencers,
+                        UE::AssetRegistry::EDependencyCategory::Package,
+                        UE::AssetRegistry::EDependencyQuery::Hard | UE::AssetRegistry::EDependencyQuery::Soft);
 
                 if (bIncludeUnusedTextures && AssetData.IsInstanceOf(TextureClassPath) && Referencers.Num() == 0)
                 {

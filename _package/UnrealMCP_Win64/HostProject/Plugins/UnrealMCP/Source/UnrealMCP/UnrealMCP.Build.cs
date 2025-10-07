@@ -35,43 +35,47 @@ public class UnrealMCP : ModuleRules
                 "InputCore",
                 "Json",
                 "JsonUtilities",
+                "AssetRegistry",
+                "Sockets",
                 "Networking",
                 "RenderCore",
                 "RHI",
-                "Sockets"
+                "LevelSequence",
+                "UMG"
             }
         );
 
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "AssetRegistry",
+                "UnrealEd",
+                "LevelEditor",
+                "PropertyEditor",
                 "AssetTools",
+                "EditorScriptingUtilities",
+                "Blutility",
+                "Slate",
+                "SlateCore",
+                "Sequencer",
+                "MovieScene",
+                "SequencerScripting",
+                "LevelSequenceEditor",
+                "UMGEditor",
+                "Niagara",
+                "NiagaraCore",
                 "AudioMixer",
                 "BlueprintGraph",
-                "Blutility",
                 "CinematicCamera",
-                "EditorScriptingUtilities",
                 "EditorSubsystem",
                 "Kismet",
                 "KismetCompiler",
-                "LevelEditor",
-                "LevelSequence",
-                "MovieScene",
                 "MovieSceneTools",
                 "MovieSceneTracks",
-                "Niagara",
-                "NiagaraCore",
                 "Projects",
-                "SequencerScripting",
                 "Settings",
                 "SignalProcessing",
                 "SkeletalMeshUtilitiesCommon",
-                "Slate",
-                "SlateCore",
-                "SourceControl",
-                "UMG",
-                "UnrealEd"
+                "SourceControl"
             }
         );
 
@@ -81,9 +85,7 @@ public class UnrealMCP : ModuleRules
                 new string[]
                 {
                     "BlueprintEditorLibrary", // For Blueprint utilities
-                    "PropertyEditor",         // For widget property editing
-                    "ToolMenus",             // For editor UI
-                    "UMGEditor"               // For WidgetBlueprint.h and other UMG editor functionality
+                    "ToolMenus"              // For editor UI
                 }
             );
         }

@@ -46,7 +46,7 @@ namespace
             return true;
         }
 
-        if (UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *ClassName))
+        if (UClass* FoundClass = FindObject<UClass>(nullptr, *ClassName))
         {
             OutPath = FoundClass->GetClassPathName();
             return true;
@@ -179,15 +179,16 @@ namespace
         return Result;
     }
 
-    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, const UE::AssetRegistry::EDependencyFlags Flags, TArray<FString>& OutDependencies)
+    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, UE::AssetRegistry::EDependencyQuery QueryType, TArray<FString>& OutDependencies)
     {
-        using namespace UE::AssetRegistry;
         OutDependencies.Reset();
 
         TArray<FName> PackageDependencies;
-        FDependencyQuery Query;
-        Query.Flags = Flags;
-        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+        AssetRegistry.GetDependencies(
+            AssetData.PackageName,
+            PackageDependencies,
+            UE::AssetRegistry::EDependencyCategory::Package,
+            QueryType);
 
         for (const FName& Dependency : PackageDependencies)
         {
@@ -346,13 +347,7 @@ bool FAssetQuery::Exists(const FString& ObjectPath, bool& bOutExists, FString& O
         return false;
     }
 
-    FAssetData AssetData;
-    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData))
-    {
-        bOutExists = false;
-        return true;
-    }
-
+    const FAssetData AssetData = AssetRegistry.GetAssetByObjectPath(SoftPath, /*bIncludeOnlyOnDiskAssets*/ false, /*bSkipARFilteredAssets*/ false);
     bOutExists = AssetData.IsValid();
     if (bOutExists)
     {
@@ -381,8 +376,8 @@ bool FAssetQuery::Metadata(const FString& ObjectPath, TSharedPtr<FJsonObject>& O
         return false;
     }
 
-    FAssetData AssetData;
-    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData) || !AssetData.IsValid())
+    const FAssetData AssetData = AssetRegistry.GetAssetByObjectPath(SoftPath, /*bIncludeOnlyOnDiskAssets*/ false, /*bSkipARFilteredAssets*/ false);
+    if (!AssetData.IsValid())
     {
         OutError = TEXT("Asset not found");
         return false;
@@ -441,11 +436,10 @@ bool FAssetQuery::Metadata(const FString& ObjectPath, TSharedPtr<FJsonObject>& O
     }
     Result->SetObjectField(TEXT("tags"), TagsJson);
 
-    using namespace UE::AssetRegistry;
     TSharedPtr<FJsonObject> DependenciesJson = MakeShared<FJsonObject>();
 
     TArray<FString> HardDependencies;
-    CollectDependencies(AssetData, AssetRegistry, EDependencyFlags::Hard, HardDependencies);
+    CollectDependencies(AssetData, AssetRegistry, UE::AssetRegistry::EDependencyQuery::Hard, HardDependencies);
     TArray<TSharedPtr<FJsonValue>> HardArray;
     for (const FString& Dependency : HardDependencies)
     {
@@ -454,7 +448,7 @@ bool FAssetQuery::Metadata(const FString& ObjectPath, TSharedPtr<FJsonObject>& O
     DependenciesJson->SetArrayField(TEXT("hard"), HardArray);
 
     TArray<FString> SoftDependencies;
-    CollectDependencies(AssetData, AssetRegistry, EDependencyFlags::Soft, SoftDependencies);
+    CollectDependencies(AssetData, AssetRegistry, UE::AssetRegistry::EDependencyQuery::Soft, SoftDependencies);
     TArray<TSharedPtr<FJsonValue>> SoftArray;
     for (const FString& Dependency : SoftDependencies)
     {

@@ -4,11 +4,17 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "AssetImportTask.h"
+#include "Animation/Skeleton.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
+#include "Editor/UnrealEdEngine.h"
 #include "EditorAssetLibrary.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Factories/Factory.h"
 #include "Factories/FbxFactory.h"
 #include "Factories/FbxImportUI.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxStaticMeshImportData.h"
 #include "Factories/SoundFactory.h"
 #include "Factories/TextureFactory.h"
 #include "HAL/FileManager.h"
@@ -17,15 +23,16 @@
 #include "Modules/ModuleManager.h"
 #include "Permissions/WriteGate.h"
 #include "ScopedTransaction.h"
+#include "Sound/SoundClass.h"
 #include "Sound/SoundWave.h"
 #include "SourceControlService.h"
-#include "Textures/TextureCompressionSettings.h"
 #include "Textures/Texture.h"
+#include "Textures/TextureCompressionSettings.h"
 #include "Engine/Texture2D.h"
 #include "UObject/SoftObjectPath.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
-#include "Animation/Skeleton.h"
+#include "UnrealEdGlobals.h"
 
 namespace
 {
@@ -387,21 +394,21 @@ namespace
         const FString Lower = Value.ToLower();
         if (Lower == TEXT("voice"))
         {
-            return SOUNDGROUP_Voice;
+            return ESoundGroup::Voice;
         }
         if (Lower == TEXT("music"))
         {
-            return SOUNDGROUP_Music;
+            return ESoundGroup::Music;
         }
         if (Lower == TEXT("ui"))
         {
-            return SOUNDGROUP_UI;
+            return ESoundGroup::UI;
         }
         if (Lower == TEXT("ambient"))
         {
-            return SOUNDGROUP_Ambient;
+            return ESoundGroup::Ambient;
         }
-        return SOUNDGROUP_Default;
+        return ESoundGroup::Default;
     }
 
     bool ConvertPackagesToFiles(const TArray<FString>& PackagePaths, TArray<FString>& OutFiles, FString& OutError)
@@ -815,12 +822,11 @@ TSharedPtr<FJsonObject> FAssetImport::BatchImport(const TSharedPtr<FJsonObject>&
         case EImportKind::Fbx:
         {
             UFbxImportUI* ImportUI = NewObject<UFbxImportUI>();
-            ImportUI->bImportAsSkeletalMesh = FbxOptions.bImportAsSkeletal;
+            ImportUI->MeshTypeToImport = FbxOptions.bImportAsSkeletal ? FBXIT_SkeletalMesh : FBXIT_StaticMesh;
             ImportUI->bImportMesh = true;
             ImportUI->bImportAnimations = FbxOptions.bImportAnimations;
             ImportUI->bImportMaterials = FbxOptions.bImportMaterials;
             ImportUI->bImportTextures = FbxOptions.bImportTextures;
-            ImportUI->MeshTypeToImport = FbxOptions.bImportAsSkeletal ? FBXIT_SkeletalMesh : FBXIT_StaticMesh;
             ImportUI->bCreatePhysicsAsset = FbxOptions.bImportAsSkeletal;
 
             if (ImportUI->MeshTypeToImport == FBXIT_StaticMesh && ImportUI->StaticMeshImportData)
@@ -830,16 +836,11 @@ TSharedPtr<FJsonObject> FAssetImport::BatchImport(const TSharedPtr<FJsonObject>&
                 const FString NormalMethodLower = FbxOptions.NormalImportMethod.ToLower();
                 if (NormalMethodLower == TEXT("importnormalsandtangents"))
                 {
-                    ImportUI->StaticMeshImportData->NormalImportMethod = ENormalImportMethod::FBXNormalImportMethod_ImportNormalsAndTangents;
+                    ImportUI->StaticMeshImportData->NormalImportMethod = EFbxNormalImportMethod::FBXNIM_ImportNormalsAndTangents;
                 }
                 else if (NormalMethodLower == TEXT("computenormals"))
                 {
-                    ImportUI->StaticMeshImportData->NormalImportMethod = ENormalImportMethod::FBXNormalImportMethod_ComputeNormals;
-                }
-
-                if (!FbxOptions.LodGroup.IsEmpty())
-                {
-                    ImportUI->StaticMeshImportData->StaticMeshLODGroupName = FName(*FbxOptions.LodGroup);
+                    ImportUI->StaticMeshImportData->NormalImportMethod = EFbxNormalImportMethod::FBXNIM_ComputeNormals;
                 }
             }
 
