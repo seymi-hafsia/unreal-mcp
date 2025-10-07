@@ -1,12 +1,13 @@
-#include "CoreMinimal.h"
 #include "Commands/UnrealMCPUMGCommands.h"
+
+#include "Blueprint/WidgetBlueprint.h"
+#include "Blueprint/UserWidget.h"
 #include "Commands/UnrealMCPCommonUtils.h"
+#include "CoreMinimal.h"
 #include "Editor.h"
 #include "EditorAssetLibrary.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "Blueprint/UserWidget.h"
 #include "Components/TextBlock.h"
-#include "WidgetBlueprint.h"
 // We'll create widgets using regular Factory classes
 #include "Factories/Factory.h"
 // Remove problematic includes that don't exist in UE 5.5
