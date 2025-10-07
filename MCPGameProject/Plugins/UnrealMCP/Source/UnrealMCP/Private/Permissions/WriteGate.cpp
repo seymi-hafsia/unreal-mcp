@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Permissions/WriteGate.h"
 #include "UnrealMCPSettings.h"
 #include "Editor.h"

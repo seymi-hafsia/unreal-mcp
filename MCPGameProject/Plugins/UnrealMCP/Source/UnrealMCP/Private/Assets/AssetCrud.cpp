@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Assets/AssetCrud.h"
 
 #include "AssetRegistry/AssetData.h"
@@ -8,12 +9,15 @@
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "EditorAssetLibrary.h"
+#include "FileHelpers.h"
 #include "Misc/PackageName.h"
 #include "Modules/ModuleManager.h"
 #include "Permissions/WriteGate.h"
 #include "SourceControlService.h"
 #include "UObject/ObjectRedirector.h"
+#include "UObject/Package.h"
 #include "UObject/SoftObjectPath.h"
+#include "UObject/UObjectGlobals.h"
 
 namespace
 {
@@ -27,7 +31,6 @@ namespace
     constexpr const TCHAR* ErrorCodeRenameFailed = TEXT("RENAME_FAILED");
     constexpr const TCHAR* ErrorCodeDeleteFailed = TEXT("DELETE_FAILED");
     constexpr const TCHAR* ErrorCodeHasReferencers = TEXT("HAS_REFERENCERS");
-    constexpr const TCHAR* ErrorCodeFixRedirectorsFailed = TEXT("FIX_REDIRECTORS_FAILED");
     constexpr const TCHAR* ErrorCodeSaveFailed = TEXT("SAVE_FAILED");
 
     FString NormalizeContentPath(const FString& InPath)
@@ -134,6 +137,22 @@ namespace
         return true;
     }
 
+    bool DoesObjectPathNeedSaving(const FString& ObjectPath)
+    {
+        const FString PackageName = FPackageName::ObjectPathToPackageName(ObjectPath);
+        if (PackageName.IsEmpty())
+        {
+            return false;
+        }
+
+        if (UPackage* Package = FindPackage(nullptr, *PackageName))
+        {
+            return UEditorLoadingAndSavingUtils::DoesPackageNeedSaving(Package, true);
+        }
+
+        return false;
+    }
+
     bool CollectAssetsForSave(const TArray<FString>& Paths, bool bModifiedOnly, TArray<FString>& OutObjectPaths)
     {
         IAssetRegistry& AssetRegistry = GetAssetRegistry();
@@ -145,7 +164,7 @@ namespace
             for (const FAssetData& AssetData : AllAssets)
             {
                 const FString ObjectPath = AssetData.ToSoftObjectPath().ToString();
-                if (!bModifiedOnly || UEditorAssetLibrary::IsAssetDirty(ObjectPath))
+                if (!bModifiedOnly || DoesObjectPathNeedSaving(ObjectPath))
                 {
                     OutObjectPaths.AddUnique(ObjectPath);
                 }
@@ -162,7 +181,7 @@ namespace
             for (const FAssetData& AssetData : PathAssets)
             {
                 const FString ObjectPath = AssetData.ToSoftObjectPath().ToString();
-                if (!bModifiedOnly || UEditorAssetLibrary::IsAssetDirty(ObjectPath))
+                if (!bModifiedOnly || DoesObjectPathNeedSaving(ObjectPath))
                 {
                     OutObjectPaths.AddUnique(ObjectPath);
                 }
@@ -257,7 +276,7 @@ TSharedPtr<FJsonObject> FAssetCrud::Rename(const TSharedPtr<FJsonObject>& Params
     }
 
     IAssetRegistry& AssetRegistry = GetAssetRegistry();
-    const FAssetData ExistingAsset = AssetRegistry.GetAssetByObjectPath(FromSoftPath.GetAssetPathName());
+    const FAssetData ExistingAsset = AssetRegistry.GetAssetByObjectPath(FromSoftPath.GetAssetPath());
     if (!ExistingAsset.IsValid())
     {
         return MakeErrorResponse(ErrorCodeAssetNotFound, FString::Printf(TEXT("Asset not found: %s"), *FromObjectPath));
@@ -306,7 +325,7 @@ TSharedPtr<FJsonObject> FAssetCrud::Rename(const TSharedPtr<FJsonObject>& Params
     }
 
     bool bRedirectorCreated = false;
-    const FAssetData PostRenameData = AssetRegistry.GetAssetByObjectPath(FromSoftPath.GetAssetPathName());
+    const FAssetData PostRenameData = AssetRegistry.GetAssetByObjectPath(FromSoftPath.GetAssetPath());
     if (PostRenameData.IsValid())
     {
         bRedirectorCreated = PostRenameData.AssetClassPath == UObjectRedirector::StaticClass()->GetClassPathName();
@@ -377,7 +396,7 @@ TSharedPtr<FJsonObject> FAssetCrud::Delete(const TSharedPtr<FJsonObject>& Params
             return MakeErrorResponse(ErrorCodePathNotAllowed, PathReason);
         }
 
-        const FAssetData AssetData = AssetRegistry.GetAssetByObjectPath(SoftPath.GetAssetPathName());
+        const FAssetData AssetData = AssetRegistry.GetAssetByObjectPath(SoftPath.GetAssetPath());
         if (!AssetData.IsValid())
         {
             return MakeErrorResponse(ErrorCodeAssetNotFound, FString::Printf(TEXT("Asset not found: %s"), *ObjectPath));
@@ -485,10 +504,7 @@ TSharedPtr<FJsonObject> FAssetCrud::FixRedirectors(const TSharedPtr<FJsonObject>
     }
 
     FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-    if (!AssetToolsModule.Get().FixupReferencers(RedirectorsToFix))
-    {
-        return MakeErrorResponse(ErrorCodeFixRedirectorsFailed, TEXT("Failed to fix redirectors"));
-    }
+    AssetToolsModule.Get().FixupReferencers(RedirectorsToFix);
 
     for (UObjectRedirector* Redirector : RedirectorsToFix)
     {

@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Settings/UnrealMCPDiagnostics.h"
 
 #include "Dom/JsonObject.h"
@@ -12,7 +13,7 @@
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "UnrealMCPSettings.h"
-#include "String/LexToString.h"
+#include "Misc/LexToString.h"
 
 namespace
 {

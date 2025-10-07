@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "SourceControlService.h"
 #include "UnrealMCPSettings.h"
 

@@ -1,14 +1,19 @@
+#include "CoreMinimal.h"
 #include "Assets/AssetImport.h"
 
 #include "AssetToolsModule.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "AssetImportTask.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Factories/Factory.h"
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "EditorAssetLibrary.h"
 #include "Factories/FbxFactory.h"
 #include "Factories/FbxImportUI.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxStaticMeshImportData.h"
 #include "Factories/SoundFactory.h"
 #include "Factories/TextureFactory.h"
 #include "HAL/FileManager.h"
@@ -26,6 +31,8 @@
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
 #include "Animation/Skeleton.h"
+#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
 
 namespace
 {
@@ -81,7 +88,6 @@ namespace
     struct FAudioOptions
     {
         FString SoundGroup = TEXT("SFX");
-        bool bDecompressOnLoad = false;
     };
 
     struct FImportPlanEntry
@@ -239,7 +245,6 @@ namespace
         if (Lower == TEXT("audio_default"))
         {
             OutOptions.SoundGroup = TEXT("SFX");
-            OutOptions.bDecompressOnLoad = false;
         }
     }
 
@@ -348,10 +353,6 @@ namespace
         {
             OutOptions.SoundGroup = SoundGroup;
         }
-        if ((*AudioObject)->HasTypedField<EJson::Boolean>(TEXT("decompressOnLoad")))
-        {
-            OutOptions.bDecompressOnLoad = (*AudioObject)->GetBoolField(TEXT("decompressOnLoad"));
-        }
     }
 
     TextureCompressionSettings ParseCompressionSettings(const FString& Value)
@@ -387,21 +388,21 @@ namespace
         const FString Lower = Value.ToLower();
         if (Lower == TEXT("voice"))
         {
-            return SOUNDGROUP_Voice;
+            return ESoundGroup::Voice;
         }
         if (Lower == TEXT("music"))
         {
-            return SOUNDGROUP_Music;
+            return ESoundGroup::Music;
         }
         if (Lower == TEXT("ui"))
         {
-            return SOUNDGROUP_UI;
+            return ESoundGroup::UI;
         }
         if (Lower == TEXT("ambient"))
         {
-            return SOUNDGROUP_Ambient;
+            return ESoundGroup::Ambient;
         }
-        return SOUNDGROUP_Default;
+        return ESoundGroup::Default;
     }
 
     bool ConvertPackagesToFiles(const TArray<FString>& PackagePaths, TArray<FString>& OutFiles, FString& OutError)
@@ -521,12 +522,6 @@ namespace
         if (SoundWave->SoundGroup != DesiredGroup)
         {
             SoundWave->SoundGroup = DesiredGroup;
-            bOutChanged = true;
-        }
-
-        if (SoundWave->bDecompressOnLoad != Options.bDecompressOnLoad)
-        {
-            SoundWave->bDecompressOnLoad = Options.bDecompressOnLoad;
             bOutChanged = true;
         }
 
@@ -927,7 +922,7 @@ TSharedPtr<FJsonObject> FAssetImport::BatchImport(const TSharedPtr<FJsonObject>&
         return MakeSuccessResponse(Data);
     }
 
-    FScopedTransaction Transaction(FWriteGate::GetTransactionName());
+    FScopedTransaction Transaction(FText::FromString(FWriteGate::GetTransactionName()));
 
     AssetToolsModule.Get().ImportAssetTasks(ImportTasks);
 

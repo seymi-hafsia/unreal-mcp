@@ -1,18 +1,20 @@
+#include "CoreMinimal.h"
 #include "Levels/LevelTools.h"
 
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Editor.h"
 #include "Editor/EditorEngine.h"
-#include "FileHelpers.h"              // FEditorFileUtils, UEditorLoadingAndSavingUtils
+#include "FileHelpers.h"
 #include "Engine/LevelStreaming.h"
 #include "Engine/World.h"
-#include "FileHelpers.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/PlatformTime.h"
 #include "Misc/PackageName.h"
 #include "Permissions/WriteGate.h"
 #include "ScopedTransaction.h"
 #include "UObject/Package.h"
+#include "WorldPartition/DataLayer/DataLayerInstance.h"
+#include "WorldPartition/DataLayer/DataLayerManager.h"
 #include "WorldPartition/DataLayer/DataLayerSubsystem.h"
 #include "WorldPartition/WorldPartition.h"
 
@@ -94,10 +96,14 @@ namespace
         return Message.IsEmpty() ? FString(TEXT("Unknown error")) : Message;
     }
 
-    TSharedPtr<FJsonObject> MakeError(const FString& Code, const FString& Message)
+    TSharedPtr<FJsonObject> MakeErrorJson(const FString& Code, const FString& Message)
     {
-        TSharedPtr<FJsonObject> Error = FUnrealMCPCommonUtils::CreateErrorResponse(MakeErrorMessage(Message));
+        const FString FinalMessage = MakeErrorMessage(Message);
+        TSharedPtr<FJsonObject> Error = MakeShared<FJsonObject>();
+        Error->SetBoolField(TEXT("success"), false);
         Error->SetStringField(TEXT("errorCode"), Code);
+        Error->SetStringField(TEXT("error"), FinalMessage);
+        Error->SetStringField(TEXT("message"), FinalMessage);
         return Error;
     }
 
@@ -329,13 +335,21 @@ namespace
             return false;
         }
 
+        UDataLayerManager* DataLayerManager = DataLayerSubsystem->GetDataLayerManager();
+        if (!DataLayerManager)
+        {
+            return false;
+        }
+
         bool bAnyChanged = false;
         for (const FName& LayerName : DataLayers)
         {
             if (!LayerName.IsNone())
             {
-                DataLayerSubsystem->SetDataLayerLoaded(LayerName, bLoaded);
-                DataLayerSubsystem->SetDataLayerActive(LayerName, bLoaded || bActivateOnly);
+                const EDataLayerRuntimeState TargetState = (bLoaded || bActivateOnly)
+                    ? EDataLayerRuntimeState::Activated
+                    : EDataLayerRuntimeState::Unloaded;
+                DataLayerManager->SetDataLayerRuntimeStateByName(LayerName, TargetState);
                 OutProcessed.Add(LayerName);
                 bAnyChanged = true;
             }
@@ -353,7 +367,10 @@ namespace
 
         if (UDataLayerSubsystem* DataLayerSubsystem = World->GetSubsystem<UDataLayerSubsystem>())
         {
-            return DataLayerSubsystem->GetDataLayerInstance(LayerName) != nullptr;
+            if (UDataLayerManager* DataLayerManager = DataLayerSubsystem->GetDataLayerManager())
+            {
+                return DataLayerManager->GetDataLayerInstance(LayerName) != nullptr;
+            }
         }
 
         return false;
@@ -375,13 +392,13 @@ TSharedPtr<FJsonObject> FLevelTools::SaveOpen(const TSharedPtr<FJsonObject>& Par
 {
     if (!GEditor)
     {
-        return MakeError(ErrorCodeEditorUnavailable, TEXT("Editor instance unavailable"));
+        return MakeErrorJson(ErrorCodeEditorUnavailable, TEXT("Editor instance unavailable"));
     }
 
     UWorld* World = GetEditorWorld();
     if (!World)
     {
-        return MakeError(ErrorCodeEditorUnavailable, TEXT("No active editor world"));
+        return MakeErrorJson(ErrorCodeEditorUnavailable, TEXT("No active editor world"));
     }
 
     bool bModifiedOnly = true;
@@ -395,7 +412,7 @@ TSharedPtr<FJsonObject> FLevelTools::SaveOpen(const TSharedPtr<FJsonObject>& Par
         Params->TryGetBoolField(TEXT("saveExternalActors"), bSaveExternalActors);
     }
 
-    UE_UNUSED(bShowDialog);
+    (void)bShowDialog;
 
     TArray<FString> RequestedMaps;
     if (Params.IsValid())
@@ -426,7 +443,7 @@ TSharedPtr<FJsonObject> FLevelTools::SaveOpen(const TSharedPtr<FJsonObject>& Par
 
     if (RequestedMaps.Num() == 0)
     {
-        return MakeError(ErrorCodeInvalidParams, TEXT("No maps available to save"));
+        return MakeErrorJson(ErrorCodeInvalidParams, TEXT("No maps available to save"));
     }
 
     TArray<FString> SavedMaps;
@@ -442,7 +459,7 @@ TSharedPtr<FJsonObject> FLevelTools::SaveOpen(const TSharedPtr<FJsonObject>& Par
         FString PathReason;
         if (!FWriteGate::IsPathAllowed(PackagePath, PathReason))
         {
-            return MakeError(TEXT("PATH_NOT_ALLOWED"), PathReason);
+            return MakeErrorJson(TEXT("PATH_NOT_ALLOWED"), PathReason);
         }
 
         UPackage* Package = FindPackage(nullptr, *PackagePath);
@@ -453,7 +470,7 @@ TSharedPtr<FJsonObject> FLevelTools::SaveOpen(const TSharedPtr<FJsonObject>& Par
 
         if (!Package)
         {
-            return MakeError(ErrorCodeAssetNotFound, FString::Printf(TEXT("Map package not found: %s"), *PackagePath));
+            return MakeErrorJson(ErrorCodeAssetNotFound, FString::Printf(TEXT("Map package not found: %s"), *PackagePath));
         }
 
         const bool bIsDirty = Package->IsDirty();
@@ -474,7 +491,7 @@ TSharedPtr<FJsonObject> FLevelTools::SaveOpen(const TSharedPtr<FJsonObject>& Par
             FString CheckoutError;
             if (!EnsureCheckout(PackagePath, CheckoutError))
             {
-                return MakeError(ErrorCodeSourceControlRequired, CheckoutError);
+                return MakeErrorJson(ErrorCodeSourceControlRequired, CheckoutError);
             }
         }
 
@@ -497,7 +514,7 @@ TSharedPtr<FJsonObject> FLevelTools::SaveOpen(const TSharedPtr<FJsonObject>& Par
 
     if (!bSaveOk)
     {
-        return MakeError(ErrorCodeSaveFailed, TEXT("Failed to save map packages"));
+        return MakeErrorJson(ErrorCodeSaveFailed, TEXT("Failed to save map packages"));
     }
 
     TSharedPtr<FJsonObject> Data = MakeShared<FJsonObject>();
@@ -542,30 +559,30 @@ TSharedPtr<FJsonObject> FLevelTools::Load(const TSharedPtr<FJsonObject>& Params)
 {
     if (!Params.IsValid())
     {
-        return MakeError(ErrorCodeInvalidParams, TEXT("Missing parameters"));
+        return MakeErrorJson(ErrorCodeInvalidParams, TEXT("Missing parameters"));
     }
 
     if (!GEditor)
     {
-        return MakeError(ErrorCodeEditorUnavailable, TEXT("Editor instance unavailable"));
+        return MakeErrorJson(ErrorCodeEditorUnavailable, TEXT("Editor instance unavailable"));
     }
 
     FString MapPath;
     if (!Params->TryGetStringField(TEXT("mapPath"), MapPath))
     {
-        return MakeError(ErrorCodeInvalidParams, TEXT("Missing mapPath parameter"));
+        return MakeErrorJson(ErrorCodeInvalidParams, TEXT("Missing mapPath parameter"));
     }
 
     const FString NormalizedObjectPath = NormalizeMapPath(MapPath);
     if (NormalizedObjectPath.IsEmpty())
     {
-        return MakeError(ErrorCodeAssetNotFound, TEXT("Invalid map path"));
+        return MakeErrorJson(ErrorCodeAssetNotFound, TEXT("Invalid map path"));
     }
 
     const FString PackagePath = ObjectPathToPackagePath(NormalizedObjectPath);
     if (!FPackageName::DoesPackageExist(PackagePath))
     {
-        return MakeError(ErrorCodeAssetNotFound, FString::Printf(TEXT("Map asset not found: %s"), *PackagePath));
+        return MakeErrorJson(ErrorCodeAssetNotFound, FString::Printf(TEXT("Map asset not found: %s"), *PackagePath));
     }
 
     bool bMakeCurrent = true;
@@ -636,7 +653,7 @@ TSharedPtr<FJsonObject> FLevelTools::Load(const TSharedPtr<FJsonObject>& Params)
 
         if (bHasDirty)
         {
-            return MakeError(ErrorCodeHasUnsavedChanges, TEXT("There are unsaved maps"));
+            return MakeErrorJson(ErrorCodeHasUnsavedChanges, TEXT("There are unsaved maps"));
         }
     }
 
@@ -646,14 +663,14 @@ TSharedPtr<FJsonObject> FLevelTools::Load(const TSharedPtr<FJsonObject>& Params)
     {
         if (!FEditorFileUtils::LoadMap(PackagePath, false, true))
         {
-            return MakeError(ErrorCodeMapOpenFailed, TEXT("Failed to open map"));
+            return MakeErrorJson(ErrorCodeMapOpenFailed, TEXT("Failed to open map"));
         }
     }
 
     UWorld* World = GetEditorWorld();
     if (!World)
     {
-        return MakeError(ErrorCodeMapOpenFailed, TEXT("Failed to resolve editor world"));
+        return MakeErrorJson(ErrorCodeMapOpenFailed, TEXT("Failed to resolve editor world"));
     }
 
     TArray<FString> LoadedSublevels;
@@ -698,7 +715,7 @@ TSharedPtr<FJsonObject> FLevelTools::Load(const TSharedPtr<FJsonObject>& Params)
     const bool bShouldTransact = !bDryRun && (StreamingTargets.Num() > 0 || DataLayersToLoad.Num() > 0);
     if (bShouldTransact)
     {
-        FScopedTransaction Transaction(TEXT("MCP Levels v1"));
+        FScopedTransaction Transaction(FText::FromString(TEXT("MCP Levels v1")));
 
         for (ULevelStreaming* StreamingTarget : StreamingTargets)
         {
@@ -714,7 +731,7 @@ TSharedPtr<FJsonObject> FLevelTools::Load(const TSharedPtr<FJsonObject>& Params)
             TArray<FName> Processed;
             if (!SetDataLayersState(World, DataLayersToLoad, /*bLoaded*/ true, /*bActivateOnly*/ false, Processed))
             {
-                return MakeError(ErrorCodeStreamingFailed, TEXT("Failed to load data layers"));
+                return MakeErrorJson(ErrorCodeStreamingFailed, TEXT("Failed to load data layers"));
             }
         }
     }
@@ -771,24 +788,24 @@ TSharedPtr<FJsonObject> FLevelTools::Unload(const TSharedPtr<FJsonObject>& Param
 {
     if (!Params.IsValid())
     {
-        return MakeError(ErrorCodeInvalidParams, TEXT("Missing parameters"));
+        return MakeErrorJson(ErrorCodeInvalidParams, TEXT("Missing parameters"));
     }
 
     if (!GEditor)
     {
-        return MakeError(ErrorCodeEditorUnavailable, TEXT("Editor instance unavailable"));
+        return MakeErrorJson(ErrorCodeEditorUnavailable, TEXT("Editor instance unavailable"));
     }
 
     UWorld* World = GetEditorWorld();
     if (!World)
     {
-        return MakeError(ErrorCodeEditorUnavailable, TEXT("No active editor world"));
+        return MakeErrorJson(ErrorCodeEditorUnavailable, TEXT("No active editor world"));
     }
 
     const TArray<TSharedPtr<FJsonValue>>* SublevelsArray = nullptr;
     if (!Params->TryGetArrayField(TEXT("sublevels"), SublevelsArray) || !SublevelsArray || SublevelsArray->Num() == 0)
     {
-        return MakeError(ErrorCodeInvalidParams, TEXT("No sublevels specified"));
+        return MakeErrorJson(ErrorCodeInvalidParams, TEXT("No sublevels specified"));
     }
 
     bool bAllowMissing = true;
@@ -810,7 +827,7 @@ TSharedPtr<FJsonObject> FLevelTools::Unload(const TSharedPtr<FJsonObject>& Param
 
     if (Identifiers.Num() == 0)
     {
-        return MakeError(ErrorCodeInvalidParams, TEXT("No valid sublevels provided"));
+        return MakeErrorJson(ErrorCodeInvalidParams, TEXT("No valid sublevels provided"));
     }
 
     const bool bDryRun = FWriteGate::ShouldDryRun();
@@ -861,12 +878,12 @@ TSharedPtr<FJsonObject> FLevelTools::Unload(const TSharedPtr<FJsonObject>& Param
 
     if (NotFound.Num() > 0 && !bAllowMissing)
     {
-        return MakeError(ErrorCodeSublevelNotFound, TEXT("One or more sublevels not found"));
+        return MakeErrorJson(ErrorCodeSublevelNotFound, TEXT("One or more sublevels not found"));
     }
 
     if (!bDryRun && (StreamingTargets.Num() > 0 || PendingDataLayers.Num() > 0))
     {
-        FScopedTransaction Transaction(TEXT("MCP Levels v1"));
+        FScopedTransaction Transaction(FText::FromString(TEXT("MCP Levels v1")));
 
         for (ULevelStreaming* StreamingTarget : StreamingTargets)
         {
@@ -882,7 +899,7 @@ TSharedPtr<FJsonObject> FLevelTools::Unload(const TSharedPtr<FJsonObject>& Param
             TArray<FName> Processed;
             if (!SetDataLayersState(World, PendingDataLayers, /*bLoaded*/ false, /*bActivateOnly*/ false, Processed))
             {
-                return MakeError(ErrorCodeUnloadFailed, TEXT("Failed to update data layers"));
+                return MakeErrorJson(ErrorCodeUnloadFailed, TEXT("Failed to update data layers"));
             }
         }
 
@@ -918,30 +935,30 @@ TSharedPtr<FJsonObject> FLevelTools::StreamSublevel(const TSharedPtr<FJsonObject
 {
     if (!Params.IsValid())
     {
-        return MakeError(ErrorCodeInvalidParams, TEXT("Missing parameters"));
+        return MakeErrorJson(ErrorCodeInvalidParams, TEXT("Missing parameters"));
     }
 
     if (!GEditor)
     {
-        return MakeError(ErrorCodeEditorUnavailable, TEXT("Editor instance unavailable"));
+        return MakeErrorJson(ErrorCodeEditorUnavailable, TEXT("Editor instance unavailable"));
     }
 
     UWorld* World = GetEditorWorld();
     if (!World)
     {
-        return MakeError(ErrorCodeEditorUnavailable, TEXT("No active editor world"));
+        return MakeErrorJson(ErrorCodeEditorUnavailable, TEXT("No active editor world"));
     }
 
     FString TargetName;
     if (!Params->TryGetStringField(TEXT("name"), TargetName))
     {
-        return MakeError(ErrorCodeInvalidParams, TEXT("Missing name parameter"));
+        return MakeErrorJson(ErrorCodeInvalidParams, TEXT("Missing name parameter"));
     }
 
     TargetName.TrimStartAndEndInline();
     if (TargetName.IsEmpty())
     {
-        return MakeError(ErrorCodeInvalidParams, TEXT("Empty sublevel name"));
+        return MakeErrorJson(ErrorCodeInvalidParams, TEXT("Empty sublevel name"));
     }
 
     bool bLoad = true;
@@ -989,12 +1006,12 @@ TSharedPtr<FJsonObject> FLevelTools::StreamSublevel(const TSharedPtr<FJsonObject
 
     if (!Streaming && TargetDataLayers.Num() == 0)
     {
-        return MakeError(ErrorCodeSublevelNotFound, TEXT("Sublevel or data layer not found"));
+        return MakeErrorJson(ErrorCodeSublevelNotFound, TEXT("Sublevel or data layer not found"));
     }
 
     if (!bDryRun)
     {
-        FScopedTransaction Transaction(TEXT("MCP Levels v1"));
+        FScopedTransaction Transaction(FText::FromString(TEXT("MCP Levels v1")));
         bool bChanged = false;
 
         if (Streaming)
@@ -1008,7 +1025,7 @@ TSharedPtr<FJsonObject> FLevelTools::StreamSublevel(const TSharedPtr<FJsonObject
             TArray<FName> Processed;
             if (!SetDataLayersState(World, TargetDataLayers, bLoad, bActivateOnly, Processed))
             {
-                return MakeError(ErrorCodeStreamingFailed, TEXT("Failed to update data layer state"));
+                return MakeErrorJson(ErrorCodeStreamingFailed, TEXT("Failed to update data layer state"));
             }
             bChanged = Processed.Num() > 0;
         }
@@ -1029,14 +1046,17 @@ TSharedPtr<FJsonObject> FLevelTools::StreamSublevel(const TSharedPtr<FJsonObject
                     {
                         if (UDataLayerSubsystem* DataLayerSubsystem = World->GetSubsystem<UDataLayerSubsystem>())
                         {
-                            for (const FName& LayerName : TargetDataLayers)
+                            if (UDataLayerManager* DataLayerManager = DataLayerSubsystem->GetDataLayerManager())
                             {
-                                if (!DataLayerSubsystem->IsDataLayerLoaded(LayerName))
+                                for (const FName& LayerName : TargetDataLayers)
                                 {
-                                    return false;
+                                    if (DataLayerManager->GetDataLayerRuntimeStateByName(LayerName) != EDataLayerRuntimeState::Activated)
+                                    {
+                                        return false;
+                                    }
                                 }
+                                return true;
                             }
-                            return true;
                         }
                     }
 

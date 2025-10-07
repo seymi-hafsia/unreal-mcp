@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Sequencer/SequenceBindings.h"
 
 #include "Dom/JsonObject.h"
@@ -11,7 +12,7 @@
 #include "Misc/PackageName.h"
 #include "MovieScene.h"
 #include "MovieScenePossessable.h"
-#include "MovieSceneSequenceExtensions.h"
+#include "ExtensionLibraries/MovieSceneSequenceExtensions.h"
 #include "UObject/Package.h"
 #include "UObject/UObjectGlobals.h"
 

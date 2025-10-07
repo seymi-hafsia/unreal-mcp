@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Settings/UnrealMCPSettingsCustomization.h"
 
 #include "DetailCategoryBuilder.h"

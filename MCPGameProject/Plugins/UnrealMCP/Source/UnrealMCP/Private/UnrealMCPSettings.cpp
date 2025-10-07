@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "UnrealMCPSettings.h"
 
 #include "Misc/Paths.h"

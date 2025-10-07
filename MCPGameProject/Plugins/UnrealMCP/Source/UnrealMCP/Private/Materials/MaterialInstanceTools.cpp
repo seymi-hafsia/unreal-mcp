@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Materials/MaterialInstanceTools.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -9,8 +10,8 @@
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Misc/PackageName.h"
-#include "String/LexFromString.h"
-#include "String/LexToString.h"
+#include "Misc/LexFromString.h"
+#include "Misc/LexToString.h"
 #include "Permissions/WriteGate.h"
 #include "SourceControlService.h"
 #include "UObject/Package.h"

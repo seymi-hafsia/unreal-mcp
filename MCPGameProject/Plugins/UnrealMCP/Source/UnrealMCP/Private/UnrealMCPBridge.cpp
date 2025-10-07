@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "UnrealMCPBridge.h"
 #include "MCPServerRunnable.h"
 #include "Sockets.h"

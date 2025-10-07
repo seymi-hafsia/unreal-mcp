@@ -1,3 +1,4 @@
+#include "CoreMinimal.h"
 #include "Materials/MaterialApplyTools.h"
 
 #include "Algo/Transform.h"
