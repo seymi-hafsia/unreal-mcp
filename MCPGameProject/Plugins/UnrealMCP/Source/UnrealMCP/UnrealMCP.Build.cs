@@ -10,35 +10,17 @@ public class UnrealMCP : ModuleRules
         // Use IWYUSupport instead of the deprecated bEnforceIWYU in UE5.5
         IWYUSupport = IWYUSupport.Full;
 
-        PublicIncludePaths.AddRange(
-            new string[]
-            {
-                // ... add public include paths required here ...
-            }
-        );
-
-        PrivateIncludePaths.AddRange(
-            new string[]
-            {
-                // ... add other private include paths required here ...
-            }
-        );
-
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
                 "Core",
                 "CoreUObject",
-                "DeveloperSettings",
                 "Engine",
-                "HTTP",
-                "InputCore",
+                "DeveloperSettings",
                 "Json",
                 "JsonUtilities",
-                "Networking",
                 "RenderCore",
-                "RHI",
-                "Sockets"
+                "RHI"
             }
         );
 
@@ -49,51 +31,31 @@ public class UnrealMCP : ModuleRules
                 "AssetTools",
                 "AudioMixer",
                 "BlueprintGraph",
-                "Blutility",
-                "CinematicCamera",
                 "EditorScriptingUtilities",
                 "EditorSubsystem",
+                "Editor",
                 "Kismet",
                 "KismetCompiler",
                 "LevelEditor",
-                "LevelSequence",
                 "LevelSequenceEditor",
+                "LevelSequence",
                 "MovieScene",
                 "MovieSceneTools",
                 "MovieSceneTracks",
                 "Niagara",
                 "NiagaraCore",
-                "Sequencer",
-                "Projects",
+                "Networking",
+                "PropertyEditor",
                 "SequencerScripting",
-                "Settings",
-                "SignalProcessing",
-                "SkeletalMeshUtilitiesCommon",
+                "Sequencer",
                 "Slate",
                 "SlateCore",
                 "SourceControl",
+                "Sockets",
+                "ToolMenus",
                 "UMG",
+                "UMGEditor",
                 "UnrealEd"
-            }
-        );
-
-        if (Target.bBuildEditor == true)
-        {
-            PrivateDependencyModuleNames.AddRange(
-                new string[]
-                {
-                    "BlueprintEditorLibrary", // For Blueprint utilities
-                    "PropertyEditor",         // For widget property editing
-                    "ToolMenus",             // For editor UI
-                    "UMGEditor"               // For WidgetBlueprint.h and other UMG editor functionality
-                }
-            );
-        }
-
-        DynamicallyLoadedModuleNames.AddRange(
-            new string[]
-            {
-                // ... add any modules that your module loads dynamically here ...
             }
         );
     }

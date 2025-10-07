@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "GameFramework/Actor.h"
 #include "Engine/Blueprint.h"

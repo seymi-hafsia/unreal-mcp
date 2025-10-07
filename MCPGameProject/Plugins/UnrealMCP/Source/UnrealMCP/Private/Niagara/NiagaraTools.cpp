@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Niagara/NiagaraTools.h"
 
 #include "Components/SceneComponent.h"
@@ -15,8 +14,8 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "Misc/Char.h"
-#include "String/LexFromString.h"
-#include "String/LexToString.h"
+#include "Misc/LexFromString.h"
+#include "Misc/LexToString.h"
 #include "NiagaraActor.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
@@ -82,9 +81,15 @@ namespace
                 switch (Value->Type)
                 {
                 case EJson::Object:
-                        return FJsonSerializer::Serialize(Value->AsObject().ToSharedRef(), Writer, /*bCloseWriter=*/false);
+                {
+                        const TSharedPtr<FJsonObject> Object = Value->AsObject();
+                        return Object.IsValid() && FJsonSerializer::Serialize(Object.ToSharedRef(), Writer, /*bCloseWriter=*/false);
+                }
                 case EJson::Array:
-                        return FJsonSerializer::Serialize(Value->AsArray(), Writer, /*bCloseWriter=*/false);
+                {
+                        const TArray<TSharedPtr<FJsonValue>> Array = Value->AsArray();
+                        return FJsonSerializer::Serialize(Array, Writer, /*bCloseWriter=*/false);
+                }
                 case EJson::Null:
                         Writer->WriteNull();
                         return true;

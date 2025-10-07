@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "UnrealMCPModule.h"
 #include "UnrealMCPBridge.h"
 #include "Modules/ModuleManager.h"

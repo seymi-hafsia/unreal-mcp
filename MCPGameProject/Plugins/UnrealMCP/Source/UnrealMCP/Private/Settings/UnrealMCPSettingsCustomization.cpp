@@ -1,8 +1,8 @@
-#include "CoreMinimal.h"
 #include "Settings/UnrealMCPSettingsCustomization.h"
 
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
 #include "IDetailGroup.h"
 #include "Settings/UnrealMCPDiagnostics.h"
 #include "Widgets/Input/SButton.h"

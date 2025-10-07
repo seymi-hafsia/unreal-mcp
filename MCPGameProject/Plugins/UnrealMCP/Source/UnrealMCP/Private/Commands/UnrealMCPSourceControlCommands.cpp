@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Commands/UnrealMCPSourceControlCommands.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "SourceControlService.h"

@@ -1,4 +1,3 @@
-#include "CoreMinimal.h"
 #include "Commands/UnrealMCPProjectCommands.h"
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "GameFramework/InputSettings.h"
