@@ -147,7 +147,11 @@ namespace
 
         if (UPackage* Package = FindPackage(nullptr, *PackageName))
         {
-            return UEditorLoadingAndSavingUtils::DoesPackageNeedSaving(Package, true);
+#if WITH_EDITOR
+            return Package && Package->IsDirty();
+#else
+            return false;
+#endif
         }
 
         return false;
@@ -406,9 +410,7 @@ TSharedPtr<FJsonObject> FAssetCrud::Delete(const TSharedPtr<FJsonObject>& Params
         {
             using namespace UE::AssetRegistry;
             TArray<FName> Referencers;
-            FDependencyQuery Query;
-            Query.Flags = EDependencyFlags::Hard;
-            AssetRegistry.GetReferencers(AssetData.PackageName, Referencers, EDependencyCategory::Package, Query);
+            AssetRegistry.GetReferencers(AssetData.PackageName, Referencers, EDependencyCategory::Package, EDependencyQuery::Hard);
 
             Referencers.RemoveAll([&](const FName& Ref)
             {
