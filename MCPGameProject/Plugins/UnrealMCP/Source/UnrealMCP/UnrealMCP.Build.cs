@@ -11,12 +11,19 @@ public class UnrealMCP : ModuleRules
             "Core",
             "CoreUObject",
             "Engine",
-            "UMG",
             "Slate",
             "SlateCore",
+            "UMG",
             "AssetRegistry",
-            "MovieScene",
-            "LevelSequence"
+            "Projects"
         });
+
+        PrivateDependencyModuleNames.AddRange(new[]
+        {
+            "InputCore",
+            "DeveloperSettings"
+        });
+
+        PublicDefinitions.Add("UNREALMCP_RUNTIME=1");
     }
 }

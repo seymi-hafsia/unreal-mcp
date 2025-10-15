@@ -4,6 +4,7 @@ public class UnrealMCPEditor : ModuleRules
 {
     public UnrealMCPEditor(ReadOnlyTargetRules Target) : base(Target)
     {
+        Type = ModuleType.Editor;
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
         PublicDependencyModuleNames.AddRange(new[]
@@ -14,30 +15,27 @@ public class UnrealMCPEditor : ModuleRules
             "Slate",
             "SlateCore",
             "UMG",
+            "AssetRegistry",
             "MovieScene",
             "LevelSequence",
-            "AssetRegistry"
+            "Projects",
+            "UnrealMCP"
         });
 
         PrivateDependencyModuleNames.AddRange(new[]
         {
             "UnrealEd",
             "UMGEditor",
+            "EditorScriptingUtilities",
+            "Blutility",
             "LevelEditor",
             "Sequencer",
             "LevelSequenceEditor",
-            "EditorScriptingUtilities",
-            "Blutility",
-            "Projects",
             "MessageLog",
             "PropertyEditor",
+            "ContentBrowser",
             "BlueprintGraph",
             "KismetCompiler",
-            "UnrealMCP"
-        });
-
-        PrivateDependencyModuleNames.AddRange(new[]
-        {
             "Json",
             "JsonUtilities",
             "Sockets",
@@ -49,9 +47,16 @@ public class UnrealMCPEditor : ModuleRules
             "CinematicCamera"
         });
 
-        if (Target.bBuildEditor)
+        PublicIncludePaths.AddRange(new[]
         {
-            Definitions.Add("WITH_EDITOR=1");
-        }
+            "UnrealMCP/Public"
+        });
+
+        PrivateIncludePaths.AddRange(new[]
+        {
+            "UnrealMCP/Private"
+        });
+
+        PublicDefinitions.Add("UNREALMCP_EDITOR=1");
     }
 }
