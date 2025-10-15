@@ -15,7 +15,11 @@
 #include "Misc/PackageName.h"
 #include "Permissions/WriteGate.h"
 #include "PhysicsEngine/BodySetup.h"
+#if __has_include("Internationalization/Regex.h")
 #include "Internationalization/Regex.h"
+#else
+#include "Regex.h"
+#endif
 #include "ThumbnailRendering/ThumbnailManager.h"
 #include "UObject/Package.h"
 #include "UObject/SoftObjectPath.h"
@@ -46,6 +50,15 @@ namespace
                         Result = Result.Mid(1, Result.Len() - 2);
                 }
                 return Result;
+        }
+
+        FSoftObjectPath MakeSoftObjectPath(const FTopLevelAssetPath& InPath)
+        {
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+                return FSoftObjectPath(InPath);
+#else
+                return FSoftObjectPath(InPath.ToString());
+#endif
         }
 
         bool TryFixSoftPath(FSoftObjectPath& Path, const TMap<FString, FString>& RedirectMap)
@@ -102,7 +115,7 @@ namespace
                                 FSoftClassPath* Path = StructProp->ContainerPtrToValuePtr<FSoftClassPath>(ValuePtr);
                                 if (Path)
                                 {
-                                        FSoftObjectPath ObjectPath(Path->GetAssetPath());
+                                        FSoftObjectPath ObjectPath = MakeSoftObjectPath(Path->GetAssetPath());
                                         if (TryFixSoftPath(ObjectPath, RedirectMap))
                                         {
                                                 *Path = FSoftClassPath(ObjectPath.ToString());

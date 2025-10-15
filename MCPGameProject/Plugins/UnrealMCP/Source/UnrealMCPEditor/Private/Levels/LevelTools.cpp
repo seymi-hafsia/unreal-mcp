@@ -14,7 +14,12 @@
 #include "ScopedTransaction.h"
 #include "UObject/Package.h"
 #include "WorldPartition/DataLayer/DataLayerInstance.h"
+#if __has_include("WorldPartition/DataLayer/DataLayerManager.h")
 #include "WorldPartition/DataLayer/DataLayerManager.h"
+#define UE_MCP_HAS_DATALAYER_MANAGER 1
+#else
+#define UE_MCP_HAS_DATALAYER_MANAGER 0
+#endif
 #include "WorldPartition/DataLayer/DataLayerSubsystem.h"
 #include "WorldPartition/WorldPartition.h"
 
@@ -335,11 +340,15 @@ namespace
             return false;
         }
 
+#if !(ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3))
+#if UE_MCP_HAS_DATALAYER_MANAGER
         UDataLayerManager* DataLayerManager = DataLayerSubsystem->GetDataLayerManager();
         if (!DataLayerManager)
         {
             return false;
         }
+#endif
+#endif
 
         bool bAnyChanged = false;
         for (const FName& LayerName : DataLayers)
@@ -349,9 +358,19 @@ namespace
                 const EDataLayerRuntimeState TargetState = (bLoaded || bActivateOnly)
                     ? EDataLayerRuntimeState::Activated
                     : EDataLayerRuntimeState::Unloaded;
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+                DataLayerSubsystem->SetDataLayerRuntimeStateByName(LayerName, TargetState);
+                OutProcessed.Add(LayerName);
+                bAnyChanged = true;
+#else
+#if UE_MCP_HAS_DATALAYER_MANAGER
                 DataLayerManager->SetDataLayerRuntimeStateByName(LayerName, TargetState);
                 OutProcessed.Add(LayerName);
                 bAnyChanged = true;
+#else
+                (void)TargetState;
+#endif
+#endif
             }
         }
 
@@ -367,10 +386,16 @@ namespace
 
         if (UDataLayerSubsystem* DataLayerSubsystem = World->GetSubsystem<UDataLayerSubsystem>())
         {
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+            return DataLayerSubsystem->GetDataLayerInstance(LayerName) != nullptr;
+#else
+#if UE_MCP_HAS_DATALAYER_MANAGER
             if (UDataLayerManager* DataLayerManager = DataLayerSubsystem->GetDataLayerManager())
             {
                 return DataLayerManager->GetDataLayerInstance(LayerName) != nullptr;
             }
+#endif
+#endif
         }
 
         return false;
@@ -1046,6 +1071,17 @@ TSharedPtr<FJsonObject> FLevelTools::StreamSublevel(const TSharedPtr<FJsonObject
                     {
                         if (UDataLayerSubsystem* DataLayerSubsystem = World->GetSubsystem<UDataLayerSubsystem>())
                         {
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+                            for (const FName& LayerName : TargetDataLayers)
+                            {
+                                if (DataLayerSubsystem->GetDataLayerRuntimeStateByName(LayerName) != EDataLayerRuntimeState::Activated)
+                                {
+                                    return false;
+                                }
+                            }
+                            return true;
+#else
+#if UE_MCP_HAS_DATALAYER_MANAGER
                             if (UDataLayerManager* DataLayerManager = DataLayerSubsystem->GetDataLayerManager())
                             {
                                 for (const FName& LayerName : TargetDataLayers)
@@ -1057,6 +1093,8 @@ TSharedPtr<FJsonObject> FLevelTools::StreamSublevel(const TSharedPtr<FJsonObject
                                 }
                                 return true;
                             }
+#endif
+#endif
                         }
                     }
 

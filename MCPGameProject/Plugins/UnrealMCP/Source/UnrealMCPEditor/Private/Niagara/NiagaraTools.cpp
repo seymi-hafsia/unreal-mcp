@@ -15,8 +15,16 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "Misc/Char.h"
+#if __has_include("String/LexFromString.h")
 #include "String/LexFromString.h"
+#else
+#include "Misc/LexFromString.h"
+#endif
+#if __has_include("String/LexToString.h")
 #include "String/LexToString.h"
+#else
+#include "Misc/LexToString.h"
+#endif
 #include "NiagaraActor.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"

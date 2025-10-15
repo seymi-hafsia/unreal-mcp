@@ -10,8 +10,16 @@
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Misc/PackageName.h"
+#if __has_include("String/LexFromString.h")
 #include "String/LexFromString.h"
+#else
+#include "Misc/LexFromString.h"
+#endif
+#if __has_include("String/LexToString.h")
 #include "String/LexToString.h"
+#else
+#include "Misc/LexToString.h"
+#endif
 #include "Permissions/WriteGate.h"
 #include "SourceControlService.h"
 #include "UObject/Package.h"

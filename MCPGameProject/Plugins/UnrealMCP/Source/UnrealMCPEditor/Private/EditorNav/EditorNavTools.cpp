@@ -16,8 +16,16 @@
 #include "GameFramework/Actor.h"
 #include "Math/Box.h"
 #include "Templates/Optional.h"
+#if __has_include("String/LexFromString.h")
 #include "String/LexFromString.h"
+#else
+#include "Misc/LexFromString.h"
+#endif
+#if __has_include("String/LexToString.h")
 #include "String/LexToString.h"
+#else
+#include "Misc/LexToString.h"
+#endif
 
 namespace
 {

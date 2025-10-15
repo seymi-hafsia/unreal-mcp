@@ -9,8 +9,16 @@
 #include "Sockets.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
+#if __has_include("String/LexFromString.h")
 #include "String/LexFromString.h"
+#else
+#include "Misc/LexFromString.h"
+#endif
+#if __has_include("String/LexToString.h")
 #include "String/LexToString.h"
+#else
+#include "Misc/LexToString.h"
+#endif
 #include "UnrealMCPLog.h"
 #include "UnrealMCPSettings.h"
 

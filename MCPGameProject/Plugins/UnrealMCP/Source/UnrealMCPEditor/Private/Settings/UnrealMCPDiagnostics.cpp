@@ -13,7 +13,11 @@
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "UnrealMCPSettings.h"
+#if __has_include("String/LexToString.h")
 #include "String/LexToString.h"
+#else
+#include "Misc/LexToString.h"
+#endif
 
 namespace
 {

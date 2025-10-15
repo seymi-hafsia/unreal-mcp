@@ -20,8 +20,16 @@
 #include "MovieSceneObjectBindingID.h"
 #include "Permissions/WriteGate.h"
 #include "Sections/MovieSceneSection.h"
+#if __has_include("String/LexFromString.h")
 #include "String/LexFromString.h"
+#else
+#include "Misc/LexFromString.h"
+#endif
+#if __has_include("String/LexToString.h")
 #include "String/LexToString.h"
+#else
+#include "Misc/LexToString.h"
+#endif
 #include "GameFramework/Actor.h"
 #include "Sections/MovieSceneCameraCutSection.h"
 #include "SourceControlService.h"

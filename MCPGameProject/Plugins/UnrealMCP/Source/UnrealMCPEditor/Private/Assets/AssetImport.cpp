@@ -14,6 +14,9 @@
 #include "Factories/FbxImportUI.h"
 #include "Factories/FbxSkeletalMeshImportData.h"
 #include "Factories/FbxStaticMeshImportData.h"
+#if __has_include("Factories/FbxMeshImportData.h")
+#include "Factories/FbxMeshImportData.h"
+#endif
 #include "Factories/SoundFactory.h"
 #include "Factories/TextureFactory.h"
 #include "HAL/FileManager.h"
@@ -825,11 +828,21 @@ TSharedPtr<FJsonObject> FAssetImport::BatchImport(const TSharedPtr<FJsonObject>&
                 const FString NormalMethodLower = FbxOptions.NormalImportMethod.ToLower();
                 if (NormalMethodLower == TEXT("importnormalsandtangents"))
                 {
-                    ImportUI->StaticMeshImportData->NormalImportMethod = ENormalImportMethod::FBXNormalImportMethod_ImportNormalsAndTangents;
+                    ImportUI->StaticMeshImportData->NormalImportMethod =
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+                        UFbxMeshImportData::EFBXNormalImportMethod::FBXNIM_ImportNormalsAndTangents;
+#else
+                        ENormalImportMethod::FBXNormalImportMethod_ImportNormalsAndTangents;
+#endif
                 }
                 else if (NormalMethodLower == TEXT("computenormals"))
                 {
-                    ImportUI->StaticMeshImportData->NormalImportMethod = ENormalImportMethod::FBXNormalImportMethod_ComputeNormals;
+                    ImportUI->StaticMeshImportData->NormalImportMethod =
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+                        UFbxMeshImportData::EFBXNormalImportMethod::FBXNIM_ComputeNormals;
+#else
+                        ENormalImportMethod::FBXNormalImportMethod_ComputeNormals;
+#endif
                 }
 
                 if (!FbxOptions.LodGroup.IsEmpty())

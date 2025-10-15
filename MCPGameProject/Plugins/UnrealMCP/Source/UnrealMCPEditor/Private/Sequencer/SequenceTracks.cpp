@@ -12,8 +12,16 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "LevelSequence/LevelSequence.h"
+#if __has_include("String/LexFromString.h")
 #include "String/LexFromString.h"
+#else
+#include "Misc/LexFromString.h"
+#endif
+#if __has_include("String/LexToString.h")
 #include "String/LexToString.h"
+#else
+#include "Misc/LexToString.h"
+#endif
 #include "Misc/PackageName.h"
 #include "MovieScene.h"
 #include "MovieSceneBinding.h"
