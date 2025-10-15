@@ -24,6 +24,5 @@ public class UnrealMCP : ModuleRules
             "DeveloperSettings"
         });
 
-        PublicDefinitions.Add("UNREALMCP_RUNTIME=1");
     }
 }

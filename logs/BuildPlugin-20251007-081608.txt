@@ -1,0 +1,26 @@
+﻿Running AutomationTool...
+Using bundled DotNet SDK version: 8.0.300 win-x64
+Starting AutomationTool...
+Parsing command line: BuildPlugin -Plugin=D:\Projets\fork-unreal-mcp\MCPGameProject\Plugins\UnrealMCP\UnrealMCP.uplugin -Package=D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64 -TargetPlatforms=Win64 -Rocket
+Initializing script modules...
+Total script module initialization time: 0.71 s.
+Using D:\Programs Files\VisualStudio\App\MSBuild\Current\Bin\MSBuild.exe
+Executing commands...
+Copying 70 file(s) using max 64 thread(s)
+Reading plugin from D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\UnrealMCP.uplugin...
+Building plugin for host platforms: Win64
+Running: D:\Mes jeux\Epic Games\UE_5.6\Engine\Binaries\ThirdParty\DotNet\8.0.300\win-x64\dotnet.exe "D:\Mes jeux\Epic Games\UE_5.6\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" UnrealEditor Win64 Development -Project="D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\HostProject.uproject" -plugin="D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\UnrealMCP.uplugin" -noubtmakefiles -manifest="D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Saved\Manifest-UnrealEditor-Win64-Development.xml" -nohotreload -log="C:\Users\Seymi\AppData\Roaming\Unreal Engine\AutomationTool\Logs\D+Mes+jeux+Epic+Games+UE_5.6\UBA-UnrealEditor-Win64-Development.txt"
+Log file: C:\Users\Seymi\AppData\Roaming\Unreal Engine\AutomationTool\Logs\D+Mes+jeux+Epic+Games+UE_5.6\UBA-UnrealEditor-Win64-Development.txt
+Available x64 toolchains (1):
+ * D:\Programs Files\VisualStudio\App\VC\Tools\MSVC\14.44.35207
+    (Family=14.44.35207, FamilyRank=1, Version=14.44.35214, HostArchitecture=x64, ReleaseChannel=Latest, Architecture=x64)
+Visual Studio 2022 compiler version 14.44.35214 is not a preferred version. Please use the latest preferred version 14.38.33130
+Could not find definition for module 'Editor', (referenced via Target -> UnrealMCP.Build.cs)
+
+Result: Failed (RulesError)
+Total execution time: 9.05 seconds
+Took 9,72s to run dotnet.exe, ExitCode=8
+UnrealBuildTool failed. See log for more details. (C:\Users\Seymi\AppData\Roaming\Unreal Engine\AutomationTool\Logs\D+Mes+jeux+Epic+Games+UE_5.6\UBA-UnrealEditor-Win64-Development.txt)
+AutomationTool executed for 0h 0m 18s
+AutomationTool exiting with ExitCode=8 (8)
+BUILD FAILED

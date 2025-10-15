@@ -7,7 +7,7 @@
 #include "Editor.h"
 #include "EditorLevelLibrary.h"
 #include "EditorViewportClient.h"
-#include "EditorViewport/EditorViewportLibrary.h"
+#include "EditorViewportLibrary.h"     // vient d'UnrealEd (PrivateDependency)
 #include "Engine/BookMark.h"
 #include "Engine/Level.h"
 #include "Engine/Selection.h"
@@ -15,7 +15,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "Math/Box.h"
-#include "Templates/Optional.h"
+#include "CoreMinimal.h" // TOptional est inclus via CoreMinimal
 #include "String/LexFromString.h"
 #include "String/LexToString.h"
 

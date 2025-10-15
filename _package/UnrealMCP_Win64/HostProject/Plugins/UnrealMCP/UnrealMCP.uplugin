@@ -1,35 +1,53 @@
 {
-	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "1.0",
-	"FriendlyName": "UnrealMCP",
-	"Description": "Model Context Protocol implementation for Unreal Engine",
-	"Category": "Editor",
-	"CreatedBy": "Your Name",
-	"CreatedByURL": "",
-	"DocsURL": "",
-	"MarketplaceURL": "",
-	"SupportURL": "",
-	"CanContainContent": true,
-	"IsBetaVersion": false,
-	"IsExperimentalVersion": false,
-	"Installed": false,
-	"Modules": [
-		{
-			"Name": "UnrealMCP",
-			"Type": "Editor",
-			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [
-				"Win64",
-				"Mac",
-				"Linux"
-			]
-		}
-	],
-	"Plugins": [
-		{
-			"Name": "EditorScriptingUtilities",
-			"Enabled": true
-		}
-	]
-} 
+    "FileVersion": 3,
+    "Version": 2,
+    "VersionName": "0.2.0",
+    "FriendlyName": "Unreal MCP",
+    "Description": "Model Context Protocol bridge and editor tooling for Unreal Engine.",
+    "Category": "Developer Tools",
+    "CreatedBy": "Your Name",
+    "CreatedByURL": "",
+    "DocsURL": "",
+    "MarketplaceURL": "",
+    "SupportURL": "",
+    "EnabledByDefault": false,
+    "CanContainContent": false,
+    "IsBetaVersion": false,
+    "IsExperimentalVersion": false,
+    "Installed": false,
+    "Modules": [
+        {
+            "Name": "UnrealMCP",
+            "Type": "Runtime",
+            "LoadingPhase": "Default"
+        },
+        {
+            "Name": "UnrealMCPEditor",
+            "Type": "Editor",
+            "LoadingPhase": "Default"
+        }
+    ],
+    "Plugins": [
+        {
+            "Name": "EditorScriptingUtilities",
+            "Enabled": true
+        },
+        {
+            "Name": "SequencerScripting",
+            "Enabled": true
+        },
+        {
+            "Name": "LevelSequenceEditor",
+            "Enabled": true
+        },
+        {
+            "Name": "Niagara",
+            "Enabled": true
+        }
+    ],
+    "EngineVersionRange": [
+        {
+            "Min": "5.6.0"
+        }
+    ]
+}
