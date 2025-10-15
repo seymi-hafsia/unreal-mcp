@@ -4,7 +4,7 @@
 #include "AssetToolsModule.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
-#include "AssetImportTask.h"
+#include "Factories/AssetImportTask.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Factories/Factory.h"
 #include "Dom/JsonObject.h"
@@ -12,6 +12,7 @@
 #include "EditorAssetLibrary.h"
 #include "Factories/FbxFactory.h"
 #include "Factories/FbxImportUI.h"
+#include "Factories/FbxMeshImportData.h"
 #include "Factories/FbxSkeletalMeshImportData.h"
 #include "Factories/FbxStaticMeshImportData.h"
 #include "Factories/SoundFactory.h"
@@ -22,6 +23,7 @@
 #include "Modules/ModuleManager.h"
 #include "Permissions/WriteGate.h"
 #include "ScopedTransaction.h"
+#include "Sound/SoundBase.h"
 #include "Sound/SoundWave.h"
 #include "SourceControlService.h"
 #include "Engine/Texture.h"
@@ -388,21 +390,21 @@ namespace
         const FString Lower = Value.ToLower();
         if (Lower == TEXT("voice"))
         {
-            return ESoundGroup::Voice;
+            return ESoundGroup::SOUNDGROUP_Voice;
         }
         if (Lower == TEXT("music"))
         {
-            return ESoundGroup::Music;
+            return ESoundGroup::SOUNDGROUP_Music;
         }
         if (Lower == TEXT("ui"))
         {
-            return ESoundGroup::UI;
+            return ESoundGroup::SOUNDGROUP_UI;
         }
         if (Lower == TEXT("ambient"))
         {
-            return ESoundGroup::Ambient;
+            return ESoundGroup::SOUNDGROUP_Ambient;
         }
-        return ESoundGroup::Default;
+        return ESoundGroup::SOUNDGROUP_Default;
     }
 
     bool ConvertPackagesToFiles(const TArray<FString>& PackagePaths, TArray<FString>& OutFiles, FString& OutError)
@@ -773,7 +775,7 @@ TSharedPtr<FJsonObject> FAssetImport::BatchImport(const TSharedPtr<FJsonObject>&
 
     FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
 
-    TArray<FAssetImportTask*> ImportTasks;
+    TArray<UAssetImportTask*> ImportTasks;
     ImportTasks.Reserve(PlanEntries.Num());
 
     TArray<TStrongObjectPtr<UAssetImportTask>> OwnedTasks;
@@ -825,24 +827,12 @@ TSharedPtr<FJsonObject> FAssetImport::BatchImport(const TSharedPtr<FJsonObject>&
                 const FString NormalMethodLower = FbxOptions.NormalImportMethod.ToLower();
                 if (NormalMethodLower == TEXT("importnormalsandtangents"))
                 {
-                    ImportUI->StaticMeshImportData->NormalImportMethod = ENormalImportMethod::FBXNormalImportMethod_ImportNormalsAndTangents;
+                    ImportUI->StaticMeshImportData->NormalImportMethod = EFBXNormalImportMethod::FBXNormalImportMethod_ImportNormalsAndTangents;
                 }
                 else if (NormalMethodLower == TEXT("computenormals"))
                 {
-                    ImportUI->StaticMeshImportData->NormalImportMethod = ENormalImportMethod::FBXNormalImportMethod_ComputeNormals;
+                    ImportUI->StaticMeshImportData->NormalImportMethod = EFBXNormalImportMethod::FBXNormalImportMethod_ComputeNormals;
                 }
-
-                if (!FbxOptions.LodGroup.IsEmpty())
-                {
-                    ImportUI->StaticMeshImportData->StaticMeshLODGroupName = FName(*FbxOptions.LodGroup);
-                }
-            }
-
-            if (ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh && ImportUI->SkeletalMeshImportData)
-            {
-                ImportUI->SkeletalMeshImportData->bImportAnimations = FbxOptions.bImportAnimations;
-                ImportUI->SkeletalMeshImportData->bImportMaterials = FbxOptions.bImportMaterials;
-                ImportUI->SkeletalMeshImportData->bImportTextures = FbxOptions.bImportTextures;
             }
 
             if (!FbxOptions.SkeletonPath.IsEmpty())
@@ -926,7 +916,7 @@ TSharedPtr<FJsonObject> FAssetImport::BatchImport(const TSharedPtr<FJsonObject>&
 
     AssetToolsModule.Get().ImportAssetTasks(ImportTasks);
 
-    for (FAssetImportTask* Task : ImportTasks)
+    for (UAssetImportTask* Task : ImportTasks)
     {
         if (!Task)
         {

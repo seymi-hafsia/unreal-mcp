@@ -5,19 +5,22 @@ public class UnrealMCPEditor : ModuleRules
     public UnrealMCPEditor(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        Type = ModuleRules.ModuleType.Cpp;
 
         PublicDependencyModuleNames.AddRange(new[]
         {
             "Core",
             "CoreUObject",
             "Engine",
+            "Projects",
+            "Json",
+            "JsonUtilities",
+            "AssetRegistry",
+            "LevelSequence",
+            "MovieScene",
             "Slate",
             "SlateCore",
             "UMG",
-            "AssetRegistry",
-            "MovieScene",
-            "LevelSequence",
-            "Projects",
             "UnrealMCP"
         });
 
@@ -25,11 +28,11 @@ public class UnrealMCPEditor : ModuleRules
         {
             "UnrealEd",
             "UMGEditor",
+            "Sequencer",
+            "LevelSequenceEditor",
             "EditorScriptingUtilities",
             "Blutility",
             "LevelEditor",
-            "Sequencer",
-            "LevelSequenceEditor",
             "MessageLog",
             "PropertyEditor",
             "ContentBrowser",

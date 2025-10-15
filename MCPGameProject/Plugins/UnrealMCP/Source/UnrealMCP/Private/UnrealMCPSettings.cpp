@@ -1,4 +1,6 @@
 #include "UnrealMCPSettings.h"
+#include "CoreMinimal.h"
+
 #include "Misc/Paths.h"
 
 namespace
