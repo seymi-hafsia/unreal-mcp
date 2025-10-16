@@ -18,10 +18,11 @@
 #include "Modules/ModuleManager.h"
 #include "MovieScene.h"
 #include "MovieSceneObjectBindingID.h"
+#include "MovieSceneSequence.h"
 #include "Permissions/WriteGate.h"
 #include "Sections/MovieSceneSection.h"
 #include "String/LexFromString.h"
-#include "Misc/LexToString.h"
+#include "String/LexToString.h"
 #include "GameFramework/Actor.h"
 #include "Sections/MovieSceneCameraCutSection.h"
 #include "SourceControlService.h"
@@ -44,6 +45,11 @@ namespace
     constexpr const TCHAR* ErrorCodeBindFailed = TEXT("BIND_FAILED");
     constexpr const TCHAR* ErrorCodeSourceControlRequired = TEXT("SOURCE_CONTROL_REQUIRED");
     constexpr const TCHAR* ErrorCodeSourceControlOperationFailed = TEXT("SC_OPERATION_FAILED");
+
+    UE::MovieScene::FResolveParams MakeResolveParams(UObject* PlaybackContext, UObject* BindingContext)
+    {
+        return UE::MovieScene::FResolveParams(PlaybackContext, BindingContext);
+    }
 
     TSharedPtr<FJsonObject> MakeErrorResponse(const FString& Code, const FString& Message)
     {
@@ -469,10 +475,17 @@ TSharedPtr<FJsonObject> FSequenceTools::Create(const TSharedPtr<FJsonObject>& Pa
         CreatedCameraPath = SpawnedCamera->GetPathName();
 
         MovieScene->Modify();
-        FMovieScenePossessable& Possessable = MovieScene->AddPossessable(GetActorDisplayName(*SpawnedCamera), SpawnedCamera->GetClass());
-        CameraBindingGuid = Possessable.GetGuid();
-        const bool bBound = LevelSequence->BindPossessableObject(CameraBindingGuid, *SpawnedCamera, SpawnedCamera->GetWorld());
-        if (!bBound)
+        CameraBindingGuid = MovieScene->AddPossessable(GetActorDisplayName(*SpawnedCamera), SpawnedCamera->GetClass());
+        if (!CameraBindingGuid.IsValid())
+        {
+            return MakeErrorResponse(ErrorCodeBindFailed, TEXT("Failed to create camera binding"));
+        }
+
+        LevelSequence->BindPossessableObject(CameraBindingGuid, *SpawnedCamera, SpawnedCamera->GetWorld());
+
+        TArray<UObject*, TInlineAllocator<1>> CameraVerification;
+        LevelSequence->LocateBoundObjects(CameraBindingGuid, MakeResolveParams(SpawnedCamera->GetWorld(), SpawnedCamera), CameraVerification);
+        if (!CameraVerification.Contains(SpawnedCamera))
         {
             return MakeErrorResponse(ErrorCodeBindFailed, TEXT("Failed to bind spawned camera"));
         }
@@ -529,10 +542,18 @@ TSharedPtr<FJsonObject> FSequenceTools::Create(const TSharedPtr<FJsonObject>& Pa
             }
 
             MovieScene->Modify();
-            FMovieScenePossessable& Possessable = MovieScene->AddPossessable(GetActorDisplayName(*TargetActor), TargetActor->GetClass());
-            const FGuid BindingGuid = Possessable.GetGuid();
-            const bool bBound = LevelSequence->BindPossessableObject(BindingGuid, *TargetActor, TargetActor->GetWorld());
-            if (bBound)
+            const FGuid BindingGuid = MovieScene->AddPossessable(GetActorDisplayName(*TargetActor), TargetActor->GetClass());
+            if (!BindingGuid.IsValid())
+            {
+                FailedBindings.Add(ActorIdentifier);
+                continue;
+            }
+
+            LevelSequence->BindPossessableObject(BindingGuid, *TargetActor, TargetActor->GetWorld());
+
+            TArray<UObject*, TInlineAllocator<1>> BoundObjects;
+            LevelSequence->LocateBoundObjects(BindingGuid, MakeResolveParams(TargetActor->GetWorld(), TargetActor), BoundObjects);
+            if (BoundObjects.Contains(TargetActor))
             {
                 ++BoundActors;
             }

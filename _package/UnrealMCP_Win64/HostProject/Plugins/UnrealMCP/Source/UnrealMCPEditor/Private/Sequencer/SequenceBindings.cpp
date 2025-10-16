@@ -12,6 +12,7 @@
 #include "Misc/PackageName.h"
 #include "MovieScene.h"
 #include "MovieScenePossessable.h"
+#include "MovieSceneSequence.h"
 #include "ExtensionLibraries/MovieSceneSequenceExtensions.h"
 #include "UObject/Package.h"
 #include "UObject/UObjectGlobals.h"
@@ -130,6 +131,11 @@ namespace
 #endif
     }
 
+    UE::MovieScene::FResolveParams MakeResolveParams(UObject* PlaybackContext, UObject* BindingContext)
+    {
+        return UE::MovieScene::FResolveParams(PlaybackContext, BindingContext);
+    }
+
     TArray<FGuid> FindBindingsForActor(ULevelSequence& Sequence, AActor& Actor)
     {
         TArray<FGuid> Result;
@@ -140,7 +146,7 @@ namespace
                 const FGuid& Guid = Binding.GetObjectGuid();
 
                 TArray<UObject*, TInlineAllocator<1>> LocatedObjects;
-                Sequence.LocateBoundObjects(Guid, Actor.GetWorld(), LocatedObjects);
+                Sequence.LocateBoundObjects(Guid, MakeResolveParams(Actor.GetWorld(), &Actor), LocatedObjects);
                 for (UObject* BoundObject : LocatedObjects)
                 {
                     if (BoundObject == &Actor)
@@ -159,8 +165,10 @@ namespace
     {
         if (UMovieScene* MovieScene = Sequence.GetMovieScene())
         {
-            if (MovieScene->RemoveBinding(BindingId))
+            const int32 BindingIndex = MovieScene->FindBindingIndex(BindingId);
+            if (BindingIndex != INDEX_NONE)
             {
+                MovieScene->RemoveBinding(BindingId);
                 return true;
             }
         }
@@ -342,10 +350,18 @@ TSharedPtr<FJsonObject> FSequenceBindings::BindActors(const TSharedPtr<FJsonObje
         PrepareForChange();
 
         const FString DefaultLabel = GetActorDisplayName(*Actor);
-        FMovieScenePossessable& Possessable = MovieScene->AddPossessable(DefaultLabel, Actor->GetClass());
-        const FGuid BindingGuid = Possessable.GetGuid();
+        const FGuid BindingGuid = MovieScene->AddPossessable(DefaultLabel, Actor->GetClass());
+        if (!BindingGuid.IsValid())
+        {
+            return MakeErrorResponse(ErrorCodeBindFailed, TEXT("Failed to create possessable"));
+        }
 
-        if (!LevelSequence->BindPossessableObject(BindingGuid, *Actor, Actor->GetWorld()))
+        LevelSequence->BindPossessableObject(BindingGuid, *Actor, Actor->GetWorld());
+
+        TArray<UObject*, TInlineAllocator<1>> Verification;
+        LevelSequence->LocateBoundObjects(BindingGuid, MakeResolveParams(Actor->GetWorld(), Actor), Verification);
+        const bool bIsBound = Verification.Contains(Actor);
+        if (!bIsBound)
         {
             MovieScene->RemovePossessable(BindingGuid);
             return MakeErrorResponse(ErrorCodeBindFailed, FString::Printf(TEXT("Failed to bind actor: %s"), *Actor->GetPathName()));
@@ -355,7 +371,7 @@ TSharedPtr<FJsonObject> FSequenceBindings::BindActors(const TSharedPtr<FJsonObje
         if (!LabelPrefix.IsEmpty())
         {
             FinalLabel = FString::Printf(TEXT("%s%d"), *LabelPrefix, LabelCounter++);
-            UMovieSceneSequenceExtensions::SetDisplayName(LevelSequence, BindingGuid, FText::FromString(FinalLabel));
+            UMovieSceneSequenceExtensions::SetBindingDisplayName(LevelSequence, BindingGuid, FText::FromString(FinalLabel));
         }
 
         AppendAdded(AddedArray, Actor->GetPathName(), BindingGuid, FinalLabel);
@@ -620,7 +636,7 @@ TSharedPtr<FJsonObject> FSequenceBindings::List(const TSharedPtr<FJsonObject>& P
         if (World)
         {
             TArray<UObject*, TInlineAllocator<1>> LocatedObjects;
-            LevelSequence->LocateBoundObjects(Guid, World, LocatedObjects);
+            LevelSequence->LocateBoundObjects(Guid, MakeResolveParams(World, World), LocatedObjects);
             for (UObject* Object : LocatedObjects)
             {
                 if (AActor* Actor = Cast<AActor>(Object))
