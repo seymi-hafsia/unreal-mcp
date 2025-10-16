@@ -10,7 +10,7 @@
 #include "GameFramework/Actor.h"
 #include "Misc/Char.h"
 #include "String/LexFromString.h"
-#include "Misc/LexToString.h"
+#include "String/LexToString.h"
 #include "UObject/UObjectGlobals.h"
 #include "Components/SceneComponent.h"
 

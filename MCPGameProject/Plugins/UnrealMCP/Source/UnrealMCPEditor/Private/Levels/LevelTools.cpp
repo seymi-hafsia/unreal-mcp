@@ -14,6 +14,7 @@
 #include "ScopedTransaction.h"
 #include "UObject/Package.h"
 #include "WorldPartition/DataLayer/DataLayerSubsystem.h"
+#include "WorldPartition/DataLayer/DataLayerManager.h"
 #include "WorldPartition/WorldPartition.h"
 
 namespace
@@ -320,6 +321,21 @@ namespace
         return OutNames.Num() > 0;
     }
 
+    UDataLayerManager* GetDataLayerManager(UWorld* World)
+    {
+        if (!World)
+        {
+            return nullptr;
+        }
+
+        if (UDataLayerSubsystem* DataLayerSubsystem = World->GetSubsystem<UDataLayerSubsystem>())
+        {
+            return DataLayerSubsystem->GetDataLayerManager();
+        }
+
+        return nullptr;
+    }
+
     bool SetDataLayersState(UWorld* World, const TArray<FName>& DataLayers, bool bLoaded, bool bActivateOnly, TArray<FName>& OutProcessed)
     {
         if (!World)
@@ -327,8 +343,8 @@ namespace
             return false;
         }
 
-        UDataLayerSubsystem* DataLayerSubsystem = World->GetSubsystem<UDataLayerSubsystem>();
-        if (!DataLayerSubsystem)
+        UDataLayerManager* DataLayerManager = GetDataLayerManager(World);
+        if (!DataLayerManager)
         {
             return false;
         }
@@ -341,9 +357,9 @@ namespace
                 const EDataLayerRuntimeState TargetState = (bLoaded || bActivateOnly)
                     ? EDataLayerRuntimeState::Activated
                     : EDataLayerRuntimeState::Unloaded;
-                const EDataLayerRuntimeState PreviousState = DataLayerSubsystem->GetDataLayerRuntimeStateByName(LayerName);
-                DataLayerSubsystem->SetDataLayerRuntimeStateByName(LayerName, TargetState);
-                if (DataLayerSubsystem->GetDataLayerRuntimeStateByName(LayerName) == TargetState)
+                const EDataLayerRuntimeState PreviousState = DataLayerManager->GetDataLayerRuntimeStateByName(LayerName);
+                DataLayerManager->SetDataLayerRuntimeStateByName(LayerName, TargetState);
+                if (DataLayerManager->GetDataLayerRuntimeStateByName(LayerName) == TargetState)
                 {
                     OutProcessed.Add(LayerName);
                     bAnyChanged = bAnyChanged || (PreviousState != TargetState);
@@ -361,9 +377,9 @@ namespace
             return false;
         }
 
-        if (UDataLayerSubsystem* DataLayerSubsystem = World->GetSubsystem<UDataLayerSubsystem>())
+        if (UDataLayerManager* DataLayerManager = GetDataLayerManager(World))
         {
-            const EDataLayerRuntimeState State = DataLayerSubsystem->GetDataLayerRuntimeStateByName(LayerName);
+            const EDataLayerRuntimeState State = DataLayerManager->GetDataLayerRuntimeStateByName(LayerName);
             switch (State)
             {
             case EDataLayerRuntimeState::Unloaded:
@@ -1046,11 +1062,11 @@ TSharedPtr<FJsonObject> FLevelTools::StreamSublevel(const TSharedPtr<FJsonObject
 
                     if (TargetDataLayers.Num() > 0)
                     {
-                        if (UDataLayerSubsystem* DataLayerSubsystem = World->GetSubsystem<UDataLayerSubsystem>())
+                        if (UDataLayerManager* DataLayerManager = GetDataLayerManager(World))
                         {
                             for (const FName& LayerName : TargetDataLayers)
                             {
-                                if (DataLayerSubsystem->GetDataLayerRuntimeStateByName(LayerName) != EDataLayerRuntimeState::Activated)
+                                if (DataLayerManager->GetDataLayerRuntimeStateByName(LayerName) != EDataLayerRuntimeState::Activated)
                                 {
                                     return false;
                                 }

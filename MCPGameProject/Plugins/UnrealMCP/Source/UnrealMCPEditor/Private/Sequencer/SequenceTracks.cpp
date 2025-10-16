@@ -13,12 +13,13 @@
 #include "EngineUtils.h"
 #include "LevelSequence.h"
 #include "String/LexFromString.h"
-#include "Misc/LexToString.h"
+#include "String/LexToString.h"
 #include "Misc/PackageName.h"
 #include "MovieScene.h"
 #include "MovieSceneBinding.h"
 #include "MovieScenePossessable.h"
 #include "MovieSceneSpawnable.h"
+#include "MovieSceneSequence.h"
 #include "Permissions/WriteGate.h"
 #include "Sections/MovieScene3DTransformSection.h"
 #include "Sections/MovieSceneBoolSection.h"
@@ -70,6 +71,11 @@ namespace
             Result->SetObjectField(TEXT("data"), Payload);
         }
         return Result;
+    }
+
+    UE::MovieScene::FResolveParams MakeResolveParams(UObject* PlaybackContext, UObject* BindingContext)
+    {
+        return UE::MovieScene::FResolveParams(PlaybackContext, BindingContext);
     }
 
     FString NormalizeSequencePath(const FString& SequencePath)
@@ -251,7 +257,7 @@ namespace
             if (World)
             {
                 TArray<UObject*, TInlineAllocator<1>> LocatedObjects;
-                Sequence.LocateBoundObjects(Guid, World, LocatedObjects);
+                Sequence.LocateBoundObjects(Guid, MakeResolveParams(World, World), LocatedObjects);
                 for (UObject* Object : LocatedObjects)
                 {
                     if (!Object)
@@ -837,7 +843,7 @@ namespace
         }
 
         TArray<UObject*, TInlineAllocator<1>> LocatedObjects;
-        Sequence.LocateBoundObjects(BindingInfo.BindingId, World, LocatedObjects);
+        Sequence.LocateBoundObjects(BindingInfo.BindingId, MakeResolveParams(World, World), LocatedObjects);
         if (LocatedObjects.Num() > 0)
         {
             return LocatedObjects[0];

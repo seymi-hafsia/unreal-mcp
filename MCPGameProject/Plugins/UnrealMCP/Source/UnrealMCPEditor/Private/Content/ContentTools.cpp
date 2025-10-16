@@ -23,9 +23,8 @@
 #include "UObject/UnrealType.h"
 #include "UObject/ObjectRedirector.h"
 #include "UObject/TopLevelAssetPath.h"
-#include "Containers/ScriptArray.h"
 #include "Containers/Map.h"
-#include "Containers/ScriptSet.h"
+#include "UObject/Script.h"
 
 namespace
 {

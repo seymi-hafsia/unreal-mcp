@@ -1,6 +1,5 @@
 #include "Assets/AssetQuery.h"
 #include "CoreMinimal.h"
-
 #include "AssetRegistry/AssetData.h"
 #include "AssetRegistry/ARFilter.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -9,7 +8,6 @@
 #include "Dom/JsonValue.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformTime.h"
-#include "CoreMinimal.h" // TOptional est inclus via CoreMinimal
 #include "Misc/PackageName.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/SoftObjectPath.h"
@@ -66,7 +64,7 @@ namespace
             return true;
         }
 
-        const FAssetDataTagMapSharedView Tags = AssetData.GetTagValues();
+        const FAssetDataTagMapSharedView Tags = AssetData.TagsAndValues();
         for (const TPair<FName, TArray<FString>>& Pair : TagQuery)
         {
             const FAssetDataTagMapSharedView::FFindTagResult TagValue = Tags.FindTag(Pair.Key);
@@ -152,13 +150,9 @@ namespace
     void CopyTags(const FAssetData& AssetData, TMap<FString, TArray<FString>>& OutTags)
     {
         OutTags.Reset();
-        for (const FName& TagName : AssetData.GetTagNames())
+        for (const TPair<FName, FAssetTagValueRef>& TagPair : AssetData.TagsAndValues())
         {
-            FString TagValueString;
-            if (AssetData.GetTagValue(TagName, TagValueString))
-            {
-                OutTags.Add(TagName.ToString(), ParseTagValues(TagValueString));
-            }
+            OutTags.Add(TagPair.Key.ToString(), ParseTagValues(TagPair.Value.AsString()));
         }
     }
 
@@ -188,9 +182,13 @@ namespace
         OutDependencies.Reset();
 
         TArray<FName> PackageDependencies;
-        FDependencyQuery Query;
-        Query.Flags = Flags;
-        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+        FAssetRegistryDependencyOptions Options;
+        Options.bIncludePackages = true;
+        Options.bIncludeHard = EnumHasAnyFlags(Flags, UE::AssetRegistry::EDependencyFlags::Hard);
+        Options.bIncludeSoft = EnumHasAnyFlags(Flags, UE::AssetRegistry::EDependencyFlags::Soft);
+        Options.bIncludeManageDependencies = EnumHasAnyFlags(Flags, UE::AssetRegistry::EDependencyFlags::Manage);
+        Options.bIncludeSearchableNames = EnumHasAnyFlags(Flags, UE::AssetRegistry::EDependencyFlags::SearchableName);
+        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, Options);
 
         for (const FName& Dependency : PackageDependencies)
         {
@@ -349,13 +347,7 @@ bool FAssetQuery::Exists(const FString& ObjectPath, bool& bOutExists, FString& O
         return false;
     }
 
-    FAssetData AssetData;
-    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData))
-    {
-        bOutExists = false;
-        return true;
-    }
-
+    const FAssetData AssetData = AssetRegistry.GetAssetByObjectPath(SoftPath);
     bOutExists = AssetData.IsValid();
     if (bOutExists)
     {
@@ -384,8 +376,8 @@ bool FAssetQuery::Metadata(const FString& ObjectPath, TSharedPtr<FJsonObject>& O
         return false;
     }
 
-    FAssetData AssetData;
-    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData) || !AssetData.IsValid())
+    const FAssetData AssetData = AssetRegistry.GetAssetByObjectPath(SoftPath);
+    if (!AssetData.IsValid())
     {
         OutError = TEXT("Asset not found");
         return false;
@@ -428,19 +420,15 @@ bool FAssetQuery::Metadata(const FString& ObjectPath, TSharedPtr<FJsonObject>& O
     Result->SetBoolField(TEXT("isDirtyKnown"), bIsDirtyKnown);
 
     TSharedPtr<FJsonObject> TagsJson = MakeShared<FJsonObject>();
-    for (const FName& TagName : AssetData.GetTagNames())
+    for (const TPair<FName, FAssetTagValueRef>& TagPair : AssetData.TagsAndValues())
     {
-        FString TagValueString;
-        if (AssetData.GetTagValue(TagName, TagValueString))
+        TArray<FString> Parsed = ParseTagValues(TagPair.Value.AsString());
+        TArray<TSharedPtr<FJsonValue>> JsonArray;
+        for (const FString& Value : Parsed)
         {
-            TArray<FString> Parsed = ParseTagValues(TagValueString);
-            TArray<TSharedPtr<FJsonValue>> JsonArray;
-            for (const FString& Value : Parsed)
-            {
-                JsonArray.Add(MakeShared<FJsonValueString>(Value));
-            }
-            TagsJson->SetArrayField(TagName.ToString(), JsonArray);
+            JsonArray.Add(MakeShared<FJsonValueString>(Value));
         }
+        TagsJson->SetArrayField(TagPair.Key.ToString(), JsonArray);
     }
     Result->SetObjectField(TEXT("tags"), TagsJson);
 
