@@ -15,12 +15,13 @@
 #include "GameFramework/Actor.h"
 #include "LevelSequence.h"
 #include "String/LexFromString.h"
-#include "Misc/LexToString.h"
+#include "String/LexToString.h"
 #include "Misc/PackageName.h"
 #include "MovieScene.h"
 #include "MovieSceneBinding.h"
 #include "MovieScenePossessable.h"
 #include "MovieSceneObjectBindingID.h"
+#include "MovieSceneSequence.h"
 #include "MovieSceneSpawnable.h"
 #include "Sections/MovieScene3DTransformSection.h"
 #include "Sections/MovieSceneBoolSection.h"
@@ -66,6 +67,11 @@ namespace
             Result->SetObjectField(TEXT("data"), Payload);
         }
         return Result;
+    }
+
+    UE::MovieScene::FResolveParams MakeResolveParams(UObject* PlaybackContext, UObject* BindingContext)
+    {
+        return UE::MovieScene::FResolveParams(PlaybackContext, BindingContext);
     }
 
     FString NormalizeSequencePath(const FString& SequencePath)
@@ -661,7 +667,7 @@ TSharedPtr<FJsonObject> FSequenceExport::Export(const TSharedPtr<FJsonObject>& P
         if (World)
         {
             TArray<UObject*, TInlineAllocator<1>> LocatedObjects;
-            LevelSequence->LocateBoundObjects(BindingGuid, World, LocatedObjects);
+            LevelSequence->LocateBoundObjects(BindingGuid, MakeResolveParams(World, World), LocatedObjects);
             for (UObject* Located : LocatedObjects)
             {
                 if (AActor* Actor = Cast<AActor>(Located))

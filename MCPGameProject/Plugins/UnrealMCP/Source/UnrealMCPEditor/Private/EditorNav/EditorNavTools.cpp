@@ -16,7 +16,7 @@
 #include "GameFramework/Actor.h"
 #include "Math/Box.h"
 #include "String/LexFromString.h"
-#include "Misc/LexToString.h"
+#include "String/LexToString.h"
 
 namespace
 {

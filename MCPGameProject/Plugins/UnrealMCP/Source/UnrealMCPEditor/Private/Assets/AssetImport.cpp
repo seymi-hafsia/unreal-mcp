@@ -4,7 +4,7 @@
 #include "AssetToolsModule.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
-#include "Factories/AssetImportTask.h"
+#include "AssetImportTask.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Factories/Factory.h"
 #include "Dom/JsonObject.h"
