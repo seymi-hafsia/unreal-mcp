@@ -8,7 +8,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
-#include "LevelSequence.h" // au lieu de "LevelSequence/LevelSequence.h"
+#include "LevelSequence.h"
 #include "Misc/PackageName.h"
 #include "MovieScene.h"
 #include "MovieScenePossessable.h"

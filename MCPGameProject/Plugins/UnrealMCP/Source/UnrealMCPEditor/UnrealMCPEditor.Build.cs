@@ -1,11 +1,12 @@
+// Source/UnrealMCPEditor/UnrealMCPEditor.Build.cs
 using UnrealBuildTool;
+using System.IO;
 
 public class UnrealMCPEditor : ModuleRules
 {
     public UnrealMCPEditor(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-        Type = ModuleRules.ModuleType.Cpp;
 
         PublicDependencyModuleNames.AddRange(new[]
         {
@@ -21,15 +22,15 @@ public class UnrealMCPEditor : ModuleRules
             "Slate",
             "SlateCore",
             "UMG",
-            "UnrealMCP"
+            "UnrealMCP" // dépend du module runtime du plugin
         });
 
         PrivateDependencyModuleNames.AddRange(new[]
         {
-            "UnrealEd",
-            "UMGEditor",
+            "UnrealEd",            // APIs Editor (EditorViewportLibrary, AssetImportTask, etc.)
+            "UMGEditor",           // WidgetBlueprint
             "Sequencer",
-            "LevelSequenceEditor",
+            "LevelSequenceEditor", // LevelSequenceFactoryNew
             "EditorScriptingUtilities",
             "Blutility",
             "LevelEditor",
@@ -38,8 +39,6 @@ public class UnrealMCPEditor : ModuleRules
             "ContentBrowser",
             "BlueprintGraph",
             "KismetCompiler",
-            "Json",
-            "JsonUtilities",
             "Sockets",
             "Networking",
             "AssetTools",
@@ -49,15 +48,17 @@ public class UnrealMCPEditor : ModuleRules
             "CinematicCamera"
         });
 
+        // Inclut les headers publics/privés du module runtime "UnrealMCP" via des chemins robustes.
+        // (Évite les chemins relatifs "UnrealMCP/Public" qui cassent selon l’emplacement du module.)
         PublicIncludePaths.AddRange(new[]
         {
-            "UnrealMCP/Public"
+            Path.Combine(ModuleDirectory, "..", "UnrealMCP", "Public")
         });
 
         PrivateIncludePaths.AddRange(new[]
         {
-            "UnrealMCP/Private"
+            Path.Combine(ModuleDirectory, "..", "UnrealMCP", "Private"),
+            Path.Combine(ModuleDirectory, "Private")
         });
-
     }
 }

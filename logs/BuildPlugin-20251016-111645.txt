@@ -1,0 +1,492 @@
+﻿Running AutomationTool...
+Using bundled DotNet SDK version: 8.0.300 win-x64
+Starting AutomationTool...
+Parsing command line: BuildPlugin -Plugin=D:\Projets\fork-unreal-mcp\MCPGameProject\Plugins\UnrealMCP\UnrealMCP.uplugin -Package=D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64 -TargetPlatforms=Win64 -Rocket
+Initializing script modules...
+Total script module initialization time: 0.75 s.
+Using D:\Programs Files\VisualStudio\App\MSBuild\Current\Bin\MSBuild.exe
+Executing commands...
+Copying 73 file(s) using max 64 thread(s)
+Reading plugin from D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\UnrealMCP.uplugin...
+Building plugin for host platforms: Win64
+Running: D:\Mes jeux\Epic Games\UE_5.6\Engine\Binaries\ThirdParty\DotNet\8.0.300\win-x64\dotnet.exe "D:\Mes jeux\Epic Games\UE_5.6\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" UnrealEditor Win64 Development -Project="D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\HostProject.uproject" -plugin="D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\UnrealMCP.uplugin" -noubtmakefiles -manifest="D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Saved\Manifest-UnrealEditor-Win64-Development.xml" -nohotreload -log="C:\Users\Seymi\AppData\Roaming\Unreal Engine\AutomationTool\Logs\D+Mes+jeux+Epic+Games+UE_5.6\UBA-UnrealEditor-Win64-Development.txt"
+Log file: C:\Users\Seymi\AppData\Roaming\Unreal Engine\AutomationTool\Logs\D+Mes+jeux+Epic+Games+UE_5.6\UBA-UnrealEditor-Win64-Development.txt
+HostProject.uproject is has no code, but is being treated as a code-based project for platforms Android, IOS, Linux, Mac, TVOS, Win64 because: UnrealMCP plugin is enabled. Creating temporary .Target.cs files.
+Available x64 toolchains (1):
+ * D:\Programs Files\VisualStudio\App\VC\Tools\MSVC\14.44.35207
+    (Family=14.44.35207, FamilyRank=1, Version=14.44.35214, HostArchitecture=x64, ReleaseChannel=Latest, Architecture=x64)
+Visual Studio 2022 compiler version 14.44.35214 is not a preferred version. Please use the latest preferred version 14.38.33130
+Parsing headers for UnrealEditor
+  Running Internal UnrealHeaderTool D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\HostProject.uproject D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Intermediate\Build\Win64\UnrealEditor\Development\UnrealEditor.uhtmanifest -WarningsAsErrors -installed
+Total of 8 written
+Reflection code generated for UnrealEditor in 2.8944856 seconds
+Writing manifest to D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Saved\Manifest-UnrealEditor-Win64-Development.xml
+Building UnrealEditor...
+Using Visual Studio 2022 14.44.35214 toolchain (D:\Programs Files\VisualStudio\App\VC\Tools\MSVC\14.44.35207) and Windows 10.0.26100.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+Warning: Visual Studio 2022 compiler is not a preferred version
+[Adaptive Build] Excluded from UnrealMCP unity file: UnrealMCPModule.cpp, UnrealMCPSettings.cpp
+[Adaptive Build] Excluded from UnrealMCPEditor unity file: MCPServerRunnable.cpp, SourceControlService.cpp, UnrealMCPBridge.cpp, UnrealMCPEditorModule.cpp, ActorTools.cpp, AssetCrud.cpp, AssetImport.cpp, AssetQuery.cpp, UnrealMCPBlueprintCommands.cpp, UnrealMCPBlueprintNodeCommands.cpp, UnrealMCPCommonUtils.cpp, UnrealMCPEditorCommands.cpp, UnrealMCPProjectCommands.cpp, UnrealMCPSourceControlCommands.cpp, UnrealMCPUMGCommands.cpp, ContentTools.cpp, EditorNavTools.cpp, LevelTools.cpp, MaterialApplyTools.cpp, MaterialInstanceTools.cpp, MetaSoundTools.cpp, NiagaraTools.cpp, JsonLogger.cpp, WriteGate.cpp, Protocol.cpp, SequenceBindings.cpp, SequenceExport.cpp, SequenceTools.cpp, SequenceTracks.cpp, UnrealMCPDiagnostics.cpp, UnrealMCPSettingsCustomization.cpp, TransactionManager.cpp
+[Adaptive Build] Excluded from MetaHumanCore unity file: DNAUtilities.cpp, Integration.cpp, LoadLiveLinkFaceCameraCalibration.cpp, Logger.cpp, MetaHumanAuthoringObjects.cpp, MetaHumanContourData.cpp, MetaHumanContourDataVersion.cpp, MetaHumanCoreLog.cpp, MetaHumanCoreModule.cpp, MetaHumanCoreStyle.cpp, MetaHumanCurveDataController.cpp, MetaHumanSupportedRHI.cpp, MetaHumanViewportSettings.cpp, ScopedTimer.cpp, ShapeAnnotation.cpp, ShapeAnnotationWrapper.cpp
+[Adaptive Build] Excluded from CaptureDataUtils unity file: CaptureDataUtilsModule.cpp, ImageSequenceTimecodeUtils.cpp, ParseTakeUtils.cpp, SoundWaveTimecodeUtils.cpp
+[Adaptive Build] Excluded from MetaHumanCoreTech unity file: CoreUtils.cpp, FrameAnimationData.cpp, GuiToRawControlsUtils.cpp, MetaHumanCoreCustomVersion.cpp, MetaHumanCoreModule.cpp, MetaHumanHeadTransform.cpp, MetaHumanOneEuroFilter.cpp, MetaHumanRealtimeCalibration.cpp, MetaHumanRealtimeSmoothing.cpp
+[Adaptive Build] Excluded from MetaHumanCoreEditor unity file: MetaHumanCameraCalibrationImporterFactory.cpp, MetaHumanCoreEditorModule.cpp, MetaHumanEditorSettings.cpp, MetaHumanCoreTests.cpp
+[Adaptive Build] Excluded from MetaHumanImageViewerEditor unity file: CurveEditingTests.cpp, MetaHumanCurveDragOperations.cpp, MetaHumanDepthMeshComponent.cpp, MetaHumanFootageComponent.cpp, MetaHumanImageViewerEditorModule.cpp, MetaHumanSceneCaptureComponent2D.cpp, SABImage.cpp, STrackerImageViewer.cpp, CustomMaterialUtils.cpp
+[Adaptive Build] Excluded from MetaHumanImageViewer unity file: MetaHumanImageViewerModule.cpp, SMetaHumanImageViewer.cpp
+[Adaptive Build] Excluded from MetaHumanPipeline unity file: DoesNNEAssetExist.cpp, MetaHumanPipelineModule.cpp, AnimationUtilNodes.cpp, ControlUtilNodes.cpp, DepthMapDiagnosticsNode.cpp, FaceTrackerNode.cpp, FaceTrackerPostProcessingFilterNode.cpp, FaceTrackerPostProcessingNode.cpp, HyprsenseNode.cpp, HyprsenseNodeBase.cpp, HyprsenseSparseNode.cpp, HyprsenseTestNode.cpp, SpeechToAnimNode.cpp, TestNodes.cpp, TongueTrackerNode.cpp, TrackerUtilNodes.cpp, PipelineTests.cpp
+[Adaptive Build] Excluded from MetaHumanSpeech2Face unity file: AudioDrivenAnimationConfig.cpp, AudioDrivenAnimationCustomizations.cpp, MetaHumanSpeech2FaceModule.cpp, Speech2Face.cpp, Speech2Face.spec.cpp, Speech2FaceInternal.cpp
+[Adaptive Build] Excluded from MetaHumanPipelineCore unity file: MetaHumanPipelineCoreModule.cpp, AudioUtilNodes.cpp, HyprsenseRealtimeNode.cpp, HyprsenseRealtimeSmoothingNode.cpp, HyprsenseUtils.cpp, ImageUtilNodes.cpp, NeutralFrameNode.cpp, RealtimeSpeechToAnimNode.cpp, Connection.cpp, DataTree.cpp, Log.cpp, Node.cpp, Pin.cpp, Pipeline.cpp, PipelineData.cpp, PipelineProcess.cpp
+[Adaptive Build] Excluded from MetaHumanCaptureData unity file: FrameNumberTransformer.cpp, FramePathResolver.cpp, FramePathResolverSingleFile.cpp, MetaHumanCaptureDataModule.cpp, SequencedImageTrackInfo.cpp, TrackingPathUtils.cpp, TestCalculateRateMatchingDropFrames.cpp, TestFindFirstCommonFrameNumber.cpp, TestFrameNumberTransformer.cpp, TestFramePathResolver.cpp, TestFramePathResolverSingleFile.cpp, TestFrameRatesAreCompatible.cpp, TestTracksHaveCompatibleFrameRates.cpp, TestTracksHaveDifferentFrameRates.cpp
+[Adaptive Build] Excluded from MetaHumanConfig unity file: MetaHumanConfig.cpp, MetaHumanConfigLog.cpp, MetaHumanConfigModule.cpp, MetaHumanConfigStyle.cpp, MetaHumanConfigTests.cpp
+[Adaptive Build] Excluded from MetaHumanFaceAnimationSolver unity file: MetaHumanFaceAnimationSolver.cpp, MetaHumanFaceAnimationSolverModule.cpp, MetaHumanFaceAnimationSolverStyle.cpp, MetaHumanFaceAnimationSolverTests.cpp
+[Adaptive Build] Excluded from MetaHumanPlatform unity file: MetaHumanMinSpec.cpp, MetaHumanPlatformLog.cpp, MetaHumanPlatformModule.cpp, MetaHumanPhysicalDeviceProvider_Other.cpp, MetaHumanPhysicalDeviceProvider_Windows.cpp
+[Adaptive Build] Excluded from MetaHumanFaceContourTracker unity file: MetaHumanFaceContourTrackerAsset.cpp, MetaHumanFaceContourTrackerModule.cpp, MetaHumanFaceContourTrackerStyle.cpp
+[Adaptive Build] Excluded from MetaHumanFaceContourTrackerEditor unity file: MetaHumanFaceContourTrackerAssetFactoryNew.cpp, MetaHumanMeshTrackerEditorModule.cpp, AssetDefinition_MetaHumanFaceContourTracker.cpp
+[Adaptive Build] Excluded from MetaHumanIdentity unity file: LandmarkConfigIdentityHelper.cpp, MetaHumanIdentity.cpp, MetaHumanIdentityLog.cpp, MetaHumanIdentityModule.cpp, MetaHumanIdentityParts.cpp, MetaHumanIdentityPose.cpp, MetaHumanIdentityPromotedFrames.cpp, MetaHumanIdentityStateValidator.cpp, MetaHumanIdentityStyle.cpp, MetaHumanIdentityViewportSettings.cpp, MetaHumanPredictiveSolversTask.cpp, MetaHumanTemplateMeshComponent.cpp, PredictiveSolverInterface.cpp, PromotedFrameUtils.cpp, MetaHumanIdentityTests.cpp
+[Adaptive Build] Excluded from MetaHumanFaceFittingSolver unity file: MetaHumanFaceFittingSolver.cpp, MetaHumanFaceFittingSolverModule.cpp, MetaHumanFaceFittingSolverStyle.cpp, MetaHumanFaceFittingSolverTests.cpp
+[Adaptive Build] Excluded from MetaHumanCaptureDataEditor unity file: CaptureDataUtils.cpp, MetaHumanCaptureDataEditorModule.cpp, SMetaHumanCameraCombo.cpp
+[Adaptive Build] Excluded from MetaHumanIdentityEditor unity file: MetaHumanIdentityAssetEditor.cpp, MetaHumanIdentityAssetEditorToolkit.cpp, MetaHumanIdentityCommands.cpp, MetaHumanIdentityEditorModule.cpp, MetaHumanIdentityFactoryNew.cpp, MetaHumanIdentityTooltipProvider.cpp, AssetDefinition_MetaHumanIdentity.cpp, MetaHumanIdentityPoseCustomizations.cpp, MetaHumanIdentityEditorTests.cpp, MetaHumanIdentityThumbnailRenderer.cpp, MetaHumanIdentityViewportClient.cpp, SMetaHumanIdentityOutliner.cpp, SMetaHumanIdentityPartsClassCombo.cpp, SMetaHumanIdentityPartsEditor.cpp, SMetaHumanIdentityPromotedFramesEditor.cpp
+[Adaptive Build] Excluded from MetaHumanSequencer unity file: MetaHumanAudioSection.cpp, MetaHumanAudioTrack.cpp, MetaHumanAudioTrackEditor.cpp, MetaHumanMediaSection.cpp, MetaHumanMediaTrackEditor.cpp, MetaHumanMovieSceneChannel.cpp, MetaHumanMovieSceneMediaSection.cpp, MetaHumanMovieSceneMediaTrack.cpp, MetaHumanSequence.cpp, MetaHumanSequencerModule.cpp, MetaHumanSequencerPlaybackContext.cpp
+[Adaptive Build] Excluded from MetaHumanToolkit unity file: MetaHumanEditorViewportClient.cpp, MetaHumanToolkitBase.cpp, MetaHumanToolkitCommands.cpp, MetaHumanToolkitModule.cpp, MetaHumanToolkitStyle.cpp, SMetaHumanEditorViewport.cpp, SMetaHumanEditorViewportToolBar.cpp
+[Adaptive Build] Excluded from MetaHumanCaptureUtils unity file: MetaHumanCaptureUtilsModule.cpp, CallbackSynchronizer.cpp, Event.cpp, EventSourceUtils.cpp, EventSourceUtils.spec.cpp, StopToken.cpp
+[Adaptive Build] Excluded from MetaHumanCaptureSource unity file: IpAddressDetailsCustomization.cpp, MetaHumanCaptureError.cpp, MetaHumanCaptureIngester.cpp, MetaHumanCaptureSource.cpp, MetaHumanCaptureSourceAutoReimport.cpp, MetaHumanCaptureSourceFactoryNew.cpp, MetaHumanCaptureSourceLog.cpp, MetaHumanCaptureSourceModule.cpp, MetaHumanCaptureSourceSync.cpp, AssetDefinition_MetaHumanCaptureSource.cpp, CubicCameraSystemIngest.cpp, CubicCameraSystemTakeMetadata.cpp, FileFootageIngest.cpp, FootageIngest.cpp, HMCArchiveIngest.cpp, LiveLinkFaceConnectionIngest.cpp, LiveLinkFaceFootageIngest.cpp, LiveLinkFaceMetadata.cpp, ResolutionResolver.cpp, StereoReconstructionSystemIngest.cpp, BaseCommand.cpp, CommandHandler.cpp, ImageSequenceWriter.cpp, IngestAssetCreator.cpp, LiveLinkFaceConnectionCommands.cpp, LiveLinkFaceConnectionExportStreams.cpp, LiveLinkFaceTakeDataConverter.cpp, MetaHumanDepthConverter.cpp, MetaHumanStringUtils.cpp, MetaHumanWaveFileWriter.cpp, MetaHumanMediaSourceReader_Dummy.cpp, MetaHumanMediaSourceReader_Windows.cpp, TestCaptureSourceImport.cpp, TestCaptureSourceProperties.cpp
+[Adaptive Build] Excluded from MetaHumanCaptureProtocolStack unity file: MetaHumanCaptureProtocolStack.cpp, TcpClient.cpp, TcpServer.cpp, UdpClient.cpp, ControlMessenger.cpp, ControlCommunication.cpp, ControlPacket.cpp, Constants.cpp, ControlJsonUtilities.cpp, ControlMessage.cpp, ControlRequest.cpp, ControlResponse.cpp, ControlUpdate.cpp, DiscoveryMessenger.cpp, DiscoveryCommunication.cpp, DiscoveryPacket.cpp, DiscoveryNotify.cpp, DiscoveryRequest.cpp, DiscoveryResponse.cpp, ExportClient.cpp, ExportWorker.cpp, ExportCommunication.cpp, ExportHeader.cpp, ExportRequest.cpp, ExportResponse.cpp, TestControlJsonUtilities.cpp, TestControlMessage.cpp, TestControlPacket.cpp, TestControlRequest.cpp, TestControlResponse.cpp, TestControlUpdate.cpp, TestDiscoveryNotify.cpp, TestDiscoveryPacket.cpp, TestDiscoveryRequest.cpp, TestDiscoveryResponse.cpp, TestExportHeader.cpp, TestExportRequest.cpp, TestExportResponse.cpp, Error.cpp, TimerManager.cpp
+[Adaptive Build] Excluded from MetaHumanFootageIngest unity file: CaptureManager.cpp, CaptureManagerCommands.cpp, CaptureManagerLog.cpp, CaptureManagerWidget.cpp, CaptureSourcesWidget.cpp, DevelopersContentFilter.cpp, FootageIngestWidget.cpp, MetaHumanFootageIngestModule.cpp, MetaHumanFootageRetrievalWindowStyle.cpp, DevelopersContentFilterTests.cpp, AppleDeviceList.cpp
+[Adaptive Build] Excluded from MetaHumanDepthGenerator unity file: MetaHumanDepthGenerator.cpp, MetaHumanDepthGeneratorAutoReimport.cpp, MetaHumanDepthGeneratorModule.cpp, MetaHumanGenerateDepthWindowOptions.cpp, SMetaHumanGenerateDepthWindow.cpp
+[Adaptive Build] Excluded from MetaHumanPerformance unity file: MetaHumanPerformance.cpp, MetaHumanPerformanceEditor.cpp, MetaHumanPerformanceEditorToolkit.cpp, MetaHumanPerformanceExportUtils.cpp, MetaHumanPerformanceFactoryNew.cpp, MetaHumanPerformanceLog.cpp, MetaHumanPerformanceModule.cpp, MetaHumanPerformanceViewportSettings.cpp, MetaHumanPerformerCommands.cpp, AssetDefinition_MetaHumanPerformance.cpp, MetaHumanPerformanceCustomizations.cpp, MetaHumanPerformanceAudioSection.cpp, MetaHumanPerformanceAudioTrackEditor.cpp, MetaHumanPerformanceMediaSection.cpp, MetaHumanPerformanceMediaTrackEditor.cpp, MetaHumanPerformanceMovieSceneAudioSection.cpp, MetaHumanPerformanceMovieSceneAudioTrack.cpp, MetaHumanPerformanceMovieSceneMediaSection.cpp, MetaHumanPerformanceMovieSceneMediaTrack.cpp, MetaHumanPerformancePlaybackContext.cpp, MetaHumanPerformanceSequence.cpp, MetaHumanPerformanceTests.cpp, MetaHumanPerformanceControlRigComponent.cpp, MetaHumanPerformanceControlRigViewportClient.cpp, MetaHumanPerformanceControlRigViewportManager.cpp, MetaHumanPerformanceStyle.cpp, MetaHumanPerformanceViewportClient.cpp
+[Adaptive Build] Excluded from MetaHumanBatchProcessor unity file: MetaHumanBatchLog.cpp, MetaHumanBatchMenuExtensions.cpp, MetaHumanBatchOperation.cpp, MetaHumanBatchProcessorModule.cpp, SMetaHumanBatchExportPathDialog.cpp, SMetaHumanSpeechProcessingSettings.cpp
+[Adaptive Build] Excluded from MetaHumanConfigEditor unity file: MetaHumanConfigEditorModule.cpp, MetaHumanConfigFactory.cpp, SMetaHumanConfigCombo.cpp, AssetDefinition_MetaHumanConfig.cpp, MetaHumanConfigCustomizations.cpp
+[Adaptive Build] Excluded from MetaHumanFaceAnimationSolverEditor unity file: MetaHumanFaceAnimationSolverEditorModule.cpp, MetaHumanFaceAnimationSolverFactoryNew.cpp, AssetDefinition_MetaHumanFaceAnimationSolver.cpp, MetaHumanFaceAnimationSolverCustomizations.cpp
+[Adaptive Build] Excluded from MetaHumanFaceFittingSolverEditor unity file: MetaHumanFaceFittingSolverEditorModule.cpp, MetaHumanFaceFittingSolverFactoryNew.cpp, AssetDefinition_MetaHumanFaceFittingSolver.cpp, MetaHumanFaceFittingSolverCustomizations.cpp
+[Adaptive Build] Excluded from MetaHumanControlsConversionTest unity file: MetaHumanControlsConversionTestModule.cpp, ConversionDataGenerator.cpp, GuiToRawControlsTests.cpp
+[Adaptive Build] Excluded from MetaHumanCalibrationGenerator unity file: MetaHumanCalibrationGenerator.cpp, MetaHumanCalibrationGeneratorModule.cpp, MetaHumanCalibrationGeneratorOptions.cpp, SMetaHumanCalibrationGeneratorWindow.cpp
+[Adaptive Build] Excluded from CaptureProtocolStack unity file: CaptureProtocolStack.cpp, ControlMessenger.cpp, ControlCommunication.cpp, ControlPacket.cpp, Constants.cpp, ControlJsonUtilities.cpp, ControlMessage.cpp, ControlRequest.cpp, ControlResponse.cpp, ControlUpdate.cpp, DiscoveryMessenger.cpp, DiscoveryCommunication.cpp, DiscoveryPacket.cpp, DiscoveryNotify.cpp, DiscoveryRequest.cpp, DiscoveryResponse.cpp, ExportClient.cpp, ExportWorker.cpp, ExportCommunication.cpp, ExportHeader.cpp, ExportRequest.cpp, ExportResponse.cpp, TestControlJsonUtilities.cpp, TestControlMessage.cpp, TestControlPacket.cpp, TestControlRequest.cpp, TestControlResponse.cpp, TestControlUpdate.cpp, TestDiscoveryNotify.cpp, TestDiscoveryPacket.cpp, TestDiscoveryRequest.cpp, TestDiscoveryResponse.cpp, TestExportHeader.cpp, TestExportRequest.cpp, TestExportResponse.cpp
+Determining max actions to execute in parallel (8 physical cores, 16 logical cores)
+  Executing up to 8 processes, one per physical core
+Using Unreal Build Accelerator local executor to run 44 action(s)
+  Storage capacity 40Gb
+---- Starting trace: 251016_111745 ----
+UbaServer - Listening on 0.0.0.0:1345
+------ Building 44 action(s) started ------
+[1/44] Resource Default.rc2
+[2/44] Resource Default.rc2
+[3/44] Compile [x64] SharedPCH.UnrealEd.Cpp20.cpp
+[4/44] Compile [x64] UnrealMCPModule.cpp
+[5/44] Compile [x64] Module.UnrealMCP.cpp
+[6/44] Compile [x64] UnrealMCPSettings.cpp
+[7/44] Compile [x64] AssetImport.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetImport.cpp(7,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Factories/AssetImportTask.h' : No such file or directory
+#include "Factories/AssetImportTask.h"
+^
+[8/44] Compile [x64] AssetQuery.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(52): warning C4996: ANY_PACKAGE has been deprecated. Either use full path name of objects (including classes) or provide a valid Outer for *FindObject* functions - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(69,59): error C2039: 'GetTagValues' n'est pas membre de 'FAssetData'
+        const FAssetDataTagMapSharedView Tags = AssetData.GetTagValues();
+                                                          ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\CoreUObject\Public\AssetRegistry\AssetData.h(157,8): note: voir la déclaration de 'FAssetData'
+struct FAssetData
+       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(139,22): warning C4996: 'TArray<FString,FDefaultAllocator>::RemoveAllSwap': RemoveAllSwap with a boolean bAllowShrinking has been deprecated - please use the EAllowShrinking enum instead - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+        ParsedValues.RemoveAllSwap([](const FString& Value)
+                     ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(155,47): error C2039: 'GetTagNames' n'est pas membre de 'FAssetData'
+        for (const FName& TagName : AssetData.GetTagNames())
+                                              ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\CoreUObject\Public\AssetRegistry\AssetData.h(157,8): note: voir la déclaration de 'FAssetData'
+struct FAssetData
+       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(155,27): error C2530: 'TagName' : les références doivent être initialisées
+        for (const FName& TagName : AssetData.GetTagNames())
+                          ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(155,35): error C2143: erreur de syntaxe : absence de ';' avant ':'
+        for (const FName& TagName : AssetData.GetTagNames())
+                                  ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(155,60): error C2143: erreur de syntaxe : absence de ';' avant ')'
+        for (const FName& TagName : AssetData.GetTagNames())
+                                                           ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(185,115): error C2039: 'EDependencyFlags' n'est pas membre de 'UE::AssetRegistry'
+    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, const UE::AssetRegistry::EDependencyFlags Flags, TArray<FString>& OutDependencies)
+                                                                                                                  ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\AssetRegistry\Public\AssetRegistry\IAssetRegistry.h(1180,11): note: voir la déclaration de 'UE::AssetRegistry'
+namespace UE::AssetRegistry
+          ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(185,90): error C4430: spécificateur de type manquant - int est pris en compte par défaut. Remarque : C++ ne prend pas en charge int par défaut
+    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, const UE::AssetRegistry::EDependencyFlags Flags, TArray<FString>& OutDependencies)
+                                                                                         ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(185,132): error C2146: erreur de syntaxe : absence de ')' avant l'identificateur 'Flags'
+    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, const UE::AssetRegistry::EDependencyFlags Flags, TArray<FString>& OutDependencies)
+                                                                                                                                   ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(185,132): error C3646: 'Flags' : spécificateur de substitution inconnu
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(185,154): error C2143: erreur de syntaxe : absence de ';' avant '&'
+    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, const UE::AssetRegistry::EDependencyFlags Flags, TArray<FString>& OutDependencies)
+                                                                                                                                                         ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(185,139): error C2182: « TArray<FString,TSizedDefaultAllocator<32> > » : cette utilisation de « void » n'est pas valide
+    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, const UE::AssetRegistry::EDependencyFlags Flags, TArray<FString>& OutDependencies)
+                                                                                                                                          ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(185,139): error C7538: 'TArray<FString,TSizedDefaultAllocator<32> >' n'est pas un modèle de variable
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(185,171): error C2059: erreur de syntaxe : ')'
+    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, const UE::AssetRegistry::EDependencyFlags Flags, TArray<FString>& OutDependencies)
+                                                                                                                                                                          ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(185,156): error C4430: spécificateur de type manquant - int est pris en compte par défaut. Remarque : C++ ne prend pas en charge int par défaut
+    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, const UE::AssetRegistry::EDependencyFlags Flags, TArray<FString>& OutDependencies)
+                                                                                                                                                           ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(187,9): error C2059: erreur de syntaxe : 'using namespace'
+        using namespace UE::AssetRegistry;
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(188,9): error C3927: '->' : l'utilisation d'un type de retour de fin n'est pas autorisée après un déclarateur qui n'est pas un déclarateur de fonction
+        OutDependencies.Reset();
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(188,24): error C3484: erreur de syntaxe : '->' attendu avant le type de retour
+        OutDependencies.Reset();
+                       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(188,25): error C3613: type de retour manquant après '->' ('int' pris par défaut)
+        OutDependencies.Reset();
+                        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(188,9): error C4430: spécificateur de type manquant - int est pris en compte par défaut. Remarque : C++ ne prend pas en charge int par défaut
+        OutDependencies.Reset();
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(188,9): error C2040: '`anonymous-namespace'::OutDependencies' : les niveaux d'indirection de 'int' et de 'int &' sont différents
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(188,25): error C2146: erreur de syntaxe : absence de ';' avant l'identificateur 'Reset'
+        OutDependencies.Reset();
+                        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(191,9): error C4430: spécificateur de type manquant - int est pris en compte par défaut. Remarque : C++ ne prend pas en charge int par défaut
+        FDependencyQuery Query;
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(191,26): error C2146: erreur de syntaxe : absence de ';' avant l'identificateur 'Query'
+        FDependencyQuery Query;
+                         ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(192,9): error C3927: '->' : l'utilisation d'un type de retour de fin n'est pas autorisée après un déclarateur qui n'est pas un déclarateur de fonction
+        Query.Flags = Flags;
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(192,14): error C3484: erreur de syntaxe : '->' attendu avant le type de retour
+        Query.Flags = Flags;
+             ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(192,15): error C3613: type de retour manquant après '->' ('int' pris par défaut)
+        Query.Flags = Flags;
+              ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(192,9): error C4430: spécificateur de type manquant - int est pris en compte par défaut. Remarque : C++ ne prend pas en charge int par défaut
+        Query.Flags = Flags;
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(192,15): error C2146: erreur de syntaxe : absence de ';' avant l'identificateur 'Flags'
+        Query.Flags = Flags;
+              ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(193,9): error C3927: '->' : l'utilisation d'un type de retour de fin n'est pas autorisée après un déclarateur qui n'est pas un déclarateur de fonction
+        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(193,22): error C3484: erreur de syntaxe : '->' attendu avant le type de retour
+        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+                     ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(193,23): error C3613: type de retour manquant après '->' ('int' pris par défaut)
+        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+                      ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(193,9): error C4430: spécificateur de type manquant - int est pris en compte par défaut. Remarque : C++ ne prend pas en charge int par défaut
+        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(193,23): error C2146: erreur de syntaxe : absence de ';' avant l'identificateur 'GetDependencies'
+        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+                      ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(193,83): error C2653: 'EDependencyCategory' : n'est pas un nom de classe ni d'espace de noms
+        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+                                                                                  ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(195,9): error C2447: '{' : en-tête de fonction manquant (liste formelle à l'ancien format ?)
+        for (const FName& Dependency : PackageDependencies)
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(202,19): error C2888: 'bool FAssetQuery::Find(const FAssetFindParams &,int32 &,TArray<FAssetLite,FDefaultAllocator> &,FString &)' : impossible de définir un symbole dans un espace de noms 'anonymous-namespace'
+bool FAssetQuery::Find(const FAssetFindParams& Params, int32& OutTotal, TArray<FAssetLite>& OutItems, FString& OutError)
+                  ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(205,21): error C4459: la déclaration de 'AssetRegistry' masque la déclaration globale
+    IAssetRegistry& AssetRegistry = GetAssetRegistry();
+                    ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(193,9): note: voir la déclaration de '`anonymous-namespace'::AssetRegistry'
+        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(298,5): error C2888: 'FAssetQuery::Find::<lambda_1>' : impossible de définir un symbole dans un espace de noms 'anonymous-namespace'
+    });
+    ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(270,9): error C2888: 'FAssetQuery::Find::<lambda_1>::()::<lambda_1>' : impossible de définir un symbole dans un espace de noms 'anonymous-namespace'
+        };
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(261,11): error C2672: 'Algo::Sort' : fonction correspondante surchargée introuvable
+    Algo::Sort(Filtered, [&Params](const FAssetData& A, const FAssetData& B)
+          ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\Core\Public\Algo\Sort.h(28,19): note: est peut-être 'void Algo::Sort(RangeType &&,PredicateType)'
+	FORCEINLINE void Sort(RangeType&& Range, PredicateType Pred)
+	                 ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(261,11): note: La spécialisation du modèle de fonction 'void Algo::Sort(RangeType &&,PredicateType)' a échouée.
+    Algo::Sort(Filtered, [&Params](const FAssetData& A, const FAssetData& B)
+          ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(261,11): note: Avec les arguments template suivants :
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(261,11): note: 'RangeType=TArray<FAssetData,FDefaultAllocator> &'
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(261,11): note: 'PredicateType=FAssetQuery::Find::<lambda_1>'
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\Core\Public\Algo\Sort.h(16,19): note: ou       'void Algo::Sort(RangeType &&)'
+	FORCEINLINE void Sort(RangeType&& Range)
+	                 ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(261,11): note: 'void Algo::Sort(RangeType &&)' : attend des arguments 1 - 2 fournis.
+    Algo::Sort(Filtered, [&Params](const FAssetData& A, const FAssetData& B)
+          ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(332,19): error C2888: 'bool FAssetQuery::Exists(const FString &,bool &,FString &,FString &)' : impossible de définir un symbole dans un espace de noms 'anonymous-namespace'
+bool FAssetQuery::Exists(const FString& ObjectPath, bool& bOutExists, FString& OutClassName, FString& OutError)
+                  ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(344,21): error C4459: la déclaration de 'AssetRegistry' masque la déclaration globale
+    IAssetRegistry& AssetRegistry = GetAssetRegistry();
+                    ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(193,9): note: voir la déclaration de '`anonymous-namespace'::AssetRegistry'
+        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(353,24): error C2665: 'IAssetRegistry::GetAssetByObjectPath' : aucune fonction surchargée n'a pu convertir tous les types d'arguments.
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData))
+                       ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\AssetRegistry\Public\AssetRegistry\IAssetRegistry.h(419,21): note: est peut-être 'FAssetData IAssetRegistry::GetAssetByObjectPath(const FSoftObjectPath &,bool,bool) const'
+	virtual FAssetData GetAssetByObjectPath(const FSoftObjectPath& ObjectPath,
+	                   ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(353,24): note: 'FAssetData IAssetRegistry::GetAssetByObjectPath(const FSoftObjectPath &,bool,bool) const' : impossible de convertir l'argument 2 de 'FAssetData' en 'bool'
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData))
+                       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(353,55): note: Aucun opérateur de conversion définie par l'utilisateur disponible qui puisse effectuer cette conversion, ou l'opérateur ne peut pas être appelé
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData))
+                                                      ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\AssetRegistry\Public\AssetRegistry\IAssetRegistry.h(395,21): note: ou       'FAssetData IAssetRegistry::GetAssetByObjectPath(const FName,bool) const'
+	virtual FAssetData GetAssetByObjectPath( const FName ObjectPath, bool bIncludeOnlyOnDiskAssets = false ) const = 0;
+	                   ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(353,24): note: 'FAssetData IAssetRegistry::GetAssetByObjectPath(const FName,bool) const' : impossible de convertir l'argument 1 de 'FSoftObjectPath' en 'const FName'
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData))
+                       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(353,45): note: Aucun opérateur de conversion définie par l'utilisateur disponible qui puisse effectuer cette conversion, ou l'opérateur ne peut pas être appelé
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData))
+                                            ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(353,24): note: lors de la tentative de mise en correspondance de la liste des arguments '(FSoftObjectPath, FAssetData)'
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData))
+                       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(353,9): error C2088: impossible d'appliquer l'opérateur intégré '!' à un opérande de type '_T'
+        with
+        [
+            _T=FAssetData
+        ]
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData))
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(368,19): error C2888: 'bool FAssetQuery::Metadata(const FString &,TSharedPtr<FJsonObject,ESPMode::ThreadSafe> &,FString &)' : impossible de définir un symbole dans un espace de noms 'anonymous-namespace'
+bool FAssetQuery::Metadata(const FString& ObjectPath, TSharedPtr<FJsonObject>& OutJson, FString& OutError)
+                  ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(379,21): error C4459: la déclaration de 'AssetRegistry' masque la déclaration globale
+    IAssetRegistry& AssetRegistry = GetAssetRegistry();
+                    ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(193,9): note: voir la déclaration de '`anonymous-namespace'::AssetRegistry'
+        AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, EDependencyCategory::Package, Query);
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(388,24): error C2665: 'IAssetRegistry::GetAssetByObjectPath' : aucune fonction surchargée n'a pu convertir tous les types d'arguments.
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData) || !AssetData.IsValid())
+                       ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\AssetRegistry\Public\AssetRegistry\IAssetRegistry.h(419,21): note: est peut-être 'FAssetData IAssetRegistry::GetAssetByObjectPath(const FSoftObjectPath &,bool,bool) const'
+	virtual FAssetData GetAssetByObjectPath(const FSoftObjectPath& ObjectPath,
+	                   ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(388,24): note: 'FAssetData IAssetRegistry::GetAssetByObjectPath(const FSoftObjectPath &,bool,bool) const' : impossible de convertir l'argument 2 de 'FAssetData' en 'bool'
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData) || !AssetData.IsValid())
+                       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(388,55): note: Aucun opérateur de conversion définie par l'utilisateur disponible qui puisse effectuer cette conversion, ou l'opérateur ne peut pas être appelé
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData) || !AssetData.IsValid())
+                                                      ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\AssetRegistry\Public\AssetRegistry\IAssetRegistry.h(395,21): note: ou       'FAssetData IAssetRegistry::GetAssetByObjectPath(const FName,bool) const'
+	virtual FAssetData GetAssetByObjectPath( const FName ObjectPath, bool bIncludeOnlyOnDiskAssets = false ) const = 0;
+	                   ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(388,24): note: 'FAssetData IAssetRegistry::GetAssetByObjectPath(const FName,bool) const' : impossible de convertir l'argument 1 de 'FSoftObjectPath' en 'const FName'
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData) || !AssetData.IsValid())
+                       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(388,45): note: Aucun opérateur de conversion définie par l'utilisateur disponible qui puisse effectuer cette conversion, ou l'opérateur ne peut pas être appelé
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData) || !AssetData.IsValid())
+                                            ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(388,24): note: lors de la tentative de mise en correspondance de la liste des arguments '(FSoftObjectPath, FAssetData)'
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData) || !AssetData.IsValid())
+                       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(388,9): error C2088: impossible d'appliquer l'opérateur intégré '!' à un opérande de type '_T'
+        with
+        [
+            _T=FAssetData
+        ]
+    if (!AssetRegistry.GetAssetByObjectPath(SoftPath, AssetData) || !AssetData.IsValid())
+        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(431,43): error C2039: 'GetTagNames' n'est pas membre de 'FAssetData'
+    for (const FName& TagName : AssetData.GetTagNames())
+                                          ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\CoreUObject\Public\AssetRegistry\AssetData.h(157,8): note: voir la déclaration de 'FAssetData'
+struct FAssetData
+       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(431,23): error C2530: 'TagName' : les références doivent être initialisées
+    for (const FName& TagName : AssetData.GetTagNames())
+                      ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(431,31): error C2143: erreur de syntaxe : absence de ';' avant ':'
+    for (const FName& TagName : AssetData.GetTagNames())
+                              ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(431,56): error C2143: erreur de syntaxe : absence de ';' avant ')'
+    for (const FName& TagName : AssetData.GetTagNames())
+                                                       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(451,51): error C2653: 'EDependencyFlags' : n'est pas un nom de classe ni d'espace de noms
+    CollectDependencies(AssetData, AssetRegistry, EDependencyFlags::Hard, HardDependencies);
+                                                  ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(451,69): error C2065: 'Hard' : identificateur non déclaré
+    CollectDependencies(AssetData, AssetRegistry, EDependencyFlags::Hard, HardDependencies);
+                                                                    ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(460,51): error C2653: 'EDependencyFlags' : n'est pas un nom de classe ni d'espace de noms
+    CollectDependencies(AssetData, AssetRegistry, EDependencyFlags::Soft, SoftDependencies);
+                                                  ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(460,69): error C2065: 'Soft' : identificateur non déclaré
+    CollectDependencies(AssetData, AssetRegistry, EDependencyFlags::Soft, SoftDependencies);
+                                                                    ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(405,23): warning C4996: 'FPackageName::DoesPackageExist': Deprecated. UPackage::Guid has not been used by the engine for a long time. Call DoesPackageExist without a Guid. - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+    if (FPackageName::DoesPackageExist(AssetData.PackageName.ToString(), nullptr, &PackageFilename))
+                      ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Assets\AssetQuery.cpp(473,1): fatal error C1004: fin de fichier inattendue rencontrée
+[9/44] Compile [x64] EditorNavTools.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\EditorNav\EditorNavTools.cpp(10,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'EditorViewportLibrary.h' : No such file or directory
+#include "EditorViewportLibrary.h"     // vient d'UnrealEd (PrivateDependency)
+^
+[10/44] Compile [x64] ActorTools.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Actors\ActorTools.cpp(13,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Misc/LexToString.h' : No such file or directory
+#include "Misc/LexToString.h"
+^
+[11/44] Link [x64] UnrealEditor-UnrealMCP.lib
+   Création de la bibliothèque D:/Projets/fork-unreal-mcp/_package/UnrealMCP_Win64/HostProject/Plugins/UnrealMCP/Intermediate/Build/Win64/x64/UnrealEditor/Development/UnrealMCP/UnrealEditor-UnrealMCP.lib et de l'objet D:/Projets/fork-unreal-mcp/_package/UnrealMCP_Win64/HostProject/Plugins/UnrealMCP/Intermediate/Build/Win64/x64/UnrealEditor/Development/UnrealMCP/UnrealEditor-UnrealMCP.exp
+[12/44] Compile [x64] MaterialInstanceTools.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Materials\MaterialInstanceTools.cpp(14,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Misc/LexToString.h' : No such file or directory
+#include "Misc/LexToString.h"
+^
+[13/44] Compile [x64] JsonLogger.cpp
+[14/44] Compile [x64] MetaSoundTools.cpp
+[15/44] Compile [x64] AssetCrud.cpp
+[16/44] Compile [x64] Module.UnrealMCPEditor.cpp
+[17/44] Compile [x64] Protocol.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Protocol\Protocol.cpp(13,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Misc/LexToString.h' : No such file or directory
+#include "Misc/LexToString.h"
+^
+[18/44] Compile [x64] NiagaraTools.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Niagara\NiagaraTools.cpp(19,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Misc/LexToString.h' : No such file or directory
+#include "Misc/LexToString.h"
+^
+[19/44] Link [x64] UnrealEditor-UnrealMCP.dll
+[20/44] Compile [x64] SequenceTools.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceTools.cpp(15,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Factories/LevelSequenceFactoryNew.h' : No such file or directory
+#include "Factories/LevelSequenceFactoryNew.h"
+^
+[21/44] Compile [x64] MCPServerRunnable.cpp
+[22/44] Compile [x64] TransactionManager.cpp
+[23/44] Compile [x64] LevelTools.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Levels\LevelTools.cpp(345,37): error C2039: 'SetDataLayerRuntimeStateByName' n'est pas membre de 'UDataLayerSubsystem'
+                DataLayerSubsystem->SetDataLayerRuntimeStateByName(LayerName, TargetState);
+                                    ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\Engine\Public\WorldPartition\DataLayer\DataLayerSubsystem.h(27,7): note: voir la déclaration de 'UDataLayerSubsystem'
+class UDataLayerSubsystem : public UWorldSubsystem
+      ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Levels\LevelTools.cpp(344,82): warning C4996: 'UDataLayerSubsystem::GetDataLayerRuntimeStateByName': Use UDataLayerManager::GetDataLayerRuntimeStateByName instead. - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+                const EDataLayerRuntimeState PreviousState = DataLayerSubsystem->GetDataLayerRuntimeStateByName(LayerName);
+                                                                                 ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Levels\LevelTools.cpp(346,41): warning C4996: 'UDataLayerSubsystem::GetDataLayerRuntimeStateByName': Use UDataLayerManager::GetDataLayerRuntimeStateByName instead. - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+                if (DataLayerSubsystem->GetDataLayerRuntimeStateByName(LayerName) == TargetState)
+                                        ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Levels\LevelTools.cpp(366,70): warning C4996: 'UDataLayerSubsystem::GetDataLayerRuntimeStateByName': Use UDataLayerManager::GetDataLayerRuntimeStateByName instead. - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+            const EDataLayerRuntimeState State = DataLayerSubsystem->GetDataLayerRuntimeStateByName(LayerName);
+                                                                     ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Levels\LevelTools.cpp(1053,57): warning C4996: 'UDataLayerSubsystem::GetDataLayerRuntimeStateByName': Use UDataLayerManager::GetDataLayerRuntimeStateByName instead. - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+                                if (DataLayerSubsystem->GetDataLayerRuntimeStateByName(LayerName) != EDataLayerRuntimeState::Activated)
+                                                        ^
+[24/44] Compile [x64] SequenceTracks.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceTracks.cpp(16,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Misc/LexToString.h' : No such file or directory
+#include "Misc/LexToString.h"
+^
+[25/44] Compile [x64] SourceControlService.cpp
+[26/44] Compile [x64] SequenceExport.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceExport.cpp(18,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Misc/LexToString.h' : No such file or directory
+#include "Misc/LexToString.h"
+^
+[27/44] Compile [x64] UnrealMCPDiagnostics.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Settings\UnrealMCPDiagnostics.cpp(16,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Misc/LexToString.h' : No such file or directory
+#include "Misc/LexToString.h"
+^
+[28/44] Compile [x64] MaterialApplyTools.cpp
+[29/44] Compile [x64] SequenceBindings.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(143,26): warning C4996: 'UMovieSceneSequence::LocateBoundObjects': Please call the FResolveParams overload - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+                Sequence.LocateBoundObjects(Guid, Actor.GetWorld(), LocatedObjects);
+                         ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(162,29): error C2248: 'UMovieScene::RemoveBinding' : impossible d'accéder à protected membre déclaré(e) dans la classe 'UMovieScene'
+            if (MovieScene->RemoveBinding(BindingId))
+                            ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\MovieScene\Public\MovieScene.h(1226,22): note: voir la déclaration de 'UMovieScene::RemoveBinding'
+	MOVIESCENE_API void RemoveBinding(const FGuid& Guid);
+	                    ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\MovieScene\Public\MovieScene.h(356,7): note: voir la déclaration de 'UMovieScene'
+class UMovieScene
+      ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(162,42): error C2451: une expression conditionnelle de type 'void' est non valide
+            if (MovieScene->RemoveBinding(BindingId))
+                                         ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(162,42): note: Les expressions de type void ne peuvent pas être converties en d'autres types
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(345,45): error C2440: 'initialisation' : impossible de convertir de 'FGuid' en 'FMovieScenePossessable &'
+        FMovieScenePossessable& Possessable = MovieScene->AddPossessable(DefaultLabel, Actor->GetClass());
+                                            ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(348,13): error C2171: impossible d'appliquer l'opérateur '!' à un opérande de type 'void'
+        if (!LevelSequence->BindPossessableObject(BindingGuid, *Actor, Actor->GetWorld()))
+            ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(348,13): error C2451: une expression conditionnelle de type 'void' est non valide
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(348,13): note: Les expressions de type void ne peuvent pas être converties en d'autres types
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(358,44): error C2039: 'SetDisplayName' n'est pas membre de 'UMovieSceneSequenceExtensions'
+            UMovieSceneSequenceExtensions::SetDisplayName(LevelSequence, BindingGuid, FText::FromString(FinalLabel));
+                                           ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Plugins\MovieScene\SequencerScripting\Source\SequencerScripting\Public\ExtensionLibraries\MovieSceneSequenceExtensions.h(27,7): note: voir la déclaration de 'UMovieSceneSequenceExtensions'
+class UMovieSceneSequenceExtensions : public UBlueprintFunctionLibrary
+      ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(358,44): error C3861: 'SetDisplayName' : identificateur introuvable
+            UMovieSceneSequenceExtensions::SetDisplayName(LevelSequence, BindingGuid, FText::FromString(FinalLabel));
+                                           ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(617,84): error C2039: 'GetPossessedObjectClassName' n'est pas membre de 'FMovieScenePossessable'
+            BindingJson->SetStringField(TEXT("possessedObjectClass"), Possessable->GetPossessedObjectClassName());
+                                                                                   ^
+D:\Mes jeux\Epic Games\UE_5.6\Engine\Source\Runtime\MovieScene\Public\MovieScenePossessable.h(34,8): note: voir la déclaration de 'FMovieScenePossessable'
+struct FMovieScenePossessable
+       ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(617,26): error C2661: 'FJsonObject::SetStringField' : aucune fonction surchargée ne nécessite 1 arguments
+            BindingJson->SetStringField(TEXT("possessedObjectClass"), Possessable->GetPossessedObjectClassName());
+                         ^
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(617,26): note: lors de la tentative de mise en correspondance de la liste des arguments '(const wchar_t [21])'
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Sequencer\SequenceBindings.cpp(623,28): warning C4996: 'UMovieSceneSequence::LocateBoundObjects': Please call the FResolveParams overload - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+            LevelSequence->LocateBoundObjects(Guid, World, LocatedObjects);
+                           ^
+[30/44] Compile [x64] ContentTools.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Content\ContentTools.cpp(28,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Containers/ScriptSet.h' : No such file or directory
+#include "Containers/ScriptSet.h"
+^
+[31/44] Compile [x64] UnrealMCPEditorModule.cpp
+[32/44] Compile [x64] UnrealMCPSourceControlCommands.cpp
+[33/44] Compile [x64] UnrealMCPUMGCommands.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPUMGCommands.cpp(4,1): fatal error C1083: Impossible d'ouvrir le fichier include : 'Blueprint/WidgetBlueprint.h' : No such file or directory
+#include "Blueprint/WidgetBlueprint.h" // nécessite UMGEditor en PrivateDependency
+^
+[34/44] Compile [x64] UnrealMCPProjectCommands.cpp
+[35/44] Compile [x64] UnrealMCPSettingsCustomization.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Settings\UnrealMCPSettingsCustomization.cpp(127,25): warning C4996: 'FMessageDialog::Open': Use the overload of Open that takes the Title by-value. - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+        FMessageDialog::Open(EAppMsgType::Ok, Message, &Title);
+                        ^
+[36/44] Compile [x64] UnrealMCPEditorCommands.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPEditorCommands.cpp(589,26): warning C4996: 'FImageUtils::CompressImageArray': Please use PNGCompressImageArray or ThumbnailCompressImageArray - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+            FImageUtils::CompressImageArray(Viewport->GetSizeXY().X, Viewport->GetSizeXY().Y, Bitmap, CompressedBitmap);
+                         ^
+[37/44] Compile [x64] UnrealMCPCommonUtils.cpp
+[38/44] Compile [x64] UnrealMCPBlueprintNodeCommands.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPBlueprintNodeCommands.cpp(322): warning C4996: ANY_PACKAGE has been deprecated. Either use full path name of objects (including classes) or provide a valid Outer for *FindObject* functions - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPBlueprintNodeCommands.cpp(330): warning C4996: ANY_PACKAGE has been deprecated. Either use full path name of objects (including classes) or provide a valid Outer for *FindObject* functions - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPBlueprintNodeCommands.cpp(345): warning C4996: ANY_PACKAGE has been deprecated. Either use full path name of objects (including classes) or provide a valid Outer for *FindObject* functions - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPBlueprintNodeCommands.cpp(358): warning C4996: ANY_PACKAGE has been deprecated. Either use full path name of objects (including classes) or provide a valid Outer for *FindObject* functions - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPBlueprintNodeCommands.cpp(505): warning C4996: ANY_PACKAGE has been deprecated. Either use full path name of objects (including classes) or provide a valid Outer for *FindObject* functions - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+[39/44] Compile [x64] UnrealMCPBlueprintCommands.cpp
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPBlueprintCommands.cpp(217): warning C4996: ANY_PACKAGE has been deprecated. Either use full path name of objects (including classes) or provide a valid Outer for *FindObject* functions - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPBlueprintCommands.cpp(223): warning C4996: ANY_PACKAGE has been deprecated. Either use full path name of objects (including classes) or provide a valid Outer for *FindObject* functions - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPBlueprintCommands.cpp(230): warning C4996: ANY_PACKAGE has been deprecated. Either use full path name of objects (including classes) or provide a valid Outer for *FindObject* functions - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+D:\Projets\fork-unreal-mcp\_package\UnrealMCP_Win64\HostProject\Plugins\UnrealMCP\Source\UnrealMCPEditor\Private\Commands\UnrealMCPBlueprintCommands.cpp(236): warning C4996: ANY_PACKAGE has been deprecated. Either use full path name of objects (including classes) or provide a valid Outer for *FindObject* functions - Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+[40/44] Compile [x64] UnrealMCPBridge.cpp
+[41/44] Compile [x64] WriteGate.cpp
+Trace written to file C:/Users/Seymi/AppData/Roaming/Unreal Engine/AutomationTool/Logs/D+Mes+jeux+Epic+Games+UE_5.6/UBA-UnrealEditor-Win64-Development.uba with size 40.7kb
+Total time in Unreal Build Accelerator local executor: 61.10 seconds
+
+Result: Failed (OtherCompilationError)
+Total execution time: 110.24 seconds
+Took 110,91s to run dotnet.exe, ExitCode=6
+UnrealBuildTool failed. See log for more details. (C:\Users\Seymi\AppData\Roaming\Unreal Engine\AutomationTool\Logs\D+Mes+jeux+Epic+Games+UE_5.6\UBA-UnrealEditor-Win64-Development.txt)
+AutomationTool executed for 0h 1m 59s
+AutomationTool exiting with ExitCode=6 (6)
+BUILD FAILED

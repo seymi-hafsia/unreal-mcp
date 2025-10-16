@@ -24,8 +24,7 @@
 #include "UObject/ObjectRedirector.h"
 #include "UObject/TopLevelAssetPath.h"
 #include "Containers/ScriptArray.h"
-// #include "Containers/ScriptMap.h"   // à SUPPRIMER
-#include "Containers/Map.h"            // si vraiment tu as besoin d’un TMap
+#include "Containers/Map.h"
 #include "Containers/ScriptSet.h"
 
 namespace

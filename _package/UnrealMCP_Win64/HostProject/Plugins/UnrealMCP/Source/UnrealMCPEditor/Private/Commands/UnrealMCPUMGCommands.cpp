@@ -1,8 +1,9 @@
 #include "Commands/UnrealMCPUMGCommands.h"
+#include "CoreMinimal.h"
+
 #include "Blueprint/WidgetBlueprint.h" // nécessite UMGEditor en PrivateDependency
 #include "Blueprint/UserWidget.h"
 #include "Commands/UnrealMCPCommonUtils.h"
-#include "CoreMinimal.h"
 #include "Editor.h"
 #include "EditorAssetLibrary.h"
 #include "AssetRegistry/AssetRegistryModule.h"

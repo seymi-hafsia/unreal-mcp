@@ -13,7 +13,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
-#include "LevelSequence.h" // au lieu de "LevelSequence/LevelSequence.h"
+#include "LevelSequence.h"
 #include "String/LexFromString.h"
 #include "Misc/LexToString.h"
 #include "Misc/PackageName.h"

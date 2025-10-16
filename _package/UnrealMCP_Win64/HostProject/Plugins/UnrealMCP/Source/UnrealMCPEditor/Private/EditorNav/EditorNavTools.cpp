@@ -15,7 +15,6 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "Math/Box.h"
-#include "CoreMinimal.h" // TOptional est inclus via CoreMinimal
 #include "String/LexFromString.h"
 #include "Misc/LexToString.h"
 

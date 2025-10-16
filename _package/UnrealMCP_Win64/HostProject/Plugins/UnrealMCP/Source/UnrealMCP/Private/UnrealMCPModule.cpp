@@ -1,4 +1,6 @@
 #include "UnrealMCPModule.h"
+#include "CoreMinimal.h"
+
 #include "Modules/ModuleManager.h"
 #include "UnrealMCPLog.h"
 #include "UnrealMCPSettings.h"

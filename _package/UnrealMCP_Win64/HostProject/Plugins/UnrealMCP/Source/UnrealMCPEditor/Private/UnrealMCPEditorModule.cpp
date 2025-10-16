@@ -1,4 +1,6 @@
 #include "UnrealMCPEditorModule.h"
+#include "CoreMinimal.h"
+
 #include "ISettingsModule.h"
 #include "Modules/ModuleManager.h"
 #include "Observability/JsonLogger.h"

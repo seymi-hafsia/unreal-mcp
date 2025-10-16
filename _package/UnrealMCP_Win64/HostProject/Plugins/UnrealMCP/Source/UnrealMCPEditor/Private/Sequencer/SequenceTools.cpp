@@ -13,7 +13,7 @@
 #include "EngineUtils.h"
 #include "Engine/EngineTypes.h"
 #include "Factories/LevelSequenceFactoryNew.h"
-#include "LevelSequence/LevelSequence.h"
+#include "LevelSequence.h"
 #include "Misc/PackageName.h"
 #include "Modules/ModuleManager.h"
 #include "MovieScene.h"
