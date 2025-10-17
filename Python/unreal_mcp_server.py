@@ -4,34 +4,13 @@ Unreal Engine MCP Server
 A simple MCP server for interacting with Unreal Engine.
 """
 
-import argparse
-import hashlib
-import json
 import logging
-import os
-import platform
 import socket
 import sys
-import time
-import uuid
+import json
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import AsyncIterator, Dict, Any, Optional, List
-
-from copy import deepcopy
-
+from typing import AsyncIterator, Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
-
-from protocol import (
-    ProtocolError,
-    current_timestamp_ms,
-    read_frame,
-    write_frame,
-)
-from observability import init as init_observability, log_event, log_metric
-from dedup import DedupStore
 
 # Configure logging with more detailed format
 logging.basicConfig(
@@ -47,492 +26,179 @@ logger = logging.getLogger("UnrealMCP")
 # Configuration
 UNREAL_HOST = "127.0.0.1"
 UNREAL_PORT = 55557
-SERVER_IDENTITY = "mcp-python/0.2.0"
-
-LOG_DIRECTORY = Path(__file__).resolve().parent / "logs"
-init_observability(LOG_DIRECTORY, enable=True)
-SERVER_START_TIME = time.time()
-DEDUP_STORE = DedupStore()
-
-
-@dataclass
-class EnforcementConfig:
-    allow_write: bool = False
-    dry_run: bool = True
-    allowed_paths: List[str] = None
-
-    def normalized_paths(self) -> List[str]:
-        paths: List[str] = []
-        if self.allowed_paths:
-            for entry in self.allowed_paths:
-                trimmed = entry.strip()
-                if trimmed:
-                    paths.append(trimmed)
-        return paths
-
-
-SERVER_CONFIG = EnforcementConfig()
-
-MUTATING_COMMANDS = {
-    "spawn_actor",
-    "create_actor",
-    "delete_actor",
-    "set_actor_transform",
-    "set_actor_property",
-    "spawn_blueprint_actor",
-    "create_blueprint",
-    "add_component_to_blueprint",
-    "set_component_property",
-    "set_physics_properties",
-    "compile_blueprint",
-    "set_blueprint_property",
-    "set_static_mesh_properties",
-    "set_pawn_properties",
-    "connect_blueprint_nodes",
-    "add_blueprint_get_self_component_reference",
-    "add_blueprint_self_reference",
-    "add_blueprint_event_node",
-    "add_blueprint_input_action_node",
-    "add_blueprint_function_node",
-    "add_blueprint_get_component_node",
-    "add_blueprint_variable",
-    "create_input_mapping",
-    "create_umg_widget_blueprint",
-    "add_text_block_to_widget",
-    "add_button_to_widget",
-    "bind_widget_event",
-    "set_text_block_binding",
-    "add_widget_to_viewport",
-    "sc.status",
-    "sc.checkout",
-    "sc.add",
-    "sc.revert",
-    "sc.submit",
-}
-
-
-def get_server_config() -> EnforcementConfig:
-    return SERVER_CONFIG
-
-
-AUDIT_LOG = Path("logs/audit.jsonl")
-
-
-def _env_bool(name: str) -> Optional[bool]:
-    value = os.getenv(name)
-    if value is None:
-        return None
-    normalized = value.strip().lower()
-    if normalized in {"1", "true", "yes", "on"}:
-        return True
-    if normalized in {"0", "false", "no", "off"}:
-        return False
-    return None
-
-
-def configure_server_from_args(argv: List[str]) -> None:
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--allow-write", dest="allow_write", action="store_true")
-    parser.add_argument("--no-allow-write", dest="allow_write", action="store_false")
-    parser.add_argument("--dry-run", dest="dry_run", action="store_true")
-    parser.add_argument("--no-dry-run", dest="dry_run", action="store_false")
-    parser.add_argument("--allowed-path", dest="allowed_paths", action="append")
-    parser.set_defaults(allow_write=None, dry_run=None, allowed_paths=None)
-
-    args, remaining = parser.parse_known_args(argv[1:])
-    sys.argv = [argv[0]] + remaining
-
-    allow_write = args.allow_write
-    if allow_write is None:
-        env_value = _env_bool("MCP_ALLOW_WRITE")
-        if env_value is not None:
-            allow_write = env_value
-        else:
-            allow_write = False
-
-    dry_run = args.dry_run
-    if dry_run is None:
-        env_value = _env_bool("MCP_DRY_RUN")
-        if env_value is not None:
-            dry_run = env_value
-        else:
-            dry_run = True
-
-    allowed_paths: List[str] = []
-    env_paths = os.getenv("MCP_ALLOWED_PATHS")
-    if env_paths:
-        for part in env_paths.split(";"):
-            trimmed = part.strip()
-            if trimmed:
-                allowed_paths.append(trimmed)
-
-    if args.allowed_paths:
-        for path in args.allowed_paths:
-            trimmed = path.strip()
-            if trimmed:
-                allowed_paths.append(trimmed)
-
-    global SERVER_CONFIG
-    SERVER_CONFIG = EnforcementConfig(
-        allow_write=allow_write,
-        dry_run=dry_run,
-        allowed_paths=allowed_paths,
-    )
-
-    logger.info(
-        "Server enforcement configured: allow_write=%s dry_run=%s allowed_paths=%s",
-        SERVER_CONFIG.allow_write,
-        SERVER_CONFIG.dry_run,
-        SERVER_CONFIG.normalized_paths(),
-    )
 
 class UnrealConnection:
-    """Connection to an Unreal Engine instance using Protocol v1.1."""
-
-    PROTOCOL_VERSION = 1.1
-    HANDSHAKE_TIMEOUT = 10.0
-    WRITE_TIMEOUT = 5.0
-    IDLE_TIMEOUT = 60.0
-    ENGINE_VERSION = "5.6.x"
-    CLIENT_VERSION = "python-mcp/1.0.0"
-
-    def __init__(self) -> None:
-        self.socket: Optional[socket.socket] = None
+    """Connection to an Unreal Engine instance."""
+    
+    def __init__(self):
+        """Initialize the connection."""
+        self.socket = None
         self.connected = False
-        self.session_id = str(uuid.uuid4())
-        self.capabilities: list[str] = []
-        now = time.monotonic()
-        self._last_receive = now
-        self._last_send = now
-        self.last_handshake: Optional[datetime] = None
-        self.remote_engine_version: Optional[str] = None
-        self.remote_plugin_version: Optional[str] = None
-        self.window_max: int = 16
-        self.resume_token: Optional[str] = None
-
+    
     def connect(self) -> bool:
-        """Connect to the Unreal Engine instance and perform handshake."""
-
-        self.disconnect()
-
+        """Connect to the Unreal Engine instance."""
         try:
-            logger.info("Connecting to Unreal at %s:%s...", UNREAL_HOST, UNREAL_PORT)
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 65536)
-            sock.settimeout(None)
-            sock.connect((UNREAL_HOST, UNREAL_PORT))
-
-            self.socket = sock
+            # Close any existing socket
+            if self.socket:
+                try:
+                    self.socket.close()
+                except:
+                    pass
+                self.socket = None
+            
+            logger.info(f"Connecting to Unreal at {UNREAL_HOST}:{UNREAL_PORT}...")
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.settimeout(5)  # 5 second timeout
+            
+            # Set socket options for better stability
+            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            
+            # Set larger buffer sizes
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 65536)
+            
+            self.socket.connect((UNREAL_HOST, UNREAL_PORT))
             self.connected = True
-            self._perform_handshake()
-            logger.info("Connected to Unreal Engine (capabilities=%s)", self.capabilities)
+            logger.info("Connected to Unreal Engine")
             return True
-
-        except ProtocolError as exc:
-            logger.error("Protocol handshake failed: %s (%s)", exc.code, exc)
-            self.disconnect()
+            
+        except Exception as e:
+            logger.error(f"Failed to connect to Unreal: {e}")
+            self.connected = False
             return False
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("Failed to connect to Unreal: %s", exc)
-            self.disconnect()
-            return False
-
-    def disconnect(self) -> None:
+    
+    def disconnect(self):
         """Disconnect from the Unreal Engine instance."""
-
         if self.socket:
             try:
                 self.socket.close()
-            except OSError:
+            except:
                 pass
         self.socket = None
         self.connected = False
 
-    def _perform_handshake(self) -> None:
-        if not self.socket:
-            raise ProtocolError("INTERNAL_ERROR", "Socket not initialized.")
-
-        handshake = {
-            "type": "handshake",
-            "protocolVersion": self.PROTOCOL_VERSION,
-            "engineVersion": self.ENGINE_VERSION,
-            "pluginVersion": self.CLIENT_VERSION,
-            "sessionId": self.session_id,
-            "resumeToken": self.resume_token,
-        }
-
-        write_frame(self.socket, handshake, timeout=self.WRITE_TIMEOUT)
-        ack = read_frame(self.socket, timeout=self.HANDSHAKE_TIMEOUT)
-
-        if ack.get("type") != "handshake/ack" or not ack.get("ok", False):
-            raise ProtocolError("PROTOCOL_VERSION_MISMATCH", "Protocol handshake rejected.", {"response": ack})
-
-        self.capabilities = list(ack.get("capabilities", []))
-        now = time.monotonic()
-        self._last_send = now
-        self._last_receive = now
-        self.remote_plugin_version = ack.get("serverVersion")
-        self.last_handshake = datetime.now(timezone.utc)
-
-        if ack.get("resume"):
-            log_event(
-                "info",
-                "connection.resume",
-                "Resumed Unreal MCP session",
-                {"sessionId": self.session_id},
-            )
-
-        window_val = ack.get("windowMax")
-        if isinstance(window_val, int) and window_val > 0:
-            self.window_max = window_val
-
-        resume_token = ack.get("resumeToken")
-        if isinstance(resume_token, str) and resume_token:
-            self.resume_token = resume_token
-        else:
-            self.resume_token = None
-
-        self._send_enforcement_capabilities()
-
-    def _send_enforcement_capabilities(self) -> None:
-        if not self.socket:
-            return
-
-        config = get_server_config()
-        enforcement = {
-            "allowWrite": bool(config.allow_write),
-            "dryRun": bool(config.dry_run),
-            "allowedPaths": config.normalized_paths(),
-            "server": SERVER_IDENTITY,
-        }
-
-        payload = {
-            "type": "capabilities",
-            "ok": True,
-            "enforcement": enforcement,
-        }
-
+    def receive_full_response(self, sock, buffer_size=4096) -> bytes:
+        """Receive a complete response from Unreal, handling chunked data."""
+        chunks = []
+        sock.settimeout(5)  # 5 second timeout
         try:
-            write_frame(self.socket, payload, timeout=self.WRITE_TIMEOUT)
-            self._last_send = time.monotonic()
-            logger.debug("Sent enforcement capabilities: %s", enforcement)
-        except ProtocolError as exc:
-            logger.error("Failed to send enforcement capabilities: %s", exc)
-
-    def _handle_control_message(self, message: Dict[str, Any]) -> bool:
-        if not self.socket:
-            return False
-
-        message_type = message.get("type")
-        if message_type == "ping":
-            timestamp = int(message.get("ts", current_timestamp_ms()))
+            while True:
+                chunk = sock.recv(buffer_size)
+                if not chunk:
+                    if not chunks:
+                        raise Exception("Connection closed before receiving data")
+                    break
+                chunks.append(chunk)
+                
+                # Process the data received so far
+                data = b''.join(chunks)
+                decoded_data = data.decode('utf-8')
+                
+                # Try to parse as JSON to check if complete
+                try:
+                    json.loads(decoded_data)
+                    logger.info(f"Received complete response ({len(data)} bytes)")
+                    return data
+                except json.JSONDecodeError:
+                    # Not complete JSON yet, continue reading
+                    logger.debug(f"Received partial response, waiting for more data...")
+                    continue
+                except Exception as e:
+                    logger.warning(f"Error processing response chunk: {str(e)}")
+                    continue
+        except socket.timeout:
+            logger.warning("Socket timeout during receive")
+            if chunks:
+                # If we have some data already, try to use it
+                data = b''.join(chunks)
+                try:
+                    json.loads(data.decode('utf-8'))
+                    logger.info(f"Using partial response after timeout ({len(data)} bytes)")
+                    return data
+                except:
+                    pass
+            raise Exception("Timeout receiving Unreal response")
+        except Exception as e:
+            logger.error(f"Error during receive: {str(e)}")
+            raise
+    
+    def send_command(self, command: str, params: Dict[str, Any] = None) -> Optional[Dict[str, Any]]:
+        """Send a command to Unreal Engine and get the response."""
+        # Always reconnect for each command, since Unreal closes the connection after each command
+        # This is different from Unity which keeps connections alive
+        if self.socket:
             try:
-                write_frame(self.socket, {"type": "pong", "ts": timestamp}, timeout=self.WRITE_TIMEOUT)
-                self._last_send = time.monotonic()
-                logger.debug("Responded to ping (%s)", timestamp)
-            except ProtocolError as exc:
-                logger.error("Failed to respond to ping: %s", exc)
-                raise
-            return True
-
-        if message_type == "pong":
-            logger.debug("Received pong (%s)", message.get("ts"))
-            return True
-
-        return False
-
-    def _wait_for_message(self) -> Dict[str, Any]:
-        if not self.socket:
-            raise ProtocolError("READ_TIMEOUT", "Socket not connected.")
-
-        deadline = time.monotonic() + self.IDLE_TIMEOUT
-        while True:
-            remaining = max(0.0, deadline - time.monotonic())
-            message = read_frame(self.socket, timeout=remaining)
-            self._last_receive = time.monotonic()
-            if self._handle_control_message(message):
-                continue
-            return message
-
-    def send_command(
-        self,
-        command: str,
-        params: Optional[Dict[str, Any]] = None,
-        *,
-        request_id: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
-        """Send a command to Unreal Engine and wait for a framed response."""
-
-        params = params or {}
-        is_mutation = command in MUTATING_COMMANDS
-        request_id = request_id or str(uuid.uuid4())
-        idempotency_key = request_id
-        cached_response = DEDUP_STORE.get(idempotency_key)
-        if cached_response is not None:
-            log_event(
-                "info",
-                "dedup.hit",
-                "Returning cached Unreal MCP response",
-                request_id=request_id,
-                session_id=self.session_id,
-                fields={"tool": command},
-                ts_ms=current_timestamp_ms(),
-            )
-            return deepcopy(cached_response)
-        start_time = time.time()
-        start_ts_ms = start_time * 1000.0
-
-        if is_mutation:
-            config = get_server_config()
-            if not config.allow_write and command != "sc.status":
-                error_payload = {
-                    "ok": False,
-                    "error": {
-                        "code": "WRITE_NOT_ALLOWED",
-                        "message": "Write operations are disabled (allowWrite=false)",
-                        "details": {"tool": command},
-                    },
-                    "audit": {
-                        "mutation": True,
-                        "dryRun": True,
-                        "executed": False,
-                        "actions": [],
-                    },
-                }
-                DEDUP_STORE.put(idempotency_key, deepcopy(error_payload))
-                self._emit_audit(command, params, error_payload)
-                return error_payload
-
-        if not self.connected or not self.socket:
-            if not self.connect():
-                logger.error("Failed to connect to Unreal Engine for command")
-                return None
-
-        payload = {
-            "type": command,
-            "params": params,
-            "requestId": request_id,
-            "idempotencyKey": idempotency_key,
-            "meta": {"requestId": request_id, "ts": start_ts_ms},
-        }
-
+                self.socket.close()
+            except:
+                pass
+            self.socket = None
+            self.connected = False
+        
+        if not self.connect():
+            logger.error("Failed to connect to Unreal Engine for command")
+            return None
+        
         try:
-            write_frame(self.socket, payload, timeout=self.WRITE_TIMEOUT)
-            self._last_send = time.monotonic()
-            response = self._wait_for_message()
-            logger.debug("Received response payload: %s", response)
-            duration_ms = (time.time() - start_time) * 1000.0
-            if isinstance(response, dict):
-                meta = response.setdefault("meta", {})
-                meta.setdefault("requestId", request_id)
-                meta["serverTs"] = start_ts_ms
-                meta["durMs"] = duration_ms
-                fields = {
-                    "tool": command,
-                    "ok": bool(response.get("ok", False)),
-                    "durMs": duration_ms,
-                }
-                if isinstance(response.get("error"), dict):
-                    code = response["error"].get("code")
-                    if code:
-                        fields["errorCode"] = code
-                log_metric("tool_duration_ms", fields)
-                log_metric("tool_calls_total", {k: fields[k] for k in ("tool", "ok") if k in fields} | ({"errorCode": fields["errorCode"]} if "errorCode" in fields else {}))
-                log_event(
-                    "info" if response.get("ok") else "error",
-                    f"tool.{command}",
-                    f"Tool {command} completed",
-                    request_id=request_id,
-                    session_id=self.session_id,
-                    fields=fields,
-                    ts_ms=start_ts_ms,
-                )
-                DEDUP_STORE.put(idempotency_key, deepcopy(response))
-            if is_mutation and response is not None:
-                self._emit_audit(command, params, response)
-            return response
-
-        except ProtocolError as exc:
-            logger.error("Protocol error while communicating with Unreal: %s (%s)", exc.code, exc)
-            error_payload = exc.to_dict()
-            if is_mutation:
-                self._emit_audit(command, params, error_payload)
-            self.disconnect()
-            log_event(
-                "error",
-                f"tool.{command}",
-                f"Protocol error for {command}: {exc.code}",
-                request_id=request_id,
-                session_id=self.session_id,
-                fields={"errorCode": exc.code, "durMs": (time.time() - start_time) * 1000.0},
-                ts_ms=start_ts_ms,
-            )
-            DEDUP_STORE.put(idempotency_key, deepcopy(error_payload))
-            return error_payload
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("Unexpected error while sending command: %s", exc)
-            self.disconnect()
-            error_payload = {
-                "ok": False,
-                "error": {
-                    "code": "INTERNAL_ERROR",
-                    "message": str(exc),
-                    "details": {},
-                },
+            # Match Unity's command format exactly
+            command_obj = {
+                "type": command,  # Use "type" instead of "command"
+                "params": params or {}  # Use Unity's params or {} pattern
             }
-            if is_mutation:
-                self._emit_audit(command, params, error_payload)
-            log_event(
-                "error",
-                f"tool.{command}",
-                f"Unexpected error for {command}",
-                request_id=request_id,
-                session_id=self.session_id,
-                fields={"error": str(exc), "durMs": (time.time() - start_time) * 1000.0},
-                ts_ms=start_ts_ms,
-            )
-            DEDUP_STORE.put(idempotency_key, deepcopy(error_payload))
-            return error_payload
-
-    def _emit_audit(self, command: str, params: Dict[str, Any], response: Dict[str, Any]) -> None:
-        if command not in MUTATING_COMMANDS:
-            return
-
-        config = get_server_config()
-
-        try:
-            encoded_params = json.dumps(params, sort_keys=True, separators=(",", ":"))
-            params_digest = hashlib.sha256(encoded_params.encode("utf-8")).hexdigest()[:12]
-        except (TypeError, ValueError):
-            params_digest = "unserializable"
-
-        audit_info = response.get("audit") if isinstance(response, dict) else None
-        dry_run = config.dry_run
-        executed = False
-        if isinstance(audit_info, dict):
-            dry_run = bool(audit_info.get("dryRun", dry_run))
-            executed = bool(audit_info.get("executed", False))
-
-        entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "tool": command,
-            "mutation": True,
-            "dryRun": dry_run,
-            "executed": executed,
-            "paramsDigest": params_digest,
-            "ok": bool(response.get("ok", False)) if isinstance(response, dict) else False,
-        }
-
-        try:
-            AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
-            with AUDIT_LOG.open("a", encoding="utf-8") as handle:
-                json.dump(entry, handle)
-                handle.write("\n")
-        except Exception as exc:  # pragma: no cover - defensive logging
-            logger.error("Failed to write audit entry: %s", exc)
+            
+            # Send without newline, exactly like Unity
+            command_json = json.dumps(command_obj)
+            logger.info(f"Sending command: {command_json}")
+            self.socket.sendall(command_json.encode('utf-8'))
+            
+            # Read response using improved handler
+            response_data = self.receive_full_response(self.socket)
+            response = json.loads(response_data.decode('utf-8'))
+            
+            # Log complete response for debugging
+            logger.info(f"Complete response from Unreal: {response}")
+            
+            # Check for both error formats: {"status": "error", ...} and {"success": false, ...}
+            if response.get("status") == "error":
+                error_message = response.get("error") or response.get("message", "Unknown Unreal error")
+                logger.error(f"Unreal error (status=error): {error_message}")
+                # We want to preserve the original error structure but ensure error is accessible
+                if "error" not in response:
+                    response["error"] = error_message
+            elif response.get("success") is False:
+                # This format uses {"success": false, "error": "message"} or {"success": false, "message": "message"}
+                error_message = response.get("error") or response.get("message", "Unknown Unreal error")
+                logger.error(f"Unreal error (success=false): {error_message}")
+                # Convert to the standard format expected by higher layers
+                response = {
+                    "status": "error",
+                    "error": error_message
+                }
+            
+            # Always close the connection after command is complete
+            # since Unreal will close it on its side anyway
+            try:
+                self.socket.close()
+            except:
+                pass
+            self.socket = None
+            self.connected = False
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error sending command: {e}")
+            # Always reset connection state on any error
+            self.connected = False
+            try:
+                self.socket.close()
+            except:
+                pass
+            self.socket = None
+            return {
+                "status": "error",
+                "error": str(e)
+            }
 
 # Global connection state
 _unreal_connection: UnrealConnection = None
@@ -546,7 +212,24 @@ def get_unreal_connection() -> Optional[UnrealConnection]:
             if not _unreal_connection.connect():
                 logger.warning("Could not connect to Unreal Engine")
                 _unreal_connection = None
-
+        else:
+            # Verify connection is still valid with a ping-like test
+            try:
+                # Simple test by sending an empty buffer to check if socket is still connected
+                _unreal_connection.socket.sendall(b'\x00')
+                logger.debug("Connection verified with ping test")
+            except Exception as e:
+                logger.warning(f"Existing connection failed: {e}")
+                _unreal_connection.disconnect()
+                _unreal_connection = None
+                # Try to reconnect
+                _unreal_connection = UnrealConnection()
+                if not _unreal_connection.connect():
+                    logger.warning("Could not reconnect to Unreal Engine")
+                    _unreal_connection = None
+                else:
+                    logger.info("Successfully reconnected to Unreal Engine")
+        
         return _unreal_connection
     except Exception as e:
         logger.error(f"Error getting Unreal connection: {e}")
@@ -588,15 +271,13 @@ from tools.blueprint_tools import register_blueprint_tools
 from tools.node_tools import register_blueprint_node_tools
 from tools.project_tools import register_project_tools
 from tools.umg_tools import register_umg_tools
-from server import register_server_tools
 
 # Register tools
 register_editor_tools(mcp)
 register_blueprint_tools(mcp)
 register_blueprint_node_tools(mcp)
 register_project_tools(mcp)
-register_umg_tools(mcp)
-register_server_tools(mcp)
+register_umg_tools(mcp)  
 
 @mcp.prompt()
 def info():
@@ -692,6 +373,5 @@ def info():
 
 # Run the server
 if __name__ == "__main__":
-    configure_server_from_args(sys.argv)
     logger.info("Starting MCP server with stdio transport")
-    mcp.run(transport='stdio')
+    mcp.run(transport='stdio') 
