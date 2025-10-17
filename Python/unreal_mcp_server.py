@@ -140,15 +140,15 @@ class UnrealConnection:
             return None
         
         try:
-            # Match Unity's command format exactly
+            # Xodus version expects "type" field
             command_obj = {
-                "type": command,  # Use "type" instead of "command"
-                "params": params or {}  # Use Unity's params or {} pattern
+                "type": command,  # Xodus plugin expects "type" field
+                "params": params or {}
             }
             
-            # Send without newline, exactly like Unity
-            command_json = json.dumps(command_obj)
-            logger.info(f"Sending command: {command_json}")
+            # Send with newline terminator as required by Unreal
+            command_json = json.dumps(command_obj) + '\n'
+            logger.info(f"Sending command: {command_json.strip()}")
             self.socket.sendall(command_json.encode('utf-8'))
             
             # Read response using improved handler

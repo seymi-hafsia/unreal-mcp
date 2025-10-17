@@ -11,7 +11,8 @@
       "Bash(\"D:\\Mes jeux\\Epic Games\\UE_5.6\\Engine\\Build\\BatchFiles\\RunUAT.bat\" BuildPlugin -Plugin=\"D:\\Projets\\fork-unreal-mcp\\MCPGameProject\\Plugins\\UnrealMCP\\UnrealMCP.uplugin\" -Package=\"D:\\Projets\\fork-unreal-mcp\\MCPGameProject\\Plugins\\UnrealMCP\\Packaged\")",
       "Bash(test:*)",
       "Bash(\"D:\\Mes jeux\\Epic Games\\UE_5.6\\Engine\\Build\\BatchFiles\\Build.bat\" -projectfiles -project=\"D:\\Projets\\fork-unreal-mcp\\MCPGameProject\\MCPGameProject.uproject\" -game -rocket -progress)",
-      "Bash(\"D:\\Mes jeux\\Epic Games\\UE_5.6\\Engine\\Build\\BatchFiles\\Build.bat\" MCPGameProjectEditor Win64 Development \"D:\\Projets\\fork-unreal-mcp\\MCPGameProject\\MCPGameProject.uproject\" -waitmutex -NoHotReloadFromIDE)"
+      "Bash(\"D:\\Mes jeux\\Epic Games\\UE_5.6\\Engine\\Build\\BatchFiles\\Build.bat\" MCPGameProjectEditor Win64 Development \"D:\\Projets\\fork-unreal-mcp\\MCPGameProject\\MCPGameProject.uproject\" -waitmutex -NoHotReloadFromIDE)",
+      "Bash(python -c:*)"
     ],
     "deny": [],
     "ask": []
