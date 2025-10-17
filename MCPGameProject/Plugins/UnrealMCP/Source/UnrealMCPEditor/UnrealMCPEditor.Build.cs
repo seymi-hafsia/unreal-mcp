@@ -19,19 +19,20 @@ public class UnrealMCPEditor : ModuleRules
             "AssetRegistry",
             "LevelSequence",
             "MovieScene",
+            "MovieSceneTracks",
             "Slate",
             "SlateCore",
             "UMG",
-            "UnrealMCP" // dépend du module runtime du plugin
+            "UnrealMCP", // dépend du module runtime du plugin
+            "UnrealEd",  // APIs Editor - Needed in public for Rocket mode
+            "EditorScriptingUtilities", // EditorViewportLibrary
+            "LevelSequenceEditor" // LevelSequenceFactoryNew
         });
 
         PrivateDependencyModuleNames.AddRange(new[]
         {
-            "UnrealEd",            // APIs Editor (EditorViewportLibrary, AssetImportTask, etc.)
             "UMGEditor",           // WidgetBlueprint
             "Sequencer",
-            "LevelSequenceEditor", // LevelSequenceFactoryNew
-            "EditorScriptingUtilities",
             "Blutility",
             "LevelEditor",
             "MessageLog",
@@ -44,7 +45,6 @@ public class UnrealMCPEditor : ModuleRules
             "AssetTools",
             "Niagara",
             "NiagaraCore",
-            "MovieSceneTracks",
             "CinematicCamera"
         });
 

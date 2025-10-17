@@ -64,7 +64,7 @@ namespace
             return true;
         }
 
-        const FAssetDataTagMapSharedView Tags = AssetData.TagsAndValues();
+        const FAssetDataTagMapSharedView& Tags = AssetData.TagsAndValues;
         for (const TPair<FName, TArray<FString>>& Pair : TagQuery)
         {
             const FAssetDataTagMapSharedView::FFindTagResult TagValue = Tags.FindTag(Pair.Key);
@@ -150,7 +150,7 @@ namespace
     void CopyTags(const FAssetData& AssetData, TMap<FString, TArray<FString>>& OutTags)
     {
         OutTags.Reset();
-        for (const TPair<FName, FAssetTagValueRef>& TagPair : AssetData.TagsAndValues())
+        for (const TPair<FName, FAssetTagValueRef>& TagPair : AssetData.TagsAndValues)
         {
             OutTags.Add(TagPair.Key.ToString(), ParseTagValues(TagPair.Value.AsString()));
         }
@@ -176,18 +176,17 @@ namespace
         return Result;
     }
 
-    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, const UE::AssetRegistry::EDependencyFlags Flags, TArray<FString>& OutDependencies)
+    void CollectDependencies(const FAssetData& AssetData, IAssetRegistry& AssetRegistry, bool bIncludeHard, bool bIncludeSoft, TArray<FString>& OutDependencies)
     {
-        using namespace UE::AssetRegistry;
         OutDependencies.Reset();
 
         TArray<FName> PackageDependencies;
         FAssetRegistryDependencyOptions Options;
-        Options.bIncludePackages = true;
-        Options.bIncludeHard = EnumHasAnyFlags(Flags, UE::AssetRegistry::EDependencyFlags::Hard);
-        Options.bIncludeSoft = EnumHasAnyFlags(Flags, UE::AssetRegistry::EDependencyFlags::Soft);
-        Options.bIncludeManageDependencies = EnumHasAnyFlags(Flags, UE::AssetRegistry::EDependencyFlags::Manage);
-        Options.bIncludeSearchableNames = EnumHasAnyFlags(Flags, UE::AssetRegistry::EDependencyFlags::SearchableName);
+        Options.bIncludeHardPackageReferences = bIncludeHard;
+        Options.bIncludeSoftPackageReferences = bIncludeSoft;
+        Options.bIncludeSearchableNames = false;
+        Options.bIncludeHardManagementReferences = false;
+        Options.bIncludeSoftManagementReferences = false;
         AssetRegistry.GetDependencies(AssetData.PackageName, PackageDependencies, Options);
 
         for (const FName& Dependency : PackageDependencies)
@@ -420,7 +419,7 @@ bool FAssetQuery::Metadata(const FString& ObjectPath, TSharedPtr<FJsonObject>& O
     Result->SetBoolField(TEXT("isDirtyKnown"), bIsDirtyKnown);
 
     TSharedPtr<FJsonObject> TagsJson = MakeShared<FJsonObject>();
-    for (const TPair<FName, FAssetTagValueRef>& TagPair : AssetData.TagsAndValues())
+    for (const TPair<FName, FAssetTagValueRef>& TagPair : AssetData.TagsAndValues)
     {
         TArray<FString> Parsed = ParseTagValues(TagPair.Value.AsString());
         TArray<TSharedPtr<FJsonValue>> JsonArray;
@@ -432,11 +431,10 @@ bool FAssetQuery::Metadata(const FString& ObjectPath, TSharedPtr<FJsonObject>& O
     }
     Result->SetObjectField(TEXT("tags"), TagsJson);
 
-    using namespace UE::AssetRegistry;
     TSharedPtr<FJsonObject> DependenciesJson = MakeShared<FJsonObject>();
 
     TArray<FString> HardDependencies;
-    CollectDependencies(AssetData, AssetRegistry, EDependencyFlags::Hard, HardDependencies);
+    CollectDependencies(AssetData, AssetRegistry, true, false, HardDependencies);
     TArray<TSharedPtr<FJsonValue>> HardArray;
     for (const FString& Dependency : HardDependencies)
     {
@@ -445,7 +443,7 @@ bool FAssetQuery::Metadata(const FString& ObjectPath, TSharedPtr<FJsonObject>& O
     DependenciesJson->SetArrayField(TEXT("hard"), HardArray);
 
     TArray<FString> SoftDependencies;
-    CollectDependencies(AssetData, AssetRegistry, EDependencyFlags::Soft, SoftDependencies);
+    CollectDependencies(AssetData, AssetRegistry, false, true, SoftDependencies);
     TArray<TSharedPtr<FJsonValue>> SoftArray;
     for (const FString& Dependency : SoftDependencies)
     {

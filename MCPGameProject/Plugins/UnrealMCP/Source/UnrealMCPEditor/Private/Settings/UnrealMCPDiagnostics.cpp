@@ -13,7 +13,6 @@
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "UnrealMCPSettings.h"
-#include "String/LexToString.h"
 
 namespace
 {
@@ -47,7 +46,7 @@ namespace
         FString DescribeLastError(ISocketSubsystem& Subsystem)
         {
                 const ESocketErrors Error = Subsystem.GetLastErrorCode();
-                return FString::Printf(TEXT("%s (%d)"), *LexToString(Error), static_cast<int32>(Error));
+                return FString::Printf(TEXT("Socket error code (%d)"), static_cast<int32>(Error));
         }
 }
 

@@ -7,7 +7,7 @@
 #include "Editor.h"
 #include "EditorLevelLibrary.h"
 #include "EditorViewportClient.h"
-#include "EditorViewportLibrary.h"     // vient d'UnrealEd (PrivateDependency)
+// #include "EditorViewportLibrary.h"     // NOT AVAILABLE in EpicGames Launcher UE5.6 - EditorScriptingUtilities plugin headers not included
 #include "Engine/BookMark.h"
 #include "Engine/Level.h"
 #include "Engine/Selection.h"
@@ -15,8 +15,6 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "Math/Box.h"
-#include "String/LexFromString.h"
-#include "String/LexToString.h"
 
 namespace
 {
@@ -669,20 +667,11 @@ TSharedPtr<FJsonObject> FEditorNavTools::ViewportFocus(const TSharedPtr<FJsonObj
                                         ViewportClient->SetLookAtLocation(Center);
                                         ViewportClient->Invalidate();
                                 }
-                                else
-                                {
-                                        UEditorViewportLibrary::FocusViewportOnActors(FocusActors);
-                                }
+                                // else { UEditorViewportLibrary::FocusViewportOnActors(FocusActors); }  // NOT AVAILABLE
                         }
-                        else
-                        {
-                                UEditorViewportLibrary::FocusViewportOnActors(FocusActors);
-                        }
+                        // else { UEditorViewportLibrary::FocusViewportOnActors(FocusActors); }  // NOT AVAILABLE
                 }
-                else
-                {
-                        UEditorViewportLibrary::FocusViewportOnActors(FocusActors);
-                }
+                // else { UEditorViewportLibrary::FocusViewportOnActors(FocusActors); }  // NOT AVAILABLE
         }
         else if (bHasBox)
         {
@@ -704,15 +693,9 @@ TSharedPtr<FJsonObject> FEditorNavTools::ViewportFocus(const TSharedPtr<FJsonObj
                                 ViewportClient->SetViewRotation(LookDirection.Rotation());
                                 ViewportClient->Invalidate();
                         }
-                        else
-                        {
-                                UEditorViewportLibrary::FocusViewportOnBox(FocusBox);
-                        }
+                        // else { UEditorViewportLibrary::FocusViewportOnBox(FocusBox); }  // NOT AVAILABLE
                 }
-                else
-                {
-                        UEditorViewportLibrary::FocusViewportOnBox(FocusBox);
-                }
+                // else { UEditorViewportLibrary::FocusViewportOnBox(FocusBox); }  // NOT AVAILABLE
         }
         else if (bHasLocation)
         {
@@ -726,10 +709,7 @@ TSharedPtr<FJsonObject> FEditorNavTools::ViewportFocus(const TSharedPtr<FJsonObj
                         ViewportClient->SetViewRotation(CurrentRotation);
                         ViewportClient->Invalidate();
                 }
-                else
-                {
-                        UEditorViewportLibrary::SetViewportCameraLocation(LocationTarget);
-                }
+                // else { UEditorViewportLibrary::SetViewportCameraLocation(LocationTarget); }  // NOT AVAILABLE
         }
         else
         {

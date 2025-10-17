@@ -15,8 +15,6 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "Misc/Char.h"
-#include "String/LexFromString.h"
-#include "String/LexToString.h"
 #include "NiagaraActor.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"

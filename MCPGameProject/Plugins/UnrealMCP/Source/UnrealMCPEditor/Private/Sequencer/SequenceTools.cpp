@@ -12,7 +12,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Engine/EngineTypes.h"
-#include "Factories/LevelSequenceFactoryNew.h"
+// #include "Factories/LevelSequenceFactoryNew.h"  // NOT AVAILABLE in Epic Games Launcher UE 5.6
 #include "LevelSequence.h"
 #include "Misc/PackageName.h"
 #include "Modules/ModuleManager.h"
@@ -20,9 +20,7 @@
 #include "MovieSceneObjectBindingID.h"
 #include "MovieSceneSequence.h"
 #include "Permissions/WriteGate.h"
-#include "Sections/MovieSceneSection.h"
-#include "String/LexFromString.h"
-#include "String/LexToString.h"
+#include "MovieSceneSection.h"
 #include "GameFramework/Actor.h"
 #include "Sections/MovieSceneCameraCutSection.h"
 #include "SourceControlService.h"
@@ -411,8 +409,8 @@ TSharedPtr<FJsonObject> FSequenceTools::Create(const TSharedPtr<FJsonObject>& Pa
     }
 
     FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-    ULevelSequenceFactoryNew* Factory = NewObject<ULevelSequenceFactoryNew>();
-    UObject* NewAsset = AssetToolsModule.Get().CreateAsset(AssetName, PackageFolder, ULevelSequence::StaticClass(), Factory);
+    // ULevelSequenceFactoryNew not available - create asset directly
+    UObject* NewAsset = AssetToolsModule.Get().CreateAsset(AssetName, PackageFolder, ULevelSequence::StaticClass(), nullptr);
     ULevelSequence* LevelSequence = Cast<ULevelSequence>(NewAsset);
     if (!LevelSequence)
     {
