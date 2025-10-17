@@ -5,6 +5,7 @@ Python/unreal_mcp.log
 .cursorrules
 .cursorignore
 CLAUDE.md
+nul
 
 # Code-copy related files
 .codeignore
@@ -160,6 +161,3 @@ Backup/
 #
 UNREAL/Source/
 UNREAL/SOURCE/
-
-# Logs
-logs/*

@@ -5,14 +5,12 @@ description = "Unreal MCP Server: A server for Unreal Engine integration via the
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "mcp[cli]>=0.1.8",
+  "mcp[cli]>=1.4.1",
   "fastmcp>=0.2.0",
   "uvicorn",
   "fastapi",
   "pydantic>=2.6.1",
-  "requests",
-  "pyyaml",
-  "jsonschema",
+  "requests"
 ]
 
 [build-system]
