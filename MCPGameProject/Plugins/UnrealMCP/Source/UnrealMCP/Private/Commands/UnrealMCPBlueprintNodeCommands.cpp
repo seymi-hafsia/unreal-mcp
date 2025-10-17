@@ -1,5 +1,6 @@
 #include "Commands/UnrealMCPBlueprintNodeCommands.h"
 #include "Commands/UnrealMCPCommonUtils.h"
+#include "UnrealMCPModule.h"
 #include "Engine/Blueprint.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "EdGraph/EdGraph.h"
@@ -16,9 +17,6 @@
 #include "Camera/CameraActor.h"
 #include "Kismet/GameplayStatics.h"
 #include "EdGraphSchema_K2.h"
-
-// Declare the log category
-DEFINE_LOG_CATEGORY_STATIC(LogUnrealMCP, Log, All);
 
 FUnrealMCPBlueprintNodeCommands::FUnrealMCPBlueprintNodeCommands()
 {

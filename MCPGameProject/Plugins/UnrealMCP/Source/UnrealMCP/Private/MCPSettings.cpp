@@ -8,6 +8,9 @@ UMCPSettings::UMCPSettings()
 	, bAutoStartServer(true)
 	, ReceiveBufferSize(65536)
 	, CommandTimeout(30.0f)
+	, ClientTimeout(300.0f) // 5 minutes default
+	, HeartbeatInterval(30.0f) // 30 seconds default
+	, MaxMessageSizeMB(10)
 	, bVerboseLogging(false)
 	, bLogCommands(true)
 	, bLogResponses(false)

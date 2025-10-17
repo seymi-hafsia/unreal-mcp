@@ -2,6 +2,9 @@
 #include "UnrealMCPBridge.h"
 #include "UnrealMCPModule.h"
 #include "MCPJsonHelpers.h"
+#include "MCPDynamicBuffer.h"
+#include "MCPClientConnection.h"
+#include "MCPSettings.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
@@ -14,7 +17,7 @@
 #include "HAL/PlatformTime.h"
 
 // Buffer size for receiving data (use internal linkage and unique name to avoid symbol clashes)
-namespace { constexpr int32 MCPReceiveBufferSize = 65536; } // Increased from 8192 to 64KB
+namespace { constexpr int32 MCPReceiveChunkSize = 65536; } // 64KB per read
 
 FMCPServerRunnable::FMCPServerRunnable(UUnrealMCPBridge* InBridge, TSharedPtr<FSocket> InListenerSocket)
     : Bridge(InBridge)
@@ -91,35 +94,54 @@ void FMCPServerRunnable::HandleClientConnection(TSharedPtr<FSocket> InClientSock
         return;
     }
 
-    uint8 Buffer[MCPReceiveBufferSize + 1];
-    FString MessageBuffer;
+    // Get settings
+    const UMCPSettings* Settings = GetDefault<UMCPSettings>();
+    const int32 MaxBufferSize = Settings->MaxMessageSizeMB * 1024 * 1024;
 
-    while (bRunning && InClientSocket.IsValid() && InClientSocket->GetConnectionState() == SCS_Connected)
+    // Create client connection tracker
+    FMCPClientConnection ClientConnection(InClientSocket, TEXT("MCP_Client"));
+
+    // Use dynamic buffer for handling large payloads
+    FMCPDynamicBuffer MessageBuffer;
+    TArray<uint8> ChunkBuffer;
+    ChunkBuffer.SetNum(MCPReceiveChunkSize);
+
+    double LastHeartbeatTime = FPlatformTime::Seconds();
+
+    while (bRunning && ClientConnection.IsAlive())
     {
         int32 BytesRead = 0;
-        bool bReadSuccess = InClientSocket->Recv(Buffer, MCPReceiveBufferSize, BytesRead, ESocketReceiveFlags::None);
+        bool bReadSuccess = InClientSocket->Recv(ChunkBuffer.GetData(), MCPReceiveChunkSize, BytesRead, ESocketReceiveFlags::None);
 
         if (BytesRead > 0)
         {
-            // Convert received data to string
-            Buffer[BytesRead] = 0; // Null terminate
-            FString ReceivedData = UTF8_TO_TCHAR(Buffer);
-            MessageBuffer.Append(ReceivedData);
+            // Update activity timestamp
+            ClientConnection.UpdateLastActivity();
 
-            // Process complete messages (messages are terminated with newline)
-            if (MessageBuffer.Contains(TEXT("\n")))
+            // Append to dynamic buffer
+            MessageBuffer.Append(ChunkBuffer.GetData(), BytesRead);
+
+            // Extract and process complete messages
+            TArray<FString> Messages;
+            int32 NumExtracted = MessageBuffer.ExtractMessages(Messages);
+
+            if (NumExtracted > 0)
             {
-                TArray<FString> Messages;
-                MessageBuffer.ParseIntoArray(Messages, TEXT("\n"), true);
+                UE_LOG(LogUnrealMCP, Verbose, TEXT("Extracted %d message(s)"), NumExtracted);
 
-                // Process all complete messages
-                for (int32 i = 0; i < Messages.Num() - 1; ++i)
+                for (const FString& Message : Messages)
                 {
-                    ProcessMessage(InClientSocket, Messages[i]);
+                    ClientConnection.IncrementMessageCount();
+                    ProcessMessage(InClientSocket, Message);
                 }
+            }
 
-                // Keep any incomplete message in the buffer
-                MessageBuffer = Messages.Last();
+            // Check if buffer is growing too large (potential attack or bad client)
+            if (MessageBuffer.GetSize() > MaxBufferSize)
+            {
+                UE_LOG(LogUnrealMCP, Error, TEXT("Message buffer exceeded %dMB limit, disconnecting client"),
+                    Settings->MaxMessageSizeMB);
+                break;
             }
         }
         else if (!bReadSuccess)
@@ -129,6 +151,25 @@ void FMCPServerRunnable::HandleClientConnection(TSharedPtr<FSocket> InClientSock
             {
                 UE_LOG(LogUnrealMCP, Warning, TEXT("Connection error: %d"), LastError);
                 break;
+            }
+        }
+
+        // Check for client timeout
+        if (Settings->ClientTimeout > 0.0f && ClientConnection.HasTimedOut(Settings->ClientTimeout))
+        {
+            UE_LOG(LogUnrealMCP, Warning, TEXT("Client timed out after %.1f seconds of inactivity"),
+                ClientConnection.GetTimeSinceLastActivity());
+            break;
+        }
+
+        // Send heartbeat if enabled
+        if (Settings->HeartbeatInterval > 0.0f)
+        {
+            double CurrentTime = FPlatformTime::Seconds();
+            if (CurrentTime - LastHeartbeatTime >= Settings->HeartbeatInterval)
+            {
+                SendHeartbeat(InClientSocket);
+                LastHeartbeatTime = CurrentTime;
             }
         }
 
@@ -207,5 +248,25 @@ void FMCPServerRunnable::ProcessMessage(TSharedPtr<FSocket> Client, const FStrin
     if (!Client->Send((uint8*)TCHAR_TO_UTF8(*Response), Response.Len(), BytesSent))
     {
         UE_LOG(LogUnrealMCP, Error, TEXT("Failed to send response for command: %s"), *CommandType);
+    }
+}
+
+void FMCPServerRunnable::SendHeartbeat(TSharedPtr<FSocket> Client)
+{
+    // Create heartbeat message
+    TSharedPtr<FJsonObject> HeartbeatObj = MakeShareable(new FJsonObject());
+    HeartbeatObj->SetStringField(TEXT("type"), TEXT("heartbeat"));
+    HeartbeatObj->SetNumberField(TEXT("timestamp"), FPlatformTime::Seconds());
+
+    FString HeartbeatMsg = FMCPJsonHelpers::SerializeJson(HeartbeatObj) + TEXT("\n");
+    int32 BytesSent = 0;
+
+    if (Client->Send((uint8*)TCHAR_TO_UTF8(*HeartbeatMsg), HeartbeatMsg.Len(), BytesSent))
+    {
+        UE_LOG(LogUnrealMCP, VeryVerbose, TEXT("Heartbeat sent"));
+    }
+    else
+    {
+        UE_LOG(LogUnrealMCP, Warning, TEXT("Failed to send heartbeat"));
     }
 } 
