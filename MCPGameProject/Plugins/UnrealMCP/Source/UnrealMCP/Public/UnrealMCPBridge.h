@@ -13,6 +13,7 @@
 #include "Commands/UnrealMCPBlueprintNodeCommands.h"
 #include "Commands/UnrealMCPProjectCommands.h"
 #include "Commands/UnrealMCPUMGCommands.h"
+#include "MCPMetrics.h"
 #include "UnrealMCPBridge.generated.h"
 
 class FMCPServerRunnable;
@@ -44,6 +45,11 @@ public:
 	// Command execution
 	FString ExecuteCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params);
 
+	// Metrics access
+	const FMCPMetrics& GetMetrics() const { return Metrics; }
+	void LogMetrics() const { Metrics.LogMetrics(); }
+	void ResetMetrics() { Metrics.Reset(); }
+
 private:
 	// Server state
 	bool bIsRunning;
@@ -61,4 +67,7 @@ private:
 	TSharedPtr<FUnrealMCPBlueprintNodeCommands> BlueprintNodeCommands;
 	TSharedPtr<FUnrealMCPProjectCommands> ProjectCommands;
 	TSharedPtr<FUnrealMCPUMGCommands> UMGCommands;
+
+	// Metrics tracker
+	FMCPMetrics Metrics;
 }; 

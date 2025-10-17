@@ -1,5 +1,7 @@
 #include "UnrealMCPBridge.h"
+#include "UnrealMCPModule.h"
 #include "MCPServerRunnable.h"
+#include "MCPSettings.h"
 #include "Sockets.h"
 #include "SocketSubsystem.h"
 #include "HAL/RunnableThread.h"
@@ -58,10 +60,6 @@
 #include "Commands/UnrealMCPCommonUtils.h"
 #include "Commands/UnrealMCPUMGCommands.h"
 
-// Default settings
-#define MCP_SERVER_HOST "127.0.0.1"
-#define MCP_SERVER_PORT 55557
-
 UUnrealMCPBridge::UUnrealMCPBridge()
 {
     EditorCommands = MakeShared<FUnrealMCPEditorCommands>();
@@ -83,23 +81,35 @@ UUnrealMCPBridge::~UUnrealMCPBridge()
 // Initialize subsystem
 void UUnrealMCPBridge::Initialize(FSubsystemCollectionBase& Collection)
 {
-    UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Initializing"));
-    
+    UE_LOG(LogUnrealMCP, Log, TEXT("MCP Bridge initializing"));
+
     bIsRunning = false;
     ListenerSocket = nullptr;
     ConnectionSocket = nullptr;
     ServerThread = nullptr;
-    Port = MCP_SERVER_PORT;
-    FIPv4Address::Parse(MCP_SERVER_HOST, ServerAddress);
 
-    // Start the server automatically
-    StartServer();
+    // Load settings
+    const UMCPSettings* Settings = GetDefault<UMCPSettings>();
+    Port = Settings->ServerPort;
+    FIPv4Address::Parse(*Settings->ServerHost, ServerAddress);
+
+    UE_LOG(LogUnrealMCP, Log, TEXT("Server configuration: %s:%d"), *Settings->ServerHost, Settings->ServerPort);
+
+    // Start the server automatically if enabled in settings
+    if (Settings->bAutoStartServer)
+    {
+        StartServer();
+    }
+    else
+    {
+        UE_LOG(LogUnrealMCP, Log, TEXT("Auto-start disabled, server not started"));
+    }
 }
 
 // Clean up resources when subsystem is destroyed
 void UUnrealMCPBridge::Deinitialize()
 {
-    UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Shutting down"));
+    UE_LOG(LogUnrealMCP, Log, TEXT("MCP Bridge shutting down"));
     StopServer();
 }
 
@@ -108,7 +118,7 @@ void UUnrealMCPBridge::StartServer()
 {
     if (bIsRunning)
     {
-        UE_LOG(LogTemp, Warning, TEXT("UnrealMCPBridge: Server is already running"));
+        UE_LOG(LogUnrealMCP, Warning, TEXT("Server already running"));
         return;
     }
 
@@ -116,7 +126,7 @@ void UUnrealMCPBridge::StartServer()
     ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
     if (!SocketSubsystem)
     {
-        UE_LOG(LogTemp, Error, TEXT("UnrealMCPBridge: Failed to get socket subsystem"));
+        UE_LOG(LogUnrealMCP, Error, TEXT("Failed to get socket subsystem"));
         return;
     }
 
@@ -124,7 +134,7 @@ void UUnrealMCPBridge::StartServer()
     TSharedPtr<FSocket> NewListenerSocket = MakeShareable(SocketSubsystem->CreateSocket(NAME_Stream, TEXT("UnrealMCPListener"), false));
     if (!NewListenerSocket.IsValid())
     {
-        UE_LOG(LogTemp, Error, TEXT("UnrealMCPBridge: Failed to create listener socket"));
+        UE_LOG(LogUnrealMCP, Error, TEXT("Failed to create listener socket"));
         return;
     }
 
@@ -136,20 +146,20 @@ void UUnrealMCPBridge::StartServer()
     FIPv4Endpoint Endpoint(ServerAddress, Port);
     if (!NewListenerSocket->Bind(*Endpoint.ToInternetAddr()))
     {
-        UE_LOG(LogTemp, Error, TEXT("UnrealMCPBridge: Failed to bind listener socket to %s:%d"), *ServerAddress.ToString(), Port);
+        UE_LOG(LogUnrealMCP, Error, TEXT("Failed to bind to %s:%d"), *ServerAddress.ToString(), Port);
         return;
     }
 
     // Start listening
     if (!NewListenerSocket->Listen(5))
     {
-        UE_LOG(LogTemp, Error, TEXT("UnrealMCPBridge: Failed to start listening"));
+        UE_LOG(LogUnrealMCP, Error, TEXT("Failed to start listening"));
         return;
     }
 
     ListenerSocket = NewListenerSocket;
     bIsRunning = true;
-    UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Server started on %s:%d"), *ServerAddress.ToString(), Port);
+    UE_LOG(LogUnrealMCP, Log, TEXT("MCP Server started on %s:%d"), *ServerAddress.ToString(), Port);
 
     // Start server thread
     ServerThread = FRunnableThread::Create(
@@ -160,7 +170,7 @@ void UUnrealMCPBridge::StartServer()
 
     if (!ServerThread)
     {
-        UE_LOG(LogTemp, Error, TEXT("UnrealMCPBridge: Failed to create server thread"));
+        UE_LOG(LogUnrealMCP, Error, TEXT("Failed to create server thread"));
         StopServer();
         return;
     }
@@ -197,23 +207,32 @@ void UUnrealMCPBridge::StopServer()
         ListenerSocket.Reset();
     }
 
-    UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Server stopped"));
+    UE_LOG(LogUnrealMCP, Log, TEXT("MCP Server stopped"));
 }
 
 // Execute a command received from a client
 FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TSharedPtr<FJsonObject>& Params)
 {
-    UE_LOG(LogTemp, Display, TEXT("UnrealMCPBridge: Executing command: %s"), *CommandType);
-    
+    const UMCPSettings* Settings = GetDefault<UMCPSettings>();
+
+    if (Settings->bLogCommands)
+    {
+        UE_LOG(LogUnrealMCP, Log, TEXT("Executing: %s"), *CommandType);
+    }
+
+    // Start timing
+    double StartTime = FPlatformTime::Seconds();
+
     // Create a promise to wait for the result
     TPromise<FString> Promise;
     TFuture<FString> Future = Promise.GetFuture();
-    
+
     // Queue execution on Game Thread
-    AsyncTask(ENamedThreads::GameThread, [this, CommandType, Params, Promise = MoveTemp(Promise)]() mutable
+    AsyncTask(ENamedThreads::GameThread, [this, CommandType, Params, StartTime, Promise = MoveTemp(Promise)]() mutable
     {
         TSharedPtr<FJsonObject> ResponseJson = MakeShareable(new FJsonObject);
-        
+        bool bCommandSuccess = false;
+
         try
         {
             TSharedPtr<FJsonObject> ResultJson;
@@ -308,25 +327,42 @@ FString UUnrealMCPBridge::ExecuteCommand(const FString& CommandType, const TShar
                 // Set success status and include the result
                 ResponseJson->SetStringField(TEXT("status"), TEXT("success"));
                 ResponseJson->SetObjectField(TEXT("result"), ResultJson);
+                bCommandSuccess = true;
             }
             else
             {
                 // Set error status and include the error message
                 ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
                 ResponseJson->SetStringField(TEXT("error"), ErrorMessage);
+                bCommandSuccess = false;
             }
         }
         catch (const std::exception& e)
         {
             ResponseJson->SetStringField(TEXT("status"), TEXT("error"));
             ResponseJson->SetStringField(TEXT("error"), UTF8_TO_TCHAR(e.what()));
+            bCommandSuccess = false;
         }
-        
+
+        // Calculate execution time and record metrics
+        double ExecutionTime = FPlatformTime::Seconds() - StartTime;
+        const_cast<UUnrealMCPBridge*>(this)->Metrics.RecordCommand(CommandType, ExecutionTime, bCommandSuccess);
+
+        // Log response if enabled
+        const UMCPSettings* Settings = GetDefault<UMCPSettings>();
+        if (Settings->bLogResponses)
+        {
+            FString ResultString;
+            TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
+            FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);
+            UE_LOG(LogUnrealMCP, Verbose, TEXT("Response: %s"), *ResultString);
+        }
+
         FString ResultString;
         TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&ResultString);
         FJsonSerializer::Serialize(ResponseJson.ToSharedRef(), Writer);
         Promise.SetValue(ResultString);
     });
-    
+
     return Future.Get();
 }

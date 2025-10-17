@@ -3,6 +3,9 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+// Declare log category for UnrealMCP
+DECLARE_LOG_CATEGORY_EXTERN(LogUnrealMCP, Log, All);
+
 class FUnrealMCPModule : public IModuleInterface
 {
 public:
