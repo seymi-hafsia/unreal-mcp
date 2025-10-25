@@ -13,7 +13,15 @@
       "Bash(\"D:\\Mes jeux\\Epic Games\\UE_5.6\\Engine\\Build\\BatchFiles\\Build.bat\" -projectfiles -project=\"D:\\Projets\\fork-unreal-mcp\\MCPGameProject\\MCPGameProject.uproject\" -game -rocket -progress)",
       "Bash(\"D:\\Mes jeux\\Epic Games\\UE_5.6\\Engine\\Build\\BatchFiles\\Build.bat\" MCPGameProjectEditor Win64 Development \"D:\\Projets\\fork-unreal-mcp\\MCPGameProject\\MCPGameProject.uproject\" -waitmutex -NoHotReloadFromIDE)",
       "Bash(python -c:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(python:*)",
+      "Read(//d/**)",
+      "Bash(/dev/null -printf '%T@ %p\\n')",
+      "Bash(\"D:\\Mes jeux\\Epic Games\\UE_5.6\\Engine\\Build\\BatchFiles\\Build.bat\" xodusEditor Win64 Development \"D:\\Unreal Engine\\Unreal Projects\\xodus\\xodus.uproject\" -waitmutex)",
+      "Bash(\"/d/Mes jeux/Epic Games/UE_5.6/Engine/Build/BatchFiles/Build.bat\" xodusEditor Win64 Development \"/d/Unreal Engine/Unreal Projects/xodus/xodus.uproject\" -waitmutex)",
+      "Bash(cmd /c \"\"\"D:\\Mes jeux\\Epic Games\\UE_5.6\\Engine\\Build\\BatchFiles\\Build.bat\"\" xodusEditor Win64 Development \"\"D:\\Unreal Engine\\Unreal Projects\\xodus\\xodus.uproject\"\" -waitmutex\")",
+      "Bash(\"D:\\Mes jeux\\Epic Games\\UE_5.6\\Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.exe\" -ModuleWithSuffix=UnrealMCP 6980)",
+      "Bash(\"D:\\Mes jeux\\Epic Games\\UE_5.6\\Engine\\Binaries\\DotNET\\UnrealBuildTool\\UnrealBuildTool.exe\" xodusEditor Win64 Development -Project=\"D:\\Unreal Engine\\Unreal Projects\\xodus\\xodus.uproject\" -WaitMutex -FromMsBuild)"
     ],
     "deny": [],
     "ask": []

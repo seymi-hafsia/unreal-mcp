@@ -107,11 +107,12 @@ int32 FMCPDynamicBuffer::ExtractMessages(TArray<FString>& OutMessages)
     // Convert buffer to string
     FString AllData = ToString();
 
-    // Split by newlines
+    // Split by newlines (CullEmpty = false to preserve empty parts)
     TArray<FString> Parts;
-    AllData.ParseIntoArray(Parts, TEXT("\n"), true);
+    AllData.ParseIntoArray(Parts, TEXT("\n"), false);
 
     // Extract complete messages (all but the last part)
+    // The last part is either empty (if message ended with \n) or incomplete
     int32 NumMessages = Parts.Num() - 1;
     for (int32 i = 0; i < NumMessages; ++i)
     {
