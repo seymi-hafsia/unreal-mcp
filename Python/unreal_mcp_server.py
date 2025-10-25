@@ -140,9 +140,9 @@ class UnrealConnection:
             return None
         
         try:
-            # Xodus version expects "type" field
+            # MCPGameProject version expects "command" field
             command_obj = {
-                "type": command,  # Xodus plugin expects "type" field
+                "command": command,  # MCPGameProject plugin expects "command" field
                 "params": params or {}
             }
             
